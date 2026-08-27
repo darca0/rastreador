@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rastreador Veicular v12.0</title>
+<title>Rastreador Veicular v14.0</title>
 <meta name="application-name" content="Rastreador">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -15,8 +15,6 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #111; color: #fff; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-
-  /* LOGIN */
   #loginScreen { position: fixed; inset: 0; background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; gap: 16px; }
   #loginScreen h1 { font-size: 22px; font-weight: 700; }
   #loginScreen p  { font-size: 13px; color: #888; }
@@ -28,8 +26,6 @@
   .numpad button { width: 72px; height: 72px; border-radius: 50%; background: #222; border: 1px solid #333; color: #fff; font-size: 24px; cursor: pointer; transition: all 0.1s; }
   .numpad button:active { background: #1565C0; transform: scale(0.95); }
   #loginError { color: #f44336; font-size: 13px; min-height: 18px; }
-
-  /* TOPBAR */
   #topbar { background: rgba(0,0,0,0.85); padding: 8px 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; z-index: 1000; border-bottom: 1px solid #222; }
   .badge { padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid; }
   .badge-ok   { background: #2e7d3288; color: #a5d6a7; border-color: #2e7d32; }
@@ -40,8 +36,6 @@
   #nomeUsuario { font-size: 12px; color: #4caf50; font-weight: 700; }
   #topbar button { background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 4px 12px; border-radius: 16px; font-size: 12px; cursor: pointer; }
   #topbar button:active { background: #1565C0; }
-
-  /* LISTA DE VEÍCULOS */
   #veiculosList { background: rgba(0,0,0,0.85); border-bottom: 1px solid #222; overflow-x: auto; display: flex; gap: 6px; padding: 6px 10px; z-index: 999; }
   .veiculo-btn { flex-shrink: 0; padding: 6px 14px; border-radius: 20px; border: 2px solid #333; background: #1a1a1a; color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
   .veiculo-btn.ativo     { border-color: #1565C0; background: #1565C020; }
@@ -49,22 +43,13 @@
   .veiculo-btn.pendente  { border-color: #f9a825; }
   .veiculo-btn.liberado  { border-color: #2e7d32; }
   #semVeiculos { color: #555; font-size: 13px; padding: 6px 4px; }
-
-  /* MAPA */
   #map { flex: 1; }
-
-  /* ALERTA CENTRAL DE PÂNICO (SOS) */
-  #panicAlert { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:9999;
-    background:rgba(183, 28, 28, 0.95); color:#fff; padding:18px 30px; border-radius:16px;
-    border:3px solid #fff; box-shadow:0 0 30px rgba(255,0,0,0.8);
-    text-align:center; cursor:pointer; max-width:90vw; }
+  #panicAlert { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:9999; background:rgba(183, 28, 28, 0.95); color:#fff; padding:18px 30px; border-radius:16px; border:3px solid #fff; box-shadow:0 0 30px rgba(255,0,0,0.8); text-align:center; cursor:pointer; max-width:90vw; }
   #panicAlert strong { font-size:26px; display:block; letter-spacing:2px; margin-bottom:8px; }
   #panicAlert span { font-size:14px; opacity:0.9; }
   #panicAlert small { font-size:11px; opacity:0.8; display:block; margin-top:8px; }
   @keyframes panicPulse { 0% { transform:translate(-50%, -50%) scale(1); opacity:1; } 50% { transform:translate(-50%, -50%) scale(1.05); opacity:0.9; } 100% { transform:translate(-50%, -50%) scale(1); opacity:1; } }
   #panicAlert.pulsing { animation:panicPulse 0.8s infinite; }
-
-  /* PAINEL */
   #panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.88); padding: 6px 10px; z-index: 1000; border-top: 1px solid #222; }
   #panelNome { font-size: 11px; font-weight: 700; color: #90caf9; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .info-row { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 4px; }
@@ -78,22 +63,14 @@
   .btn-center { flex: 0 0 42px; background: #1565C0; color: #fff; border-radius: 10px; border: none; font-size: 16px; cursor: pointer; }
   #logBox { max-height: 40px; overflow-y: auto; margin-top: 3px; }
   #auxRow { display: flex; margin-top: 4px; }
-
-  /* Botão salvar */
-  #btnSalvar { position:absolute; top:60px; right:10px; z-index:999;
-    background:rgba(0,0,0,0.7); border:1px solid #444; color:#fff;
-    padding:6px 12px; border-radius:20px; font-size:12px; cursor:pointer; }
+  #btnSalvar { position:absolute; top:60px; right:10px; z-index:999; background:rgba(0,0,0,0.7); border:1px solid #444; color:#fff; padding:6px 12px; border-radius:20px; font-size:12px; cursor:pointer; }
   .btn-aux { flex: 1; padding: 9px; border-radius: 10px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; background: #1565C0; color: #fff; transition: all 0.2s; }
   .btn-aux:active { transform: scale(0.97); background: #0d47a1; }
   .log-line { font-size: 11px; color: #666; }
   .log-ok   { color: #4caf50; }
   .log-err  { color: #ef5350; }
   .log-warn { color: #ffa726; }
-
-  /* BOTÃO TODOS */
   #btnTodos { position: absolute; top: 120px; right: 10px; z-index: 999; background: rgba(0,0,0,0.7); border: 1px solid #444; color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; display: none; }
-
-  /* Modal confirmação AUX */
   #modalAux { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center; }
   #modalAux.show { display:flex; }
   #modalBox { background:#1a1a1a; border:1px solid #1565C0; border-radius:14px; padding:20px; width:80%; max-width:320px; text-align:center; }
@@ -103,7 +80,6 @@
   .modal-btns button { flex:1; padding:10px; border-radius:10px; border:none; font-size:14px; font-weight:700; cursor:pointer; }
   #modalConfirm { background:#1565C0; color:#fff; }
   #modalCancel  { background:#333; color:#aaa; }
-
   #pendenteBanner { background: #f9a825dd; border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 600; text-align: center; color: #fff; display: none; margin-bottom: 4px; }
 </style>
 </head>
@@ -232,7 +208,7 @@ let veiculos    = {};
 let ativoId     = null;
 let pinBuffer   = '';
 let currentStyle = 'map';
-
+ <script>
 // ═══════════════════════════════════════════════════
 //  LOGIN
 // ═══════════════════════════════════════════════════
@@ -513,11 +489,7 @@ function processarGPS(chipId, d) {
 // ═══════════════════════════════════════════════════
 //  STATUS
 // ═══════════════════════════════════════════════════
-function processarStatus(chipId, d)  if (m === 'panico_cancelado') {
-      panicoCancelavel = true;
-      clearInterval(panicoTimer);
-      cancelarPanico();
-  } {
+function processarStatus(chipId, d) {
   const v = obterVeiculo(chipId);
   if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
   if (d.pendente  !== undefined) v.pendente  = d.pendente  === true;
@@ -532,6 +504,12 @@ function processarStatus(chipId, d)  if (m === 'panico_cancelado') {
       document.getElementById('panicAlert').classList.remove('pulsing');
       document.getElementById('panicAlertTimer').textContent = '⚠️ TRAVADO — Só desliga no painel';
       addLog('🚨 Pânico TRAVADO pelo ESP [' + chipId.slice(-4) + ']', 'log-err');
+  }
+  
+  if (m === 'panico_cancelado') {
+      panicoCancelavel = true;
+      clearInterval(panicoTimer);
+      cancelarPanico();
   }
 
   if (v.bloqueado)               addLog('[' + chipId.slice(-4) + '] BLOQUEADO — ' + m, 'log-err');
