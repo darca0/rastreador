@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rastreador Veicular v11.0 (MapLibre)</title>
+<title>Rastreador Veicular v12.0</title>
 <meta name="application-name" content="Rastreador">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Rastreador">
 <meta name="theme-color" content="#1b5e20">
-<link href="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css" rel="stylesheet" />
-<script src="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -203,6 +203,11 @@ const USUARIOS = {
   'zerruela': '3412'
 };
 
+const TILES = {
+  map:       { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attr: '© OpenStreetMap', label: '🛰 Satélite' },
+  satellite: { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attr: '© OpenStreetMap', label: '🗺 Mapa claro' }
+};
+
 // ═══════════════════════════════════════════════════
 //  ESTADO
 // ═══════════════════════════════════════════════════
@@ -211,7 +216,7 @@ let usuarioId = _u.toLowerCase().trim();
 if (!usuarioId || !(usuarioId in USUARIOS)) usuarioId = 'admin';
 
 document.getElementById('loginNome').textContent = '👤 ' + usuarioId.toUpperCase();
-let map, mqttClient;
+let map, tileLayer, mqttClient;
 
 // ✅ Ajustes: 6 minutos e Raio de 50 metros
 const PARADA_MIN_MS  = 360000; // 6 min
@@ -226,7 +231,7 @@ let panicoChipId     = null;
 let veiculos    = {};
 let ativoId     = null;
 let pinBuffer   = '';
-let currentStyle = 'liberty';
+let currentStyle = 'map';
 
 // ═══════════════════════════════════════════════════
 //  LOGIN
@@ -263,53 +268,19 @@ function updateDots(err) {
 }
 
 // ═══════════════════════════════════════════════════
-//  MAPA (MapLibre GL JS + OpenFreeMap)
+//  MAPA
 // ═══════════════════════════════════════════════════
 function iniciarApp() {
-  // Centro: Piracicaba [lng, lat]
-  const center = [-47.6659, -22.7078];
-
-  map = new maplibregl.Map({
-    container: 'map',
-style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',    
-    center: center,
-    zoom: 13
-  });
-
-  map.addControl(new maplibregl.NavigationControl(), 'top-left');
-
-  // Adiciona fonte e camada para as linhas (trail)
-  map.on('load', () => {
-    map.addSource('trails', {
-      type: 'geojson',
-      data: { type: 'FeatureCollection', features: [] }
-    });
-
-    map.addLayer({
-      id: 'trails-line',
-      type: 'line',
-      source: 'trails',
-      paint: {
-        'line-color': '#1565C0',
-        'line-width': 3,
-        'line-opacity': 0.8
-      }
-    });
-  });
-
+  map = L.map('map', { zoomControl: false }).setView([-22.7078, -47.6659], 13);
+  L.control.zoom({ position: 'topleft' }).addTo(map);
+  tileLayer = L.tileLayer(TILES['map'].url, { attribution: TILES['map'].attr, maxZoom: 19 }).addTo(map);
   conectarMQTT();
 }
 
 function nextMapStyle() {
-  // Muda entre estilos do OpenFreeMap
-  if (currentStyle === 'liberty') {
-    map.setStyle('https://tiles.openfreemap.org/styles/bright');
-    currentStyle = 'bright';
-  } else {
-    map.setStyle('https://tiles.openfreemap.org/styles/liberty');
-    currentStyle = 'liberty';
-  }
-  document.getElementById('mapStyleBtn').textContent = currentStyle === 'liberty' ? '🛰 Satélite' : '🗺 Mapa claro';
+  currentStyle = currentStyle === 'map' ? 'satellite' : 'map';
+  tileLayer.setUrl(TILES[currentStyle].url);
+  document.getElementById('mapStyleBtn').textContent = TILES[currentStyle].label;
 }
 
 // ═══════════════════════════════════════════════════
@@ -379,7 +350,7 @@ function cmdAtivo(comando) {
   }
   atualizarPainel(ativoId);
   atualizarBotaoLista(ativoId);
-  if (v.marker) v.marker.setLngLat([v.lng, v.lat]);
+  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
 }
 
 // ═══════════════════════════════════════════════════
@@ -393,13 +364,13 @@ function obterVeiculo(chipId) {
       bloqueado: false, pendente: false,
       vel: 0, sat: 0, rssi: 0, alt: 0,
       marker: null,
+      trail: L.polyline([], { color: '#1565C0', weight: 3, opacity: 0.8 }).addTo(map),
       ultimaPos: null,
       paradaInicio: null,
       paradaPos: null,
       paradaCirculo: null,
       pingos: [],
-      contadorParadas: 0,
-      lng: 0, lat: 0
+      contadorParadas: 0
     };
     adicionarBotao(chipId);
     atualizarContagem();
@@ -429,7 +400,7 @@ function selecionarVeiculo(chipId) {
   if (v) {
     document.getElementById('panelNome').textContent = '🚗 ' + v.nome + ' (' + chipId + ')';
     atualizarPainel(chipId);
-    if (v.ultimaPos) map.flyTo({ center: v.ultimaPos, zoom: 16 });
+    if (v.ultimaPos) map.setView(v.ultimaPos, 16);
   }
 }
 
@@ -452,34 +423,19 @@ function processarGPS(chipId, d) {
   }
   if (!d.lat || !d.lng) return;
 
-  const pos = [d.lng, d.lat]; // [lng, lat] (MapLibre)
-  v.lng = d.lng;
-  v.lat = d.lat;
+  const pos = L.latLng(parseFloat(d.lat), parseFloat(d.lng));
   v.ultimaPos = pos;
   const cor = corMarcador(v);
 
-  // Markers e trails
   if (!v.marker) {
-    v.marker = new maplibregl.Marker({ color: cor })
-      .setLngLat(pos)
-      .addTo(map);
-    if (chipId === ativoId) map.flyTo({ center: pos, zoom: 16 });
+    v.marker = L.marker(pos, { icon: mkIcon(cor) }).addTo(map);
+    v.marker.bindTooltip(v.nome);
+    if (chipId === ativoId) map.setView(pos, 16);
   } else {
-    v.marker.setLngLat(pos);
-    v.marker.setColor(cor);
+    v.marker.setLatLng(pos);
+    v.marker.setIcon(mkIcon(cor));
   }
-
-  // Atualiza trail (linha)
-  if (map.getSource('trails')) {
-    const features = v.trailFeatures || [];
-    features.push({ type: 'Feature', geometry: { type: 'Point', coordinates: pos } });
-    v.trailFeatures = features;
-
-    map.getSource('trails').setData({
-      type: 'FeatureCollection',
-      features: v.trailFeatures
-    });
-  }
+  v.trail.addLatLng(pos);
 
   // ── Detecta parada prolongada (Anti-oscilação 50m) ──
   if (v.vel <= PARADA_VEL) {
@@ -488,7 +444,7 @@ function processarGPS(chipId, d) {
       v.paradaPos    = pos;
       addLog('[' + chipId.slice(-4) + '] Parada detectada vel=' + v.vel.toFixed(1), 'log-warn');
     } else {
-      const dist = Math.sqrt(Math.pow(pos[0] - v.paradaPos[0], 2) + Math.pow(pos[1] - v.paradaPos[1], 2)) * 111320;
+      const dist = map.distance(v.paradaPos, pos);
       if (dist > RAIO_PARADA_M) {
         v.paradaInicio = Date.now();
         v.paradaPos    = pos;
@@ -509,18 +465,33 @@ function processarGPS(chipId, d) {
         if (!v.paradaCirculo) {
           v.contadorParadas++;
 
-          const png = `<svg xmlns="http://www.w3.org/2000/svg" width="46" height="60" viewBox="0 0 60 80">
+          const pingoSVG = (num) => `<svg xmlns="http://www.w3.org/2000/svg" width="46" height="60" viewBox="0 0 60 80">
             <path d="M30 0 C13 0 0 13 0 30 C0 47 30 80 30 80 C30 80 60 47 60 30 C60 13 47 0 30 0Z" fill="#FF6B00" stroke="#CC5500" stroke-width="2"/>
             <circle cx="30" cy="28" r="18" fill="white" opacity="0.95"/>
-            <text x="30" y="33" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="14" font-weight="900" fill="#CC5500">P${v.contadorParadas}</text>
+            <text x="30" y="33" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="14" font-weight="900" fill="#CC5500">P${num}</text>
           </svg>`;
 
-          v.paradaCirculo = new maplibregl.Marker({ element: createDivIcon(png) })
-            .setLngLat(v.paradaPos)
-            .addTo(map);
+          const icone = L.divIcon({
+            className: '',
+            html: pingoSVG(v.contadorParadas),
+            iconSize: [46, 60],
+            iconAnchor: [23, 60],
+            popupAnchor: [0, -60]
+          });
+          v.paradaCirculo = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
           addLog('[' + chipId.slice(-4) + '] Parada ' + v.contadorParadas + ' registrada (6min+)', 'log-warn');
         } else {
-          // Atualizar marcador (será feito manualmente, mas ok)
+          const novoIcone = L.divIcon({
+            className: '',
+            html: `<svg xmlns="http://www.w3.org/2000/svg" width="46" height="60" viewBox="0 0 60 80">
+              <path d="M30 0 C13 0 0 13 0 30 C0 47 30 80 30 80 C30 80 60 47 60 30 C60 13 47 0 30 0Z" fill="#FF6B00" stroke="#CC5500" stroke-width="2"/>
+              <circle cx="30" cy="28" r="18" fill="white" opacity="0.95"/>
+              <text x="30" y="33" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="14" font-weight="900" fill="#CC5500">P${v.contadorParadas}</text>
+            </svg>`,
+            iconSize: [46, 60],
+            iconAnchor: [23, 60]
+          });
+          v.paradaCirculo.setIcon(novoIcone);
         }
       }
     }
@@ -546,7 +517,7 @@ function processarStatus(chipId, d) {
   const v = obterVeiculo(chipId);
   if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
   if (d.pendente  !== undefined) v.pendente  = d.pendente  === true;
-  if (v.marker) v.marker.setColor(corMarcador(v));
+  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
   atualizarBotaoLista(chipId);
   if (chipId === ativoId) atualizarPainel(chipId);
   const m = d.motivo || '';
@@ -618,10 +589,13 @@ function corMarcador(v) {
   if (v.pendente)  return '#f9a825';
   return '#2e7d32';
 }
-function createDivIcon(html) {
-  const div = document.createElement('div');
-  div.innerHTML = html;
-  return div;
+function mkIcon(cor) {
+  return L.divIcon({
+    className: '',
+    html: '<div style="width:22px;height:22px;border-radius:50%;background:' + cor +
+          ';border:3px solid #fff;box-shadow:0 0 0 2px ' + cor + ',0 2px 8px rgba(0,0,0,0.5)"></div>',
+    iconSize: [22, 22], iconAnchor: [11, 11]
+  });
 }
 function setBadge(id, txt, cls) {
   const el = document.getElementById(id);
@@ -634,13 +608,13 @@ function atualizarContagem() {
 }
 function centralizarAtivo() {
   if (!ativoId || !veiculos[ativoId]?.ultimaPos) return;
-  map.flyTo({ center: veiculos[ativoId].ultimaPos, zoom: 16 });
+  map.setView(veiculos[ativoId].ultimaPos, 16);
 }
 function centralizarTodos() {
   const pts = Object.values(veiculos).filter(v => v.ultimaPos).map(v => v.ultimaPos);
   if (!pts.length) return;
-  if (pts.length === 1) { map.flyTo({ center: pts[0], zoom: 15 }); return; }
-  map.fitBounds(pts, { padding: [40, 40] });
+  if (pts.length === 1) { map.setView(pts[0], 15); return; }
+  map.fitBounds(L.latLngBounds(pts), { padding: [40, 40] });
 }
 function addLog(msg, cls) {
   const box = document.getElementById('logBox');
@@ -719,8 +693,8 @@ function salvarMapa() {
 
   let resumo = `<!DOCTYPE html><html><head><meta charset="UTF-8">
   <title>Rastreador — Trajeto ${dataArq}</title>
-  <link href="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.css" rel="stylesheet" />
-  <script src="https://unpkg.com/maplibre-gl@latest/dist/maplibre-gl.js"><\/script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
   <style>
     body{font-family:system-ui;background:#111;color:#fff;margin:0;padding:0;}
     #mapaExport{width:100%;height:60vh;}
@@ -742,19 +716,21 @@ function salvarMapa() {
   <h2>🛡️ Rastreador — Trajeto salvo em ${data}</h2>`;
 
   Object.values(veiculos).forEach(v => {
+    const pontos = v.trail.getLatLngs();
     const status = v.bloqueado ? '<span class="verm">BLOQUEADO</span>' : '<span class="verde">LIBERADO</span>';
+
     resumo += `<h3>🚗 ${v.nome} (${v.chipId}) — ${status}</h3>`;
-    resumo += `<p>📍 Paradas: <b>${v.pingos.length}</b></p>`;
+    resumo += `<p>📍 Pontos registrados: <b>${pontos.length}</b> | 🅿️ Paradas: <b>${v.pingos.length}</b></p>`;
 
     if (v.pingos.length > 0) {
-      resumo += '<h4>🅿️ Paradas registradas:</h4><table>';
+      resumo += '<h4>🅿️ Paradas registradas (tempo real):</h4><table>';
       resumo += '<tr><th>Parada</th><th>Duração</th><th>Localização</th><th>Google Maps</th></tr>';
       v.pingos.forEach((p, i) => {
-        const ll = p.marker.getLngLat();
+        const ll = p.marker.getLatLng();
         resumo += `<tr>
           <td><b>P${p.num || (i+1)}</b></td>
           <td>${p.mins} min</td>
-          <td>${ll.lng.toFixed(6)}, ${ll.lat.toFixed(6)}</td>
+          <td>${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}</td>
           <td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td>
         </tr>`;
       });
@@ -762,9 +738,39 @@ function salvarMapa() {
     }
   });
 
+  const trailData = Object.values(veiculos).map(v => ({
+    nome: v.nome,
+    chipId: v.chipId,
+    pontos: v.trail.getLatLngs().map(p => [p.lat, p.lng]),
+    pingos: v.pingos.map(p => ({ ll: p.marker.getLatLng(), mins: p.mins, num: p.num })),
+    bloqueado: v.bloqueado
+  }));
+
   resumo += `</div>
   <script>
-  const map = new maplibregl.Map({ container: 'mapaExport', style: 'https://tiles.openfreemap.org/styles/liberty', center: [-47.6659, -22.7078], zoom: 12 });
+  const dados = ${JSON.stringify(trailData)};
+  const m = L.map('mapaExport');
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(m);
+  const bounds = [];
+  dados.forEach(v => {
+    if (v.pontos.length > 0) {
+      const poly = L.polyline(v.pontos, {color:'#1565C0',weight:3,opacity:0.8}).addTo(m);
+      v.pontos.forEach(p => bounds.push(p));
+      L.circleMarker(v.pontos[v.pontos.length-1], {radius:8,color:'#2e7d32',fillColor:'#2e7d32',fillOpacity:1}).addTo(m)
+        .bindTooltip(v.nome, {permanent:false});
+    }
+    v.pingos.forEach(p => {
+      const num = p.num || 1;
+      const svg = \`<svg xmlns="http://www.w3.org/2000/svg" width="46" height="60" viewBox="0 0 60 80">
+        <path d="M30 0 C13 0 0 13 0 30 C0 47 30 80 30 80 C30 80 60 47 60 30 C60 13 47 0 30 0Z" fill="#FF6B00" stroke="#CC5500" stroke-width="2"/>
+        <circle cx="30" cy="28" r="18" fill="white" opacity="0.95"/>
+        <text x="30" y="33" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="14" font-weight="900" fill="#CC5500">P${num}</text>
+      </svg>\`;
+      L.marker([p.ll.lat, p.ll.lng], {icon: L.divIcon({className:'',html:svg,iconSize:[46,60],iconAnchor:[23,60]})}).addTo(m);
+      bounds.push([p.ll.lat, p.ll.lng]);
+    });
+  });
+  if (bounds.length > 0) m.fitBounds(bounds, {padding:[30,30]});
   <\/script>
   </body></html>`;
 
@@ -775,7 +781,7 @@ function salvarMapa() {
   a.download = 'trajeto_' + dataArq + '.html';
   a.click();
   URL.revokeObjectURL(url);
-  addLog('💾 Trajeto salvo!', 'log-ok');
+  addLog('💾 Trajeto salvo com ' + Object.values(veiculos).reduce((s,v) => s + v.trail.getLatLngs().length, 0) + ' pontos!', 'log-ok');
 }
 </script>
 </body>
