@@ -2,12 +2,14 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Rastreador v15.0</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Rastreador v16.0</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
     * { box-sizing: border-box; font-family: system-ui, sans-serif; }
     body { margin: 0; background: #111; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-
-    /* LOGIN */
     #loginScreen { position: fixed; inset: 0; background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; }
     #loginScreen h1 { font-size: 24px; }
     #loginNome { color: #4caf50; font-weight: 700; margin-bottom: 20px; }
@@ -18,16 +20,21 @@
     .numpad button { height: 70px; border-radius: 50%; background: #222; border: 1px solid #333; color: #fff; font-size: 24px; cursor: pointer; }
     .numpad button:active { background: #1565C0; }
     #loginError { color: #f44336; margin-top: 10px; min-height: 18px; }
-
-    /* MAPA */
+    #topbar { display: none; background: rgba(0,0,0,0.85); padding: 6px 12px; align-items: center; gap: 8px; }
+    .badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+    .badge-ok { background: #2e7d32; color: #fff; }
+    .badge-off { background: #444; color: #aaa; }
     #map { flex: 1; width: 100%; }
+    #panel { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.9); padding: 8px; border-top: 1px solid #444; }
+    .info-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .info-pill { background: #222; border: 1px solid #444; border-radius: 8px; padding: 3px 10px; font-size: 12px; }
+    .btn-row { display: flex; gap: 6px; }
+    .btn { flex: 1; padding: 10px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; }
+    .btn-green { background: #2e7d32; color: #fff; }
+    .btn-red { background: #c62828; color: #fff; }
 </style>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
-
-<!-- LOGIN -->
 <div id="loginScreen">
     <h1>🛡️ Rastreador</h1>
     <p id="loginNome">ADMIN</p>
@@ -40,49 +47,63 @@
         <button onclick="pin('del')">⌫</button><button onclick="pin('0')">0</button><button onclick="pin('del')">✕</button>
     </div>
 </div>
-
-<!-- MAPA -->
+<div id="topbar">
+    <span style="font-weight:700">🛡️</span>
+    <span id="nomeUsuario"></span>
+    <span class="badge badge-off" id="mqttBadge">Desconectado</span>
+</div>
 <div id="map"></div>
-
+<div id="panel">
+    <div id="panelNome">Aguardando veículo...</div>
+    <div class="info-row">
+        <span class="info-pill" id="pVel">0.0 km/h</span>
+        <span class="info-pill" id="pSat">0 sat</span>
+        <span class="info-pill" id="pRssi">— dBm</span>
+    </div>
+    <div class="btn-row">
+        <button class="btn btn-red" id="btnBlock" onclick="cmdAtivo('BLOQUEAR')" style="display:none">🔴 Bloqueado</button>
+        <button class="btn btn-green" id="btnUnlock" onclick="cmdAtivo('DESBLOQUEAR')">🟢 Liberado</button>
+    </div>
+</div>
 <script>
-    // CONFIGURAÇÃO
-    const USUARIOS = { 'admin': '8912', 'zerruela': '3412' };
-    const _u = new URLSearchParams(window.location.search).get('u') || '';
-    let usuarioId = _u.toLowerCase().trim();
-    if (!usuarioId || !(usuarioId in USUARIOS)) usuarioId = 'admin';
-    document.getElementById('loginNome').textContent = '👤 ' + usuarioId.toUpperCase();
-
-    let pinBuffer = '';
-    function pin(v) {
-        if (v === 'del') { pinBuffer = pinBuffer.slice(0, -1); }
-        else if (pinBuffer.length < 4) { pinBuffer += v; }
-        updateDots();
-        if (pinBuffer.length === 4) {
-            if (pinBuffer === USUARIOS[usuarioId]) {
-                document.getElementById('loginScreen').style.display = 'none';
-                iniciarMapa();
-            } else {
-                document.getElementById('loginError').textContent = 'PIN incorreto';
-                pinBuffer = '';
-                updateDots();
-                setTimeout(() => { document.getElementById('loginError').textContent = ''; }, 1000);
-            }
+const USUARIOS = { 'admin': '8912', 'zerruela': '3412' };
+const _u = new URLSearchParams(window.location.search).get('u') || '';
+let usuarioId = _u.toLowerCase().trim();
+if (!usuarioId || !(usuarioId in USUARIOS)) usuarioId = 'admin';
+document.getElementById('loginNome').textContent = '👤 ' + usuarioId.toUpperCase();
+let pinBuffer = '';
+let map, mqttClient, tileLayer;
+let veiculos = {};
+let ativoId = null;
+function pin(v) {
+    if (v === 'del') { pinBuffer = pinBuffer.slice(0, -1); }
+    else if (pinBuffer.length < 4) { pinBuffer += v; }
+    updateDots();
+    if (pinBuffer.length === 4) {
+        if (pinBuffer === USUARIOS[usuarioId]) {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('topbar').style.display = 'flex';
+            document.getElementById('panel').style.display = 'block';
+            document.getElementById('nomeUsuario').textContent = '👤 ' + usuarioId.toUpperCase();
+            iniciarMapa();
+            conectarMQTT();
+        } else {
+            document.getElementById('loginError').textContent = 'PIN incorreto';
+            pinBuffer = '';
+            updateDots();
+            setTimeout(() => { document.getElementById('loginError').textContent = ''; }, 1000);
         }
     }
-    function updateDots() {
-        document.querySelectorAll('.pin-dot').forEach((d, i) => {
-            d.className = 'pin-dot' + (i < pinBuffer.length ? ' filled' : '');
-        });
-    }
-
-    // MAPA
-    function iniciarMapa() {
-        const map = L.map('map').setView([-22.7078, -47.6659], 13);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap',
-            maxZoom: 19
-        }).addTo(map);
-    }
+}
+function updateDots() {
+    document.querySelectorAll('.pin-dot').forEach((d, i) => {
+        d.className = 'pin-dot' + (i < pinBuffer.length ? ' filled' : '');
+    });
+}
+function iniciarMapa() {
+    map = L.map('map').setView([-22.7078, -47.6659], 13);
+    tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(map);
+}
 </script>
 </body>
 </html>
