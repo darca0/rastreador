@@ -513,7 +513,11 @@ function processarGPS(chipId, d) {
 // ═══════════════════════════════════════════════════
 //  STATUS
 // ═══════════════════════════════════════════════════
-function processarStatus(chipId, d) {
+function processarStatus(chipId, d)  if (m === 'panico_cancelado') {
+      panicoCancelavel = true;
+      clearInterval(panicoTimer);
+      cancelarPanico();
+  } {
   const v = obterVeiculo(chipId);
   if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
   if (d.pendente  !== undefined) v.pendente  = d.pendente  === true;
