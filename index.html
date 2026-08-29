@@ -3,789 +3,195 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rastreador Veicular v2</title>
-<meta name="application-name" content="Rastreador">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Rastreador">
-<meta name="theme-color" content="#1b5e20">
+<title>Rastreador v24.0 FINAL</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: system-ui, sans-serif; background: #111; color: #fff; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-
-  /* LOGIN */
-  #loginScreen { position: fixed; inset: 0; background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; gap: 16px; }
-  #loginScreen h1 { font-size: 22px; font-weight: 700; }
-  #loginScreen p  { font-size: 13px; color: #888; }
-  .pin-dot { width: 16px; height: 16px; border-radius: 50%; background: #333; border: 2px solid #555; transition: all 0.15s; }
-  .pin-dot.filled { background: #1565C0; border-color: #1565C0; }
-  .pin-dot.error  { background: #b71c1c; border-color: #b71c1c; }
-  #pinDisplay { display: flex; gap: 12px; margin: 8px 0; }
-  .numpad { display: grid; grid-template-columns: repeat(3, 72px); gap: 10px; margin-top: 8px; }
-  .numpad button { width: 72px; height: 72px; border-radius: 50%; background: #222; border: 1px solid #333; color: #fff; font-size: 24px; cursor: pointer; transition: all 0.1s; }
-  .numpad button:active { background: #1565C0; transform: scale(0.95); }
-  #loginError { color: #f44336; font-size: 13px; min-height: 18px; }
-
-  /* TOPBAR */
-  #topbar { background: rgba(0,0,0,0.85); padding: 8px 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; z-index: 1000; border-bottom: 1px solid #222; }
-  .badge { padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid; }
-  .badge-ok   { background: #2e7d3288; color: #a5d6a7; border-color: #2e7d32; }
-  .badge-err  { background: #c6282888; color: #ef9a9a; border-color: #c62828; }
-  .badge-warn { background: #f9a82588; color: #fff8e1; border-color: #f9a825; animation: blink 1s infinite; }
-  .badge-off  { background: #33333388; color: #888; border-color: #444; }
-  @keyframes blink { 50% { opacity: 0.5; } }
-  #nomeUsuario { font-size: 12px; color: #4caf50; font-weight: 700; }
-  #topbar button { background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 4px 12px; border-radius: 16px; font-size: 12px; cursor: pointer; }
-  #topbar button:active { background: #1565C0; }
-
-  /* LISTA DE VEÍCULOS */
-  #veiculosList { background: rgba(0,0,0,0.85); border-bottom: 1px solid #222; overflow-x: auto; display: flex; gap: 6px; padding: 6px 10px; z-index: 999; }
-  .veiculo-btn { flex-shrink: 0; padding: 6px 14px; border-radius: 20px; border: 2px solid #333; background: #1a1a1a; color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-  .veiculo-btn.ativo     { border-color: #1565C0; background: #1565C020; }
-  .veiculo-btn.bloqueado { border-color: #c62828; }
-  .veiculo-btn.pendente  { border-color: #f9a825; }
-  .veiculo-btn.liberado  { border-color: #2e7d32; }
-  #semVeiculos { color: #555; font-size: 13px; padding: 6px 4px; }
-
-  /* MAPA */
-  #map { flex: 1; }
-
-  /* PAINEL */
-  #panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.88); padding: 6px 10px; z-index: 1000; border-top: 1px solid #222; }
-  #panelNome { font-size: 11px; font-weight: 700; color: #90caf9; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .info-row { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 4px; }
-  .info-pill { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 2px 8px; font-size: 11px; color: #ccc; }
-  .btn-row { display: flex; gap: 4px; }
-  .map-btn { flex: 1; padding: 9px 4px; border-radius: 10px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-  .map-btn:active { transform: scale(0.97); }
-  .btn-block  { background: #c62828; color: #fff; }
-  .btn-unlock { background: #2e7d32; color: #fff; }
-  .btn-cancel { background: #f9a825; color: #fff; }
-  .btn-center { flex: 0 0 42px; background: #1565C0; color: #fff; border-radius: 10px; border: none; font-size: 16px; cursor: pointer; }
-  #logBox { max-height: 40px; overflow-y: auto; margin-top: 3px; }
-  #auxRow { display: flex; margin-top: 4px; }
-
-  /* LED Pânico */
-  /* LED Pânico — canto superior direito discreto */
-  #panicWidget { display:none; position:fixed; top:8px; right:80px; z-index:9998;
-    display:none; align-items:center; gap:6px; background:rgba(0,0,0,0.7);
-    border:1px solid #c62828; border-radius:20px; padding:4px 10px; cursor:pointer; }
-  #panicDot { width:12px; height:12px; border-radius:50%; background:#ff0000;
-    box-shadow:0 0 6px #ff0000; animation:panicoLed 0.4s infinite alternate; flex-shrink:0; }
-  #panicTxt { font-size:11px; font-weight:700; color:#ff6666; letter-spacing:1px; }
-  @keyframes panicoLed { from{opacity:1;} to{opacity:0.2;} }
-  #panicBanner { display:none; position:fixed; top:0; left:0; right:0; z-index:9997;
-    background:#b71c1c; color:#fff; text-align:center; padding:8px;
-    font-weight:700; font-size:13px; }
-
-  /* Botão salvar */
-  #btnSalvar { position:absolute; top:60px; right:10px; z-index:999;
-    background:rgba(0,0,0,0.7); border:1px solid #444; color:#fff;
-    padding:6px 12px; border-radius:20px; font-size:12px; cursor:pointer; }
-  .btn-aux { flex: 1; padding: 9px; border-radius: 10px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; background: #1565C0; color: #fff; transition: all 0.2s; }
-  .btn-aux:active { transform: scale(0.97); background: #0d47a1; }
-  .log-line { font-size: 11px; color: #666; }
-  .log-ok   { color: #4caf50; }
-  .log-err  { color: #ef5350; }
-  .log-warn { color: #ffa726; }
-
-  /* BOTÃO TODOS */
-  #btnTodos { position: absolute; top: 120px; right: 10px; z-index: 999; background: rgba(0,0,0,0.7); border: 1px solid #444; color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; display: none; }
-
-  /* BANNER PENDENTE */
-  /* Modal confirmação AUX */
-  #modalAux { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center; }
-  #modalAux.show { display:flex; }
-  #modalBox { background:#1a1a1a; border:1px solid #1565C0; border-radius:14px; padding:20px; width:80%; max-width:320px; text-align:center; }
-  #modalBox p { font-size:14px; color:#ccc; margin-bottom:16px; line-height:1.5; }
-  #modalBox strong { color:#fff; font-size:16px; display:block; margin-bottom:8px; }
-  .modal-btns { display:flex; gap:10px; }
-  .modal-btns button { flex:1; padding:10px; border-radius:10px; border:none; font-size:14px; font-weight:700; cursor:pointer; }
-  #modalConfirm { background:#1565C0; color:#fff; }
-  #modalCancel  { background:#333; color:#aaa; }
-
-  #pendenteBanner { background: #f9a825dd; border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 600; text-align: center; color: #fff; display: none; margin-bottom: 4px; }
+*{box-sizing:border-box;font-family:system-ui,sans-serif;margin:0;padding:0}
+body{background:#111;color:#fff;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+#loginScreen{position:fixed;inset:0;background:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999}
+#loginScreen h1{font-size:24px}#loginNome{color:#4caf50;font-weight:700;margin-bottom:20px}
+.pin-dot{width:15px;height:15px;border-radius:50%;background:#333;border:2px solid #555;display:inline-block;margin:5px}
+.pin-dot.filled{background:#1565C0;border-color:#1565C0}
+#pinDisplay{margin-bottom:20px}.numpad{display:grid;grid-template-columns:repeat(3,70px);gap:12px}
+.numpad button{height:70px;border-radius:50%;background:#222;border:1px solid #333;color:#fff;font-size:24px;cursor:pointer}
+.numpad button:active{background:#1565C0}
+#loginError{color:#f44336;margin-top:10px;min-height:18px}
+#topbar{display:none;background:rgba(0,0,0,.85);padding:6px 12px;align-items:center;gap:8px}
+.badge{padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700}.badge-ok{background:#2e7d32;color:#fff}.badge-off{background:#444;color:#aaa}
+#map{flex:1;width:100%}
+#panel{display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,.9);padding:8px;border-top:1px solid #444}
+#panelNome{font-size:12px;margin-bottom:6px}
+.info-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.info-pill{background:#222;border:1px solid #444;border-radius:8px;padding:3px 10px;font-size:12px}
+.btn-row{display:flex;gap:6px}.btn{flex:1;padding:10px;border:none;border-radius:8px;font-weight:700;cursor:pointer}
+.btn-green{background:#2e7d32;color:#fff}.btn-red{background:#c62828;color:#fff}
+#panicAlert{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#b71c1c;color:#fff;padding:20px;border-radius:12px;text-align:center;z-index:9999;cursor:pointer}
+#panicAlert strong{font-size:26px;display:block;margin-bottom:8px}
+@keyframes pulse{0%{opacity:1}50%{opacity:.6}100%{opacity:1}}
+#panicAlert.pulsing{animation:pulse .8s infinite}
 </style>
 </head>
 <body>
-
-<!-- LOGIN -->
 <div id="loginScreen">
-  <h1>🛡️ Rastreador</h1>
-  <p id="loginNome" style="color:#4caf50;font-weight:700;font-size:18px;letter-spacing:2px">👤 ADMIN</p>
-  <p>Digite seu PIN de 4 dígitos</p>
-  <div id="pinDisplay"><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div></div>
-  <div id="loginError"></div>
-  <div class="numpad">
-    <button onclick="pin('1')">1</button><button onclick="pin('2')">2</button><button onclick="pin('3')">3</button>
-    <button onclick="pin('4')">4</button><button onclick="pin('5')">5</button><button onclick="pin('6')">6</button>
-    <button onclick="pin('7')">7</button><button onclick="pin('8')">8</button><button onclick="pin('9')">9</button>
-    <button onclick="pin('del')">⌫</button><button onclick="pin('0')">0</button><button onclick="pin('del')">✕</button>
-  </div>
+<h1>🛡️ Rastreador</h1>
+<p id="loginNome">ADMIN</p>
+<div id="pinDisplay"><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div></div>
+<div id="loginError"></div>
+<div class="numpad">
+<button onclick="pin('1')">1</button><button onclick="pin('2')">2</button><button onclick="pin('3')">3</button>
+<button onclick="pin('4')">4</button><button onclick="pin('5')">5</button><button onclick="pin('6')">6</button>
+<button onclick="pin('7')">7</button><button onclick="pin('8')">8</button><button onclick="pin('9')">9</button>
+<button onclick="pin('del')">⌫</button><button onclick="pin('0')">0</button><button onclick="pin('del')">✕</button>
 </div>
-
-<!-- TOPBAR -->
-<div id="topbar" style="display:none">
-  <span style="font-size:13px;font-weight:700">🛡️</span>
-  <span id="nomeUsuario"></span>
-  <span class="badge badge-off" id="mqttBadge">Desconectado</span>
-  <button onclick="conectarMQTT()">🔌 Conectar</button>
-  <button onclick="nextMapStyle()" id="mapStyleBtn">🛰 Satélite</button>
-  <span class="badge badge-off" id="veiculosBadge" style="margin-left:auto">0 veículos</span>
 </div>
-
-<!-- LISTA DE VEÍCULOS -->
-<div id="veiculosList" style="display:none">
-  <span id="semVeiculos">Aguardando veículos...</span>
-</div>
-
-<!-- PÂNICO -->
-<div id="panicBanner">🚨 PÂNICO ATIVADO — Veículo em perigo! <span id="panicTimer"></span></div>
-<div id="panicWidget" title="Clique para cancelar (60s)" onclick="cancelarPanico()">
-  <div id="panicDot"></div>
-  <span id="panicTxt">PÂNICO</span>
-  <span id="panicTimer" style="font-size:10px;color:#aaa;"></span>
-</div>
-
-<!-- BOTÃO SALVAR -->
-<button id="btnSalvar" onclick="salvarMapa()">💾 Salvar</button>
-
-<!-- MAPA -->
+<div id="topbar"><span style="font-weight:700">🛡️</span><span id="nomeUsuario"></span><span class="badge badge-off" id="mqttBadge">Desconectado</span><button onclick="nextMapStyle()" id="mapStyleBtn" style="margin-left:auto;background:#222;color:#fff;border:1px solid #444;padding:4px 10px;border-radius:12px;font-size:11px;cursor:pointer">🛰 Satélite</button></div>
 <div id="map"></div>
-<button id="btnTodos" onclick="centralizarTodos()">⊕ Todos</button>
-
-<!-- PAINEL — sempre visível após login -->
-<div id="panel" style="display:none">
-  <div id="panelNome">Aguardando veículo...</div>
-  <div id="pendenteBanner">🟡 Aguardando velocidade ≤ 8 km/h...</div>
-  <div class="info-row">
-    <span class="info-pill" id="pVel">0.0 km/h</span>
-    <span class="info-pill" id="pSat">0 sat</span>
-    <span class="info-pill" id="pRssi">— dBm</span>
-    <span class="info-pill" id="pAlt">— m</span>
-    <span class="badge badge-off" id="pStatus">Aguardando</span>
-  </div>
-  <div class="btn-row">
-    <button class="map-btn btn-block"  id="btnBlock"  onclick="cmdAtivo('BLOQUEAR')"         style="display:none">🔴 Bloqueado</button>
-    <button class="map-btn btn-cancel" id="btnCancel" onclick="cmdAtivo('CANCELAR_BLOQUEIO')" style="display:none">🟡 Aguardando...</button>
-    <button class="map-btn btn-unlock" id="btnUnlock" onclick="cmdAtivo('DESBLOQUEAR')"       >🟢 Liberado</button>
-    <button class="btn-center" onclick="centralizarAtivo()">◎</button>
-  </div>
-  <div id="auxRow">
-    <button class="btn-aux" onclick="acionarAux()">🔓 AUX — Destravar Portas (emergência)</button>
-  </div>
-  <div id="logBox"></div>
+<div id="panicAlert" onclick="cancelarPanico()"><strong>🚨 PÂNICO ATIVADO</strong><span id="panicTimer">60s para cancelar</span></div>
+<div id="panel">
+<div id="panelNome">Aguardando veículo...</div>
+<div class="info-row"><span class="info-pill" id="pVel">0.0 km/h</span><span class="info-pill" id="pSat">0 sat</span><span class="info-pill" id="pRssi">— dBm</span></div>
+<div class="btn-row"><button class="btn btn-red" id="btnBlock" onclick="cmd('BLOQUEAR')" style="display:none">🔴 Bloqueado</button><button class="btn btn-green" id="btnUnlock" onclick="cmd('DESBLOQUEAR')">🟢 Liberado</button></div>
 </div>
-
-<!-- Modal AUX -->
-<div id="modalAux">
-  <div id="modalBox">
-    <strong>🔓 Destravar Portas</strong>
-    <p>Enviar pulso de 2 segundos para destravamento de emergência?</p>
-    <div class="modal-btns">
-      <button id="modalCancel"  onclick="fecharModal()">Cancelar</button>
-      <button id="modalConfirm" onclick="confirmarAux()">Confirmar</button>
-    </div>
-  </div>
-</div>
-
 <script>
-// ═══════════════════════════════════════════════════
-//  CONFIGURAÇÃO
-// ═══════════════════════════════════════════════════
-const BROKER_WSS  = 'wss://5e7c95681b9f45068546a87087ed9e2c.s1.eu.hivemq.cloud/mqtt';
-const BROKER_PORT = 8884;
-
-const USUARIOS = {
-  'fulano':   '1234',
-  'cicrano':  '0123',
-  'beltrano': '9012',
-  'admin':    '8912',
-  'zerruela': '3412'
-};
-
-const TILES = {
-  map:       { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attr: '© OpenStreetMap', label: '🛰 Satélite' },
-  satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr: '© Esri', label: '🗺 Mapa claro' }
-};
-
-// ═══════════════════════════════════════════════════
-//  ESTADO
-// ═══════════════════════════════════════════════════
-// usuarioId lido da URL — executa direto pois script está no final do body
-const _u = new URLSearchParams(window.location.search).get('u') || '';
-let usuarioId = _u.toLowerCase().trim();
-if (!usuarioId || !(usuarioId in USUARIOS)) usuarioId = 'admin';
-// DOM já pronto — atualiza nome imediatamente
-document.getElementById('loginNome').textContent = '👤 ' + usuarioId.toUpperCase();
-let map, tileLayer, mqttClient;
-const PARADA_MIN_MS  = 120000; // 2 min para teste (600000 = 10min produção)
-let panicoAtivo      = false;
-let panicoTimer      = null;
-let panicoCancelavel = true;
-let panicoChipId     = null; // 2 minutos para teste (mudar para 600000 em produção)
-const PARADA_VEL     = 2.0;    // km/h — considera parado
-let veiculos    = {};
-let ativoId     = null;
-let pinBuffer   = '';
-let currentStyle = 'map';
-
-// ═══════════════════════════════════════════════════
-//  INICIALIZAÇÃO
-// ═══════════════════════════════════════════════════
-
-// ═══════════════════════════════════════════════════
-//  LOGIN
-// ═══════════════════════════════════════════════════
-function pin(v) {
-  if (!usuarioId || !(usuarioId in USUARIOS)) usuarioId = 'admin'; // segurança
-  if (v === 'del') { pinBuffer = pinBuffer.slice(0, -1); }
-  else if (pinBuffer.length < 4) { pinBuffer += v; }
-  updateDots(false);
-  if (pinBuffer.length === 4) {
-    if (pinBuffer === USUARIOS[usuarioId]) {
-      document.getElementById('loginScreen').style.display  = 'none';
-      document.getElementById('topbar').style.display       = '';
-      document.getElementById('veiculosList').style.display = '';
-      document.getElementById('panel').style.display        = 'block';
-      document.getElementById('nomeUsuario').textContent    = '👤 ' + usuarioId.toUpperCase();
-      iniciarApp();
-      // Garante estado inicial correto dos botões
-      setTimeout(() => {
-        const bB = document.getElementById('btnBlock');
-        const bC = document.getElementById('btnCancel');
-        const bU = document.getElementById('btnUnlock');
-        bB.style.display = 'none';
-        bC.style.display = 'none';
-        bU.style.display = '';
-      }, 100);
-    } else {
-      updateDots(true);
-      document.getElementById('loginError').textContent = 'PIN incorreto';
-      setTimeout(() => { pinBuffer = ''; updateDots(false); document.getElementById('loginError').textContent = ''; }, 1200);
-    }
-  }
+const USUARIOS={'admin':'8912','zerruela':'3412'};
+const _u=new URLSearchParams(window.location.search).get('u')||'';
+let usuarioId=_u.toLowerCase().trim();
+if(!usuarioId||!(usuarioId in USUARIOS))usuarioId='admin';
+document.getElementById('loginNome').textContent='👤 '+usuarioId.toUpperCase();
+let pinBuffer='',map,mqttClient,tileLayer,veiculos={},ativoId=null;
+let currentStyle='map';
+const PARADA_MIN_MS=360000,RAIO=50,VEL_PARADA=2.0;
+let panicoAtivo=false,panicoTimer=null,panicoCancelavel=true;
+const BROKER_WSS='wss://5e7c95681b9f45068546a87087ed9e2c.s1.eu.hivemq.cloud/mqtt';
+const BROKER_PORT=8884;
+function pin(v){
+if(v==='del'){pinBuffer=pinBuffer.slice(0,-1)}else if(pinBuffer.length<4){pinBuffer+=v}
+updateDots();
+if(pinBuffer.length===4){
+if(pinBuffer===USUARIOS[usuarioId]){
+document.getElementById('loginScreen').style.display='none';
+document.getElementById('topbar').style.display='flex';
+document.getElementById('panel').style.display='block';
+document.getElementById('nomeUsuario').textContent='👤 '+usuarioId.toUpperCase();
+iniciarMapa();conectarMQTT();
+}else{
+document.getElementById('loginError').textContent='PIN incorreto';
+pinBuffer='';updateDots();
+setTimeout(()=>{document.getElementById('loginError').textContent=''},1000);
+}}}
+function updateDots(){document.querySelectorAll('.pin-dot').forEach((d,i)=>{d.className='pin-dot'+(i<pinBuffer.length?' filled':'')})}
+function iniciarMapa(){
+map=L.map('map').setView([-22.7078,-47.6659],13);
+tileLayer=L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(map);
 }
-function updateDots(err) {
-  document.querySelectorAll('.pin-dot').forEach((d, i) => {
-    d.className = 'pin-dot' + (i < pinBuffer.length ? (err ? ' error' : ' filled') : '');
-  });
+function nextMapStyle(){
+if(currentStyle==='map'){
+tileLayer.setUrl('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
+document.getElementById('mapStyleBtn').textContent='🗺 Mapa';
+currentStyle='satellite';
+}else{
+tileLayer.setUrl('https://tile.openstreetmap.org/{z}/{x}/{y}.png');
+document.getElementById('mapStyleBtn').textContent='🛰 Satélite';
+currentStyle='map';
 }
-
-// ═══════════════════════════════════════════════════
-//  MAPA
-// ═══════════════════════════════════════════════════
-function iniciarApp() {
-  map = L.map('map', { zoomControl: false }).setView([-22.7078, -47.6659], 13);
-  L.control.zoom({ position: 'topleft' }).addTo(map);
-  tileLayer = L.tileLayer(TILES[currentStyle].url, { attribution: TILES[currentStyle].attr, maxZoom: 19 }).addTo(map);
-  conectarMQTT();
 }
-
-function nextMapStyle() {
-  currentStyle = currentStyle === 'map' ? 'satellite' : 'map';
-  tileLayer.setUrl(TILES[currentStyle].url);
-  document.getElementById('mapStyleBtn').textContent = TILES[currentStyle].label;
+function conectarMQTT(){
+if(mqttClient){mqttClient.end(true)}
+setBadge('mqttBadge','Conectando...','badge-off');
+const clientId='Web_'+usuarioId+'_'+Math.random().toString(36).slice(2,6);
+mqttClient=mqtt.connect(BROKER_WSS,{port:BROKER_PORT,clientId,username:'ESP8266Dario',password:'3SP8266d4r10',reconnectPeriod:5000});
+mqttClient.on('connect',()=>{setBadge('mqttBadge','Conectado','badge-ok');mqttClient.subscribe('rastreador/'+usuarioId+'/+/gps');mqttClient.subscribe('rastreador/'+usuarioId+'/+/status');addLog('Conectado como '+usuarioId)});
+mqttClient.on('error',(e)=>addLog('MQTT Erro: '+e.message));
+mqttClient.on('message',(topic,payload)=>{
+try{
+const p=topic.split('/'),chipId=p[2],tipo=p[3],d=JSON.parse(payload.toString());
+if(tipo==='gps')processarGPS(chipId,d);
+if(tipo==='status')processarStatus(chipId,d);
+}catch(e){}});
 }
-
-// ═══════════════════════════════════════════════════
-//  MQTT
-// ═══════════════════════════════════════════════════
-function conectarMQTT() {
-  if (mqttClient) { mqttClient.end(true); }
-  setBadge('mqttBadge', 'Conectando...', 'badge-warn');
-  const clientId = 'Web_' + usuarioId + '_' + Math.random().toString(36).slice(2, 6);
-  mqttClient = mqtt.connect(BROKER_WSS, { port: BROKER_PORT, clientId, username: 'ESP8266Dario', password: '3SP8266d4r10', reconnectPeriod: 5000 });
-
-  mqttClient.on('connect', () => {
-    setBadge('mqttBadge', 'Conectado', 'badge-ok');
-    mqttClient.subscribe('rastreador/' + usuarioId + '/+/gps');
-    mqttClient.subscribe('rastreador/' + usuarioId + '/+/status');
-    addLog('Conectado como ' + usuarioId, 'log-ok');
-  });
-  mqttClient.on('disconnect', () => setBadge('mqttBadge', 'Desconectado', 'badge-off'));
-  mqttClient.on('offline',    () => setBadge('mqttBadge', 'Offline', 'badge-err'));
-  mqttClient.on('error', (e)  => addLog('Erro broker: ' + e.message, 'log-err'));
-
-  mqttClient.on('message', (topic, payload) => {
-    try {
-      const p      = topic.split('/');
-      const chipId = p[2];
-      const tipo   = p[3];
-      const d      = JSON.parse(payload.toString());
-      if (tipo === 'gps')    processarGPS(chipId, d);
-      if (tipo === 'status') processarStatus(chipId, d);
-      if (tipo === 'status' && d.motivo === 'panico') ativarPanico(chipId);
-      if (tipo === 'status' && d.motivo === 'panico_cancelado') cancelarPanico();
-    } catch(e) {}
-  });
+function cmd(comando){
+if(!ativoId)return;
+mqttClient.publish('rastreador/'+usuarioId+'/'+ativoId+'/cmd',comando);
+addLog('→ '+comando);
 }
-
-function cmd(chipId, comando) {
-  if (!mqttClient || !mqttClient.connected) { addLog('Sem conexão!', 'log-err'); return; }
-  mqttClient.publish('rastreador/' + usuarioId + '/' + chipId + '/cmd', comando);
-  addLog('→ ' + comando + ' [' + chipId.slice(-4) + ']', 'log-warn');
+function obterVeiculo(chipId){
+if(!veiculos[chipId]){
+veiculos[chipId]={chipId,nome:'Veículo '+chipId.slice(-4).toUpperCase(),bloqueado:false,pendente:false,vel:0,sat:0,rssi:0,alt:0,marker:null,trail:L.polyline([],{color:'#1565C0',weight:3,opacity:.8}).addTo(map),ultimaPos:null,paradaInicio:null,paradaPos:null,paradaCirculo:null,pingos:[],contador:0};
+if(!ativoId)ativoId=chipId;
 }
-function acionarAux() {
-  if (!ativoId) { addLog('Nenhum veículo selecionado', 'log-err'); return; }
-  document.getElementById('modalAux').classList.add('show');
+return veiculos[chipId];
 }
-function fecharModal() {
-  document.getElementById('modalAux').classList.remove('show');
+function processarGPS(chipId,d){
+const v=obterVeiculo(chipId);
+if(d.rssi!==undefined)v.rssi=d.rssi;if(d.sat!==undefined)v.sat=d.sat;if(d.spd!==undefined)v.vel=d.spd;
+if(d.bloqueado!==undefined)v.bloqueado=d.bloqueado===true;if(d.pendente!==undefined)v.pendente=d.pendente===true;
+if(d.fix===false)return;
+if(!d.lat||!d.lng)return;
+const pos=L.latLng(parseFloat(d.lat),parseFloat(d.lng));
+v.ultimaPos=pos;
+if(!v.marker){v.marker=L.marker(pos,{icon:mkIcon(cor(v))}).addTo(map);if(chipId===ativoId)map.setView(pos,16)}else{v.marker.setLatLng(pos);v.marker.setIcon(mkIcon(cor(v)))}
+v.trail.addLatLng(pos);
+if(v.vel<=VEL_PARADA){
+if(!v.paradaInicio){v.paradaInicio=Date.now();v.paradaPos=pos;addLog('Parada detectada')}
+else{
+const dist=map.distance(v.paradaPos,pos);
+if(dist>RAIO){v.paradaInicio=Date.now();v.paradaPos=pos;if(v.paradaCirculo){v.paradaCirculo.remove();v.paradaCirculo=null}}
+if(Date.now()-v.paradaInicio>=PARADA_MIN_MS){
+if(!v.paradaCirculo){v.contador++;const icone=L.divIcon({className:'',html:'<div style="background:#FF6B00;color:#fff;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-weight:bold;border:3px solid #fff">P'+v.contador+'</div>',iconSize:[40,40],iconAnchor:[20,20]});v.paradaCirculo=L.marker(v.paradaPos,{icon:icone}).addTo(map);addLog('Parada P'+v.contador+' registrada')}
+}}}
+else{if(v.paradaCirculo){v.paradaCirculo=null}v.paradaInicio=null;v.paradaPos=null}
+if(chipId===ativoId)atualizarPainel(v);
 }
-function confirmarAux() {
-  fecharModal();
-  cmd(ativoId, 'AUX_DESTRAVAR');
-  addLog('→ AUX destravamento acionado (2s)', 'log-warn');
+function processarStatus(chipId,d){
+const v=obterVeiculo(chipId);
+if(d.bloqueado!==undefined)v.bloqueado=d.bloqueado===true;if(d.pendente!==undefined)v.pendente=d.pendente===true;
+if(v.marker)v.marker.setIcon(mkIcon(cor(v)));
+if(d.motivo==='panico'){ativarPanico()}
+if(d.motivo==='panico_cancelado'){panicoCancelavel=true;cancelarPanico()}
+if(d.motivo==='panico_confirmado'){panicoCancelavel=false;clearInterval(panicoTimer);document.getElementById('panicAlert').classList.remove('pulsing');document.getElementById('panicTimer').textContent='⚠️ TRAVADO'}
+if(chipId===ativoId)atualizarPainel(v);
 }
-
-function cmdAtivo(comando) {
-  if (!ativoId) return;
-  cmd(ativoId, comando);
-  // Atualiza estado visual imediatamente sem esperar ESP confirmar
-  const v = veiculos[ativoId];
-  if (!v) return;
-  if (comando === 'BLOQUEAR') {
-    // Bloqueio aguarda velocidade — entra pendente
-    v.pendente  = true;
-    v.bloqueado = false;
-  } else if (comando === 'DESBLOQUEAR') {
-    // Libera imediatamente — sem pendente
-    v.pendente  = false;
-    v.bloqueado = false;
-  } else if (comando === 'CANCELAR_BLOQUEIO') {
-    v.pendente  = false;
-    v.bloqueado = false;
-  }
-  atualizarPainel(ativoId);
-  atualizarBotaoLista(ativoId);
-  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
+function atualizarPainel(v){
+document.getElementById('panelNome').textContent='🚗 '+v.nome+' ('+v.chipId+')';
+document.getElementById('pVel').textContent=v.vel.toFixed(1)+' km/h';
+document.getElementById('pSat').textContent=v.sat+' sat';
+document.getElementById('pRssi').textContent=(v.rssi||'—')+' dBm';
+const bB=document.getElementById('btnBlock'),bU=document.getElementById('btnUnlock');
+bB.style.display='none';bU.style.display='none';
+if(v.bloqueado){bB.style.display='block'}else{bU.style.display='block'}
 }
-
-// ═══════════════════════════════════════════════════
-//  VEÍCULOS
-// ═══════════════════════════════════════════════════
-function obterVeiculo(chipId) {
-  if (!veiculos[chipId]) {
-    veiculos[chipId] = {
-      chipId,
-      nome: 'Veículo ' + chipId.slice(-4).toUpperCase(),
-      bloqueado: false, pendente: false,
-      vel: 0, sat: 0, rssi: 0, alt: 0,
-      marker: null,
-      trail: L.polyline([], { color: '#1565C0', weight: 3, opacity: 0.8 }).addTo(map),
-      ultimaPos: null,
-      paradaInicio: null,
-      paradaPos: null,
-      paradaCirculo: null,
-      pingos: []  // lista de pingos permanentes
-    };
-    adicionarBotao(chipId);
-    atualizarContagem();
-    document.getElementById('semVeiculos').style.display = 'none';
-    document.getElementById('btnTodos').style.display    = '';
-    addLog('Novo veículo: ' + chipId.slice(-4), 'log-ok');
-    if (!ativoId) selecionarVeiculo(chipId);
-  }
-  return veiculos[chipId];
+function cor(v){return v.bloqueado?'#c62828':v.pendente?'#f9a825':'#2e7d32'}
+function mkIcon(c){return L.divIcon({className:'',html:'<div style="background:'+c+';border-radius:50%;width:22px;height:22px;border:3px solid #fff"></div>',iconSize:[22,22],iconAnchor:[11,11]})}
+function setBadge(id,txt,cls){const el=document.getElementById(id);if(el){el.textContent=txt;el.className='badge '+cls}}
+function addLog(msg){console.log('['+new Date().toTimeString().slice(0,8)+'] '+msg)}
+function ativarPanico(){
+panicoAtivo=true;panicoCancelavel=true;
+document.getElementById('panicAlert').style.display='block';
+document.getElementById('panicAlert').classList.add('pulsing');
+let seg=60;const timer=document.getElementById('panicTimer');timer.textContent=seg+'s para cancelar';
+panicoTimer=setInterval(()=>{
+seg--;if(seg>0){timer.textContent=seg+'s para cancelar'}
+else{clearInterval(panicoTimer);panicoCancelavel=false;timer.textContent='⚠️ CONFIRMADO'}
+},1000);
 }
-
-function adicionarBotao(chipId) {
-  const btn = document.createElement('button');
-  btn.className = 'veiculo-btn liberado';
-  btn.id = 'vbtn_' + chipId;
-  btn.textContent = '🟢 ' + chipId.slice(-4).toUpperCase();
-  btn.onclick = () => selecionarVeiculo(chipId);
-  document.getElementById('veiculosList').appendChild(btn);
+function cancelarPanico(){
+if(!panicoCancelavel)return;
+clearInterval(panicoTimer);
+document.getElementById('panicAlert').style.display='none';
+document.getElementById('panicAlert').classList.remove('pulsing');
 }
-
-function selecionarVeiculo(chipId) {
-  ativoId = chipId;
-  document.querySelectorAll('.veiculo-btn').forEach(b => b.classList.remove('ativo'));
-  const btn = document.getElementById('vbtn_' + chipId);
-  if (btn) btn.classList.add('ativo');
-  const v = veiculos[chipId];
-  if (v) {
-    document.getElementById('panelNome').textContent = '🚗 ' + v.nome + ' (' + chipId + ')';
-    atualizarPainel(chipId);
-    if (v.ultimaPos) map.setView(v.ultimaPos, 16);
-  }
+function salvarMapa(){
+const pontos=Object.values(veiculos).flatMap(v=>v.trail.getLatLngs().map(p=>[p.lat,p.lng]));
+const data=new Date().toLocaleString();
+const html=`<!DOCTYPE html><html><head><title>Trajeto</title></head><body><h1>Trajeto ${data}</h1><pre>${JSON.stringify(pontos,null,2)}</pre></body></html>`;
+const blob=new Blob([html],{type:'text/html'});
+const a=document.createElement('a');
+a.href=URL.createObjectURL(blob);
+a.download='trajeto.html';
+a.click();
 }
-
-// ═══════════════════════════════════════════════════
-//  GPS
-// ═══════════════════════════════════════════════════
-function processarGPS(chipId, d) {
-  const v = obterVeiculo(chipId);
-  if (d.rssi     !== undefined) v.rssi     = d.rssi;
-  if (d.sat      !== undefined) v.sat      = d.sat;
-  if (d.spd      !== undefined) v.vel      = d.spd;
-  if (d.alt      !== undefined) v.alt      = d.alt;
-  // Lê estado bloqueado/pendente do GPS — fonte de verdade do ESP
-  if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
-  if (d.pendente  !== undefined) v.pendente  = d.pendente  === true;
-
-  if (d.fix === false) {
-    if (chipId === ativoId) atualizarPainel(chipId);
-    atualizarBotaoLista(chipId);
-    return;
-  }
-  if (!d.lat || !d.lng) return;
-
-  const pos = L.latLng(parseFloat(d.lat), parseFloat(d.lng));
-  v.ultimaPos = pos;
-  const cor = corMarcador(v);
-
-  if (!v.marker) {
-    v.marker = L.marker(pos, { icon: mkIcon(cor) }).addTo(map);
-    v.marker.bindTooltip(v.nome);
-    if (chipId === ativoId) map.setView(pos, 16);
-  } else {
-    v.marker.setLatLng(pos);
-    v.marker.setIcon(mkIcon(cor));
-  }
-  v.trail.addLatLng(pos);
-
-  // ── Detecta parada prolongada ──────────────────────
-  if (v.vel <= PARADA_VEL) {
-    if (!v.paradaInicio) {
-      v.paradaInicio = Date.now();
-      v.paradaPos    = pos;
-      addLog('[' + chipId.slice(-4) + '] Parada detectada vel=' + v.vel.toFixed(1), 'log-warn');
-    } else {
-      const tempoParado = Date.now() - v.paradaInicio;
-      const mins = Math.round(tempoParado / 60000);
-      const segs = Math.round(tempoParado / 1000);
-      if (segs % 30 === 0) addLog('[' + chipId.slice(-4) + '] Parado há ' + segs + 's / ' + mins + 'min', 'log-warn');
-      if (tempoParado >= PARADA_MIN_MS) {
-        const mins = Math.round(tempoParado / 60000);
-        if (!v.paradaCirculo) {
-          // Retângulo azul — calcula bounds 30m ao redor do ponto
-          // Pingo laranja com tempo dentro
-          const pingoSVG = (mins) => `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="58" viewBox="0 0 60 80">
-            <path d="M30 0 C13 0 0 13 0 30 C0 47 30 80 30 80 C30 80 60 47 60 30 C60 13 47 0 30 0Z" fill="#FF6B00" stroke="#CC5500" stroke-width="1.5"/>
-            <circle cx="30" cy="28" r="17" fill="white" opacity="0.95"/>
-            <text x="30" y="24" text-anchor="middle" font-family="system-ui" font-size="9" font-weight="700" fill="#CC5500">🅿️</text>
-            <text x="30" y="36" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="700" fill="#CC5500">${mins}min</text>
-          </svg>`;
-
-          const icone = L.divIcon({
-            className: '',
-            html: pingoSVG(mins),
-            iconSize: [44, 58],
-            iconAnchor: [22, 58],
-            popupAnchor: [0, -58]
-          });
-          // Verifica se já existe pingo a menos de 20m
-          const jaTem = v.pingos.some(p => {
-            const ll = p.marker.getLatLng();
-            return map.distance(v.paradaPos, ll) < 20;
-          });
-          if (!jaTem) {
-            v.paradaCirculo = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
-            addLog('[' + chipId.slice(-4) + '] Parado há ' + mins + ' min', 'log-warn');
-          }
-        } else if (v.paradaCirculo) {
-          // Atualiza pingo com tempo atual
-          const novoIcone = L.divIcon({
-            className: '',
-            html: `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="58" viewBox="0 0 60 80">
-              <path d="M30 0 C13 0 0 13 0 30 C0 47 30 80 30 80 C30 80 60 47 60 30 C60 13 47 0 30 0Z" fill="#FF6B00" stroke="#CC5500" stroke-width="1.5"/>
-              <circle cx="30" cy="28" r="17" fill="white" opacity="0.95"/>
-              <text x="30" y="24" text-anchor="middle" font-family="system-ui" font-size="9" font-weight="700" fill="#CC5500">🅿️</text>
-              <text x="30" y="36" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="700" fill="#CC5500">${mins}min</text>
-            </svg>`,
-            iconSize: [44, 58],
-            iconAnchor: [22, 58]
-          });
-          v.paradaCirculo.setIcon(novoIcone);
-        }
-      }
-    }
-  } else {
-    // Veículo moveu — remove círculo e reseta contagem
-    if (v.paradaCirculo) {
-      // Finaliza pingo — congela o tempo e mantém no mapa
-      const mins = Math.round((Date.now() - v.paradaInicio) / 60000);
-      v.pingos.push({ marker: v.paradaCirculo, mins });
-      v.paradaCirculo = null;
-      addLog('[' + chipId.slice(-4) + '] Retomou movimento após ' + mins + ' min', 'log-ok');
-    }
-    v.paradaInicio = null;
-    v.paradaPos    = null;
-  }
-
-  atualizarBotaoLista(chipId);
-  if (chipId === ativoId) atualizarPainel(chipId);
-}
-
-// ═══════════════════════════════════════════════════
-//  STATUS
-// ═══════════════════════════════════════════════════
-function processarStatus(chipId, d) {
-  const v = obterVeiculo(chipId);
-  if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
-  if (d.pendente  !== undefined) v.pendente  = d.pendente  === true;
-  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
-  atualizarBotaoLista(chipId);
-  if (chipId === ativoId) atualizarPainel(chipId);
-  const m = d.motivo || '';
-  if (v.bloqueado)               addLog('[' + chipId.slice(-4) + '] BLOQUEADO — ' + m, 'log-err');
-  else if (v.pendente)           addLog('[' + chipId.slice(-4) + '] Aguardando vel...', 'log-warn');
-  else if (m === 'desbloqueado') addLog('[' + chipId.slice(-4) + '] LIBERADO', 'log-ok');
-  else if (m === 'online' || m === 'reconectado') addLog('[' + chipId.slice(-4) + '] Online ✓', 'log-ok');
-}
-
-// ═══════════════════════════════════════════════════
-//  PAINEL
-// ═══════════════════════════════════════════════════
-function atualizarPainel(chipId) {
-  const v = veiculos[chipId]; if (!v) return;
-  document.getElementById('pVel').textContent  = v.vel.toFixed(1) + ' km/h';
-  document.getElementById('pSat').textContent  = v.sat + ' sat';
-  document.getElementById('pRssi').textContent = (v.rssi || '—') + ' dBm';
-  document.getElementById('pAlt').textContent  = v.alt ? v.alt.toFixed(0) + ' m' : '— m';
-
-  const st = document.getElementById('pStatus');
-  const bB = document.getElementById('btnBlock');
-  const bC = document.getElementById('btnCancel');
-  const bU = document.getElementById('btnUnlock');
-  const bn = document.getElementById('pendenteBanner');
-  bB.style.display = bC.style.display = bU.style.display = 'none';
-  bn.style.display = 'none';
-
-  if (v.bloqueado) {
-    // BLOQUEADO → mostra botão vermelho, ao clicar libera
-    st.textContent = 'Bloqueado'; st.className = 'badge badge-err';
-    bB.style.display = '';        // 🔴 Bloqueado visível
-    // sobrescreve onclick para DESBLOQUEAR
-    bB.onclick = () => cmdAtivo('DESBLOQUEAR');
-    bB.textContent = '🔴 Bloqueado';
-  } else if (v.pendente) {
-    // PENDENTE → mostra botão amarelo, ao clicar cancela
-    st.textContent = 'Aguardando'; st.className = 'badge badge-warn';
-    bC.style.display = '';        // 🟡 Aguardando... visível
-    bn.style.display = 'block';
-  } else {
-    // LIBERADO → mostra botão verde, ao clicar bloqueia
-    st.textContent = 'Liberado'; st.className = 'badge badge-ok';
-    bU.style.display = '';        // 🟢 Liberado visível
-    // sobrescreve onclick para BLOQUEAR
-    bU.onclick = () => cmdAtivo('BLOQUEAR');
-    bU.textContent = '🟢 Liberado';
-  }
-}
-
-// ═══════════════════════════════════════════════════
-//  HELPERS
-// ═══════════════════════════════════════════════════
-function atualizarBotaoLista(chipId) {
-  const v   = veiculos[chipId];
-  const btn = document.getElementById('vbtn_' + chipId);
-  if (!btn || !v) return;
-  const emoji = v.bloqueado ? '🔴' : v.pendente ? '🟡' : '🟢';
-  const vel   = Math.round(v.vel);
-  btn.className = 'veiculo-btn' + (chipId === ativoId ? ' ativo' : '') +
-    (v.bloqueado ? ' bloqueado' : v.pendente ? ' pendente' : ' liberado');
-  btn.textContent = emoji + ' ' + chipId.slice(-4).toUpperCase() + ' ' + vel + 'km/h';
-}
-function corMarcador(v) {
-  if (v.bloqueado) return '#c62828';
-  if (v.pendente)  return '#f9a825';
-  return '#2e7d32';
-}
-function mkIcon(cor) {
-  return L.divIcon({
-    className: '',
-    html: '<div style="width:22px;height:22px;border-radius:50%;background:' + cor +
-          ';border:3px solid #fff;box-shadow:0 0 0 2px ' + cor + ',0 2px 8px rgba(0,0,0,0.5)"></div>',
-    iconSize: [22, 22], iconAnchor: [11, 11]
-  });
-}
-function setBadge(id, txt, cls) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.textContent = txt; el.className = 'badge ' + cls;
-}
-function atualizarContagem() {
-  const n = Object.keys(veiculos).length;
-  setBadge('veiculosBadge', n + ' veículo' + (n !== 1 ? 's' : ''), n > 0 ? 'badge-ok' : 'badge-off');
-}
-function centralizarAtivo() {
-  if (!ativoId || !veiculos[ativoId]?.ultimaPos) return;
-  map.setView(veiculos[ativoId].ultimaPos, 16);
-}
-function centralizarTodos() {
-  const pts = Object.values(veiculos).filter(v => v.ultimaPos).map(v => v.ultimaPos);
-  if (!pts.length) return;
-  if (pts.length === 1) { map.setView(pts[0], 15); return; }
-  map.fitBounds(L.latLngBounds(pts), { padding: [40, 40] });
-}
-function addLog(msg, cls) {
-  const box = document.getElementById('logBox');
-  const t   = new Date().toTimeString().slice(0, 8);
-  const el  = document.createElement('div');
-  el.className = 'log-line ' + (cls || '');
-  el.textContent = '[' + t + '] ' + msg;
-  box.insertBefore(el, box.firstChild);
-  while (box.children.length > 10) box.removeChild(box.lastChild);
-}
-
-// ══════════════════════════════════════════════════
-//  PÂNICO
-// ══════════════════════════════════════════════════
-function ativarPanico(chipId) {
-  if (panicoAtivo) return;
-  panicoAtivo      = true;
-  panicoCancelavel = true;
-  panicoChipId     = chipId;
-
-  document.getElementById('panicWidget').style.display = 'flex';
-  document.getElementById('panicBanner').style.display = 'block';
-
-  let segsRestantes = 60;
-  const timer = document.getElementById('panicTimer');
-  timer.textContent = '(' + segsRestantes + 's para cancelar)';
-
-  panicoTimer = setInterval(() => {
-    segsRestantes--;
-    if (segsRestantes > 0) {
-      timer.textContent = '(' + segsRestantes + 's para cancelar)';
-    } else {
-      clearInterval(panicoTimer);
-      panicoCancelavel = false;
-      timer.textContent = '(CONFIRMADO — não pode ser cancelado)';
-      addLog('🚨 PÂNICO CONFIRMADO [' + chipId.slice(-4) + ']', 'log-err');
-    }
-  }, 1000);
-
-  addLog('🚨 PÂNICO ativado [' + chipId.slice(-4) + '] — 60s para cancelar', 'log-err');
-}
-
-function cancelarPanico() {
-  if (!panicoAtivo || !panicoCancelavel) return;
-  clearInterval(panicoTimer);
-  panicoAtivo = false;
-  document.getElementById('panicWidget').style.display = 'none';
-  document.getElementById('panicBanner').style.display = 'none';
-  if (panicoChipId) cmd(panicoChipId, 'PANICO_CANCELADO');
-  addLog('✅ Pânico cancelado', 'log-ok');
-}
-
-// Clique no LED tenta cancelar
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('panicLed').addEventListener('click', () => {
-    if (panicoCancelavel) cancelarPanico();
-    else alert('⚠️ Pânico confirmado — não pode ser cancelado remotamente!');
-  });
-});
-
-// ══════════════════════════════════════════════════
-//  SALVAR MAPA
-// ══════════════════════════════════════════════════
-function salvarMapa() {
-  const data = new Date().toLocaleString('pt-BR');
-  const dataArq = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
-
-  let resumo = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-  <title>Rastreador — Trajeto ${dataArq}</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
-  <style>
-    body{font-family:system-ui;background:#111;color:#fff;margin:0;padding:0;}
-    #mapaExport{width:100%;height:60vh;}
-    .info{padding:16px;}
-    h2{color:#90caf9;margin:0 0 8px;}
-    table{width:100%;border-collapse:collapse;margin-top:8px;}
-    th{background:#1565C0;color:#fff;padding:8px;text-align:left;}
-    td{padding:6px 8px;border:1px solid #333;font-size:13px;}
-    tr:nth-child(even){background:#1a1a1a;}
-    .verde{color:#4caf50;font-weight:700;}
-    .verm{color:#ef5350;font-weight:700;}
-    a{color:#90caf9;}
-  </style>
-  </head><body>
-  <div id="mapaExport"></div>
-  <div class="info">
-  <h2>🛡️ Rastreador — Trajeto salvo em ${data}</h2>`;
-
-  // Coleta dados de todos os veículos
-  Object.values(veiculos).forEach(v => {
-    const pontos = v.trail.getLatLngs();
-    const status = v.bloqueado ? '<span class="verm">BLOQUEADO</span>' : '<span class="verde">LIBERADO</span>';
-
-    resumo += `<h3>🚗 ${v.nome} (${v.chipId}) — ${status}</h3>`;
-    resumo += `<p>📍 Pontos registrados: <b>${pontos.length}</b> | 🅿️ Paradas: <b>${v.pingos.length}</b></p>`;
-
-    // Tabela de paradas
-    if (v.pingos.length > 0) {
-      resumo += '<h4>🅿️ Paradas registradas:</h4><table>';
-      resumo += '<tr><th>#</th><th>Duração</th><th>Localização</th><th>Google Maps</th></tr>';
-      v.pingos.forEach((p, i) => {
-        const ll = p.marker.getLatLng();
-        resumo += `<tr>
-          <td>${i+1}</td>
-          <td>${p.mins} min</td>
-          <td>${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}</td>
-          <td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td>
-        </tr>`;
-      });
-      resumo += '</table>';
-    }
-  });
-
-  // Script para desenhar mapa com trajetória
-  const trailData = Object.values(veiculos).map(v => ({
-    nome: v.nome,
-    chipId: v.chipId,
-    pontos: v.trail.getLatLngs().map(p => [p.lat, p.lng]),
-    pingos: v.pingos.map(p => ({ ll: p.marker.getLatLng(), mins: p.mins })),
-    bloqueado: v.bloqueado
-  }));
-
-  resumo += `</div>
-  <script>
-  const dados = ${JSON.stringify(trailData)};
-  const m = L.map('mapaExport');
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(m);
-  const bounds = [];
-  dados.forEach(v => {
-    if (v.pontos.length > 0) {
-      const poly = L.polyline(v.pontos, {color:'#1565C0',weight:3,opacity:0.8}).addTo(m);
-      v.pontos.forEach(p => bounds.push(p));
-      // Marcador posição final
-      L.circleMarker(v.pontos[v.pontos.length-1], {radius:8,color:'#2e7d32',fillColor:'#2e7d32',fillOpacity:1}).addTo(m)
-        .bindTooltip(v.nome, {permanent:false});
-    }
-    // Pingos de parada
-    v.pingos.forEach(p => {
-      const svg = \`<svg xmlns="http://www.w3.org/2000/svg" width="44" height="58" viewBox="0 0 60 80">
-        <path d="M30 0 C13 0 0 13 0 30 C0 47 30 80 30 80 C30 80 60 47 60 30 C60 13 47 0 30 0Z" fill="#FF6B00" stroke="#CC5500" stroke-width="1.5"/>
-        <circle cx="30" cy="28" r="17" fill="white" opacity="0.95"/>
-        <text x="30" y="24" text-anchor="middle" font-family="system-ui" font-size="9" font-weight="700" fill="#CC5500">🅿️</text>
-        <text x="30" y="36" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="700" fill="#CC5500">\${p.mins}min</text>
-      </svg>\`;
-      L.marker([p.ll.lat, p.ll.lng], {icon: L.divIcon({className:'',html:svg,iconSize:[44,58],iconAnchor:[22,58]})}).addTo(m);
-      bounds.push([p.ll.lat, p.ll.lng]);
-    });
-  });
-  if (bounds.length > 0) m.fitBounds(bounds, {padding:[30,30]});
-  <\/script>
-  </body></html>`;
-
-  const blob = new Blob([resumo], {type:'text/html'});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = 'trajeto_' + dataArq + '.html';
-  a.click();
-  URL.revokeObjectURL(url);
-  addLog('💾 Trajeto salvo com ' + Object.values(veiculos).reduce((s,v) => s + v.trail.getLatLngs().length, 0) + ' pontos!', 'log-ok');
-}
-
 </script>
 </body>
 </html>
