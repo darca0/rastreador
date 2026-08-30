@@ -652,12 +652,7 @@ function cancelarPanico() {
 }
 
 // Clique no LED tenta cancelar
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('panicLed').addEventListener('click', () => {
-    if (panicoCancelavel) cancelarPanico();
-    else alert('⚠️ Pânico confirmado — não pode ser cancelado remotamente!');
-  });
-});
+
 
 // ══════════════════════════════════════════════════
 //  SALVAR MAPA
