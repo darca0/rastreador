@@ -583,7 +583,7 @@ function solicitarBloqueio() {
 function confirmarBloqueio() {
   let user = document.getElementById('segUser').value;
   let pass = document.getElementById('segPass').value;
-  if (user === 'cicrano' && pass === '0123') {
+  if (user === usuarioId && pass === USUARIOS[usuarioId]) {
     document.getElementById('modalSeguranca').style.display = 'none';
     cmdAtivo('BLOQUEAR');
   } else {
