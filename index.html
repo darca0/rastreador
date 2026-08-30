@@ -222,7 +222,7 @@ if (!usuarioId || !(usuarioId in USUARIOS)) usuarioId = 'admin';
 // DOM já pronto — atualiza nome imediatamente
 document.getElementById('loginNome').textContent = '👤 ' + usuarioId.toUpperCase();
 let map, tileLayer, mqttClient;
-const PARADA_MIN_MS  = 360000; // 2 min para teste (600000 = 10min produção)
+const PARADA_MIN_MS  = 120000; // 2 min para teste (600000 = 10min produção)
 let panicoAtivo      = false;
 let panicoTimer      = null;
 let panicoCancelavel = true;
@@ -415,7 +415,6 @@ function selecionarVeiculo(chipId) {
   }
 }
 
-
 // ═══════════════════════════════════════════════════
 //  GPS
 // ═══════════════════════════════════════════════════
@@ -457,49 +456,63 @@ function processarGPS(chipId, d) {
       v.paradaPos    = pos;
       addLog('[' + chipId.slice(-4) + '] Parada detectada vel=' + v.vel.toFixed(1), 'log-warn');
     } else {
-      // RAIO DE ATUAÇÃO: 100 metros (mudou de 20m para 100m)
-      const distancia = map.distance(v.paradaPos, pos);
-      if (distancia > 100) {
-        v.paradaInicio = Date.now();
-        v.paradaPos    = pos;
-        if (v.paradaCirculo) { v.paradaCirculo.remove(); v.paradaCirculo = null; }
-        addLog('[' + chipId.slice(-4) + '] Veículo se moveu mais de 100m — conta como movimento', 'log-warn');
-      }
-
       const tempoParado = Date.now() - v.paradaInicio;
-      // TEMPO DE PARADA: agora é 6 minutos (360000 ms)
+      const mins = Math.round(tempoParado / 60000);
+      const segs = Math.round(tempoParado / 1000);
+      if (segs % 30 === 0) addLog('[' + chipId.slice(-4) + '] Parado há ' + segs + 's / ' + mins + 'min', 'log-warn');
       if (tempoParado >= PARADA_MIN_MS) {
+        const mins = Math.round(tempoParado / 60000);
         if (!v.paradaCirculo) {
-        
-          // Pingo laranja com "P1", "P2", "P3"...
-          const pingoSVG = (num) => `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="58" viewBox="0 0 60 80">
-            <path d="M30 0 C13 0 0 13 0 30 C0 47 30 80 30 80 C30 80 60 47 60 30 C60 13 47 0 30 0Z" fill="#FF6B00" stroke="#CC5500" stroke-width="2"/>
+          // Retângulo azul — calcula bounds 30m ao redor do ponto
+          // Pingo laranja com tempo dentro
+          const pingoSVG = (mins) => `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="58" viewBox="0 0 60 80">
+            <path d="M30 0 C13 0 0 13 0 30 C0 47 30 80 30 80 C30 80 60 47 60 30 C60 13 47 0 30 0Z" fill="#FF6B00" stroke="#CC5500" stroke-width="1.5"/>
             <circle cx="30" cy="28" r="17" fill="white" opacity="0.95"/>
-            <text x="30" y="33" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="14" font-weight="900" fill="#CC5500">P${num}</text>
+            <text x="30" y="24" text-anchor="middle" font-family="system-ui" font-size="9" font-weight="700" fill="#CC5500">🅿️</text>
+            <text x="30" y="36" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="700" fill="#CC5500">${mins}min</text>
           </svg>`;
 
           const icone = L.divIcon({
             className: '',
-            html: pingoSVG(v.contador),
+            html: pingoSVG(mins),
             iconSize: [44, 58],
             iconAnchor: [22, 58],
             popupAnchor: [0, -58]
           });
-          v.paradaCirculo = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
-          v.pingos.push({ marker: v.paradaCirculo, num: v.contador, mins: Math.round(tempoParado / 60000) });
-          addLog('[' + chipId.slice(-4) + '] Parada P' + v.contador + ' registrada', 'log-warn');
+          // Verifica se já existe pingo a menos de 20m
+          const jaTem = v.pingos.some(p => {
+            const ll = p.marker.getLatLng();
+            return map.distance(v.paradaPos, ll) < 20;
+          });
+          if (!jaTem) {
+            v.paradaCirculo = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
+            addLog('[' + chipId.slice(-4) + '] Parado há ' + mins + ' min', 'log-warn');
+          }
+        } else if (v.paradaCirculo) {
+          // Atualiza pingo com tempo atual
+          const novoIcone = L.divIcon({
+            className: '',
+            html: `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="58" viewBox="0 0 60 80">
+              <path d="M30 0 C13 0 0 13 0 30 C0 47 30 80 30 80 C30 80 60 47 60 30 C60 13 47 0 30 0Z" fill="#FF6B00" stroke="#CC5500" stroke-width="1.5"/>
+              <circle cx="30" cy="28" r="17" fill="white" opacity="0.95"/>
+              <text x="30" y="24" text-anchor="middle" font-family="system-ui" font-size="9" font-weight="700" fill="#CC5500">🅿️</text>
+              <text x="30" y="36" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="700" fill="#CC5500">${mins}min</text>
+            </svg>`,
+            iconSize: [44, 58],
+            iconAnchor: [22, 58]
+          });
+          v.paradaCirculo.setIcon(novoIcone);
         }
       }
     }
   } else {
     // Veículo moveu — remove círculo e reseta contagem
-    
-     if (!v.paradaCirculo) {
-  v.contador++;   // ✅ Isso incrementa o contador
-  ...
-}
-      v.paradaCirculo.remove();
+    if (v.paradaCirculo) {
+      // Finaliza pingo — congela o tempo e mantém no mapa
+      const mins = Math.round((Date.now() - v.paradaInicio) / 60000);
+      v.pingos.push({ marker: v.paradaCirculo, mins });
       v.paradaCirculo = null;
+      addLog('[' + chipId.slice(-4) + '] Retomou movimento após ' + mins + ' min', 'log-ok');
     }
     v.paradaInicio = null;
     v.paradaPos    = null;
