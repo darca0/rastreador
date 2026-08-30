@@ -493,7 +493,11 @@ function processarGPS(chipId, d) {
     }
   } else {
     // Veículo moveu — remove círculo e reseta contagem
-    if (v.paradaCirculo) {
+    
+     if (!v.paradaCirculo) {
+  v.contador++;   // ✅ Isso incrementa o contador
+  ...
+}
       v.paradaCirculo.remove();
       v.paradaCirculo = null;
     }
