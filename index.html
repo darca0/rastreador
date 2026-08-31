@@ -400,6 +400,9 @@ function selecionarVeiculo(chipId) {
 // ═══════════════════════════════════════════════════
 //  GPS
 // ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+//  GPS
+// ═══════════════════════════════════════════════════
 function processarGPS(chipId, d) {
   const v = obterVeiculo(chipId);
   if (d.rssi     !== undefined) v.rssi     = d.rssi;
@@ -437,16 +440,26 @@ function processarGPS(chipId, d) {
       v.paradaPos    = pos;
       addLog('[' + chipId.slice(-4) + '] Parada detectada vel=' + v.vel.toFixed(1), 'log-warn');
     } else {
+      // RAIO DE 100m — se o veículo se mover mais de 100m, ele NÃO está mais parado
       const distancia = map.distance(v.paradaPos, pos);
       if (distancia > 100) {
+        // CONGELA O TEMPO (registra com o total)
+        const tempoParado = Math.round((Date.now() - v.paradaInicio) / 60000);
+        if (v.paradaCirculo) {
+          v.pingos.push({ marker: v.paradaCirculo, mins: tempoParado });
+        }
         v.paradaInicio = Date.now();
         v.paradaPos    = pos;
-        if (v.paradaCirculo) { v.paradaCirculo.remove(); v.paradaCirculo = null; }
-        addLog('[' + chipId.slice(-4) + '] Veículo se moveu mais de 100m — conta como movimento', 'log-warn');
+        if (v.paradaCirculo) {
+          v.paradaCirculo.remove();
+          v.paradaCirculo = null;
+        }
+        addLog('[' + chipId.slice(-4) + '] Retomou movimento após ' + tempoParado + ' min', 'log-ok');
       }
 
-      const tempoParado = Date.now() - v.paradaInicio;
-      if (tempoParado >= PARADA_MIN_MS) {
+      // TEMPO PARADO: Se o veículo for ficar parado por mais de 6 minutos,
+      // o pingo P1 é criado APENAS uma vez (e não a cada 6 minutos)
+      if (Date.now() - v.paradaInicio >= PARADA_MIN_MS) {
         if (!v.paradaCirculo) {
           v.contador++;
           const pingoSVG = (num) => `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="58" viewBox="0 0 60 80">
@@ -454,7 +467,6 @@ function processarGPS(chipId, d) {
             <circle cx="30" cy="28" r="17" fill="white" opacity="0.95"/>
             <text x="30" y="33" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="14" font-weight="900" fill="#CC5500">P${num}</text>
           </svg>`;
-
           const icone = L.divIcon({
             className: '',
             html: pingoSVG(v.contador),
@@ -463,15 +475,23 @@ function processarGPS(chipId, d) {
             popupAnchor: [0, -58]
           });
           v.paradaCirculo = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
-          v.pingos.push({ marker: v.paradaCirculo, num: v.contador, mins: Math.round(tempoParado / 60000) });
+          v.pingos.push({ marker: v.paradaCirculo, num: v.contador, mins: Math.round((Date.now() - v.paradaInicio) / 60000) });
           addLog('[' + chipId.slice(-4) + '] Parada P' + v.contador + ' registrada', 'log-warn');
         }
       }
     }
   } else {
-    if (v.paradaCirculo) {
-      v.paradaCirculo.remove();
-      v.paradaCirculo = null;
+    // Veículo moveu (velocidade > 2 km/h) — reseta tudo
+    if (v.paradaInicio) {
+      const tempoParado = Math.round((Date.now() - v.paradaInicio) / 60000);
+      if (v.paradaCirculo) {
+        v.pingos.push({ marker: v.paradaCirculo, mins: tempoParado });
+      }
+      if (v.paradaCirculo) {
+        v.paradaCirculo.remove();
+        v.paradaCirculo = null;
+      }
+      addLog('[' + chipId.slice(-4) + '] Retomou movimento após ' + tempoParado + ' min', 'log-ok');
     }
     v.paradaInicio = null;
     v.paradaPos    = null;
@@ -480,7 +500,6 @@ function processarGPS(chipId, d) {
   atualizarBotaoLista(chipId);
   if (chipId === ativoId) atualizarPainel(chipId);
 }
-
 // ═══════════════════════════════════════════════════
 //  STATUS
 // ═══════════════════════════════════════════════════
