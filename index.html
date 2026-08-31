@@ -9,17 +9,18 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Rastreador">
 <meta name="theme-color" content="#1b5e20">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: system-ui, sans-serif; background: #111; color: #fff; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-
-  /* LOGIN */
-  #loginScreen { position: fixed; inset: 0; background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; gap: 16px; }
-  #loginScreen h1 { font-size: 22px; font-weight: 700; }
-  #loginScreen p  { font-size: 13px; color: #888; }
+<link rel="manifest" href="data:application/manifest+json,{
+  &quot;name&quot;: &quot;Rastreador&quot;,
+  &quot;short_name&quot;: &quot;Rastreador&quot;,
+  &quot;start_url&quot;: &quot;/rastreador/&quot;,
+  &quot;display&quot;: &quot;standalone&quot;,
+  &quot;background_color&quot;: &quot;#111111&quot;,
+  &quot;theme_color&quot;: &quot;#1b5e20&quot;,
+  &quot;icons&quot;: [
+    { &quot;src&quot;: &quot;https://raw.githubusercontent.com/darca0/rastreador/main/web-app-manifest-192x192.png&quot;, &quot;sizes&quot;: &quot;192x192&quot;, &quot;type&quot;: &quot;image/png&quot; },
+    { &quot;src&quot;: &quot;https://raw.githubusercontent.com/darca0/rastreador/main/web-app-manifest-512x512.png&quot;, &quot;sizes&quot;: &quot;512x512&quot;, &quot;type&quot;: &quot;image/png&quot; }
+  ]
+}">
   .pin-dot { width: 16px; height: 16px; border-radius: 50%; background: #333; border: 2px solid #555; transition: all 0.15s; }
   .pin-dot.filled { background: #1565C0; border-color: #1565C0; }
   .pin-dot.error  { background: #b71c1c; border-color: #b71c1c; }
