@@ -773,6 +773,9 @@ function salvarMapa() {
   URL.revokeObjectURL(url);
   addLog('💾 Trajeto salvo com ' + Object.values(veiculos).reduce((s,v) => s + v.trail.getLatLngs().length, 0) + ' pontos!', 'log-ok');
 }
+  if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/rastreador/sw.js');
+}
 </script>
 
 <!-- 🔒 MODAL DE SEGURANÇA (BLOQUEIO) -->
