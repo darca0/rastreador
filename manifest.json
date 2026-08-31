@@ -1,0 +1,20 @@
+{
+  "name": "Rastreador",
+  "short_name": "Rastreador",
+  "start_url": "/rastreador/",
+  "display": "standalone",
+  "background_color": "#111111",
+  "theme_color": "#1b5e20",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/darca0/rastreador/main/web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://raw.githubusercontent.com/darca0/rastreador/main/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
