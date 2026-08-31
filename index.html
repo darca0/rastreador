@@ -9,6 +9,18 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Rastreador">
 <meta name="theme-color" content="#1b5e20">
+ <link rel="manifest" href="data:application/manifest+json,{
+  &quot;name&quot;: &quot;Rastreador&quot;,
+  &quot;short_name&quot;: &quot;Rastreador&quot;,
+  &quot;start_url&quot;: &quot;/rastreador/&quot;,
+  &quot;display&quot;: &quot;standalone&quot;,
+  &quot;background_color&quot;: &quot;#111111&quot;,
+  &quot;theme_color&quot;: &quot;#1b5e20&quot;,
+  &quot;icons&quot;: [
+    { &quot;src&quot;: &quot;https://raw.githubusercontent.com/darca0/rastreador/main/web-app-manifest-192x192.png&quot;, &quot;sizes&quot;: &quot;192x192&quot;, &quot;type&quot;: &quot;image/png&quot; },
+    { &quot;src&quot;: &quot;https://raw.githubusercontent.com/darca0/rastreador/main/web-app-manifest-512x512.png&quot;, &quot;sizes&quot;: &quot;512x512&quot;, &quot;type&quot;: &quot;image/png&quot; }
+  ]
+}">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
