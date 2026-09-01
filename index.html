@@ -515,7 +515,8 @@ function processarGPS(chipId, d) {
   if (chipId === ativoId) atualizarPainel(chipId);
 }
 
-  // ═══════════════════════════════════════════════════
+ 
+// ═══════════════════════════════════════════════════
 //  STATUS
 // ═══════════════════════════════════════════════════
 function processarStatus(chipId, d) {
@@ -526,6 +527,19 @@ function processarStatus(chipId, d) {
   atualizarBotaoLista(chipId);
   if (chipId === ativoId) atualizarPainel(chipId);
   const m = d.motivo || '';
+  if (m === 'panico') {
+    ativarPanico(chipId);
+  }
+  if (m === 'panico_cancelado') {
+    cancelarPanico();
+  }
+  if (m === 'panico_confirmado') {
+    panicoCancelavel = false;
+    clearInterval(panicoTimer);
+    document.getElementById('panicBanner').style.display = 'none';
+    document.getElementById('panicWidget').style.display = 'none';
+    addLog('🚨 Pânico TRAVADO pelo ESP [' + chipId.slice(-4) + ']', 'log-err');
+  }
   if (v.bloqueado)               addLog('[' + chipId.slice(-4) + '] BLOQUEADO — ' + m, 'log-err');
   else if (v.pendente)           addLog('[' + chipId.slice(-4) + '] Aguardando vel...', 'log-warn');
   else if (m === 'desbloqueado') addLog('[' + chipId.slice(-4) + '] LIBERADO', 'log-ok');
