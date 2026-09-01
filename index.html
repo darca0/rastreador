@@ -410,6 +410,7 @@ function selecionarVeiculo(chipId) {
   }
 }
 
+
 // ═══════════════════════════════════════════════════
 //  GPS
 // ═══════════════════════════════════════════════════
@@ -444,24 +445,25 @@ function processarGPS(chipId, d) {
   v.trail.addLatLng(pos);
 
   // ── Detecta parada prolongada ──────────────────────
-  if (v.vel <= PARADA_VEL) {
+  // CONDICIONAL 1: Se a velocidade for MENOR que 2 km/h (ou seja, o carro está parado)
+  if (v.vel <= 4.0) {
+    // Inicia a contagem se ainda não começou
     if (!v.paradaInicio) {
       v.paradaInicio = Date.now();
       v.paradaPos    = pos;
       addLog('[' + chipId.slice(-4) + '] Parada detectada vel=' + v.vel.toFixed(1), 'log-warn');
     } else {
-      // A tolerância é de 30 segundos. Se o GPS "pular" para fora do raio,
-      // esperamos 30 segundos para ver se ele volta (oscilação) ou se realmente andou.
+      // SE O GPS "PULAR" PARA FORA DO RAIO DE 150m, MAS VOLTAR, A CONTAGEM CONTINUA
       const distancia = map.distance(v.paradaPos, pos);
-      const tempoForaDoRaio = Date.now() - (v.ultimaSaida || Date.now());
 
-      if (distancia > 100) {
-        // Se a distância for maior que 100m, verifica se isso está acontecendo há mais de 30 segundos
+      // RAIO GRANDE: Ignora a deriva pequena e a velocidade falsa
+      if (distancia > 150) {
+        // SE A DERIVA FOR PERSISTENTE (mais de 20 segundos fora do raio), aí sim registra movimento
+        const tempoFora = Date.now() - (v.ultimaSaida || Date.now());
         if (!v.ultimaSaida) {
-          v.ultimaSaida = Date.now(); // Marca o início da deriva
+          v.ultimaSaida = Date.now();
         }
-        if (Date.now() - v.ultimaSaida > 30000) {
-          // Veículo realmente se moveu (deriva persistente)
+        if (Date.now() - v.ultimaSaida > 20000) {
           const tempoParado = Math.round((Date.now() - v.paradaInicio) / 60000);
           if (v.paradaCirculo) {
             v.pingos.push({ marker: v.paradaCirculo, mins: tempoParado });
@@ -472,11 +474,11 @@ function processarGPS(chipId, d) {
           v.ultimaSaida  = null;
         }
       } else {
-        // Se a distância voltou para menos de 100m, a oscilação acabou
+        // Se voltou para o raio, a oscilação acabou
         v.ultimaSaida = null;
       }
 
-      // Se já passou mais de 6 minutos, cria UM único pingo (e não fica criando novos)
+      // Se já passou mais de 6 minutos, cria UM único pingo
       if (Date.now() - v.paradaInicio >= PARADA_MIN_MS) {
         if (!v.paradaCirculo) {
           v.contador++;
@@ -498,7 +500,7 @@ function processarGPS(chipId, d) {
       }
     }
   } else {
-    // Veículo moveu (velocidade > 2 km/h) — encerra completamente
+    // Velocidade > 4 km/h: O CARRO REALMENTE ANDOU, encerra
     if (v.paradaInicio) {
       const tempoParado = Math.round((Date.now() - v.paradaInicio) / 60000);
       if (v.paradaCirculo) {
@@ -514,7 +516,6 @@ function processarGPS(chipId, d) {
   atualizarBotaoLista(chipId);
   if (chipId === ativoId) atualizarPainel(chipId);
 }
-
  
 // ═══════════════════════════════════════════════════
 //  STATUS
