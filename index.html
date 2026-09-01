@@ -410,9 +410,6 @@ function selecionarVeiculo(chipId) {
   }
 }
 
-
-
-
 // ═══════════════════════════════════════════════════
 //  GPS
 // ═══════════════════════════════════════════════════
@@ -453,17 +450,30 @@ function processarGPS(chipId, d) {
       v.paradaPos    = pos;
       addLog('[' + chipId.slice(-4) + '] Parada detectada vel=' + v.vel.toFixed(1), 'log-warn');
     } else {
-      // VERIFICAÇÃO CRÍTICA: Só considera movimento se SAIR do raio E a velocidade for > 2 km/h
+      // A tolerância é de 30 segundos. Se o GPS "pular" para fora do raio,
+      // esperamos 30 segundos para ver se ele volta (oscilação) ou se realmente andou.
       const distancia = map.distance(v.paradaPos, pos);
-      if (distancia > 100 && v.vel > PARADA_VEL) {
-        // Registra o tempo TOTAL (mantendo o pingo no mapa!)
-        const tempoParado = Math.round((Date.now() - v.paradaInicio) / 60000);
-        if (v.paradaCirculo) {
-          v.pingos.push({ marker: v.paradaCirculo, mins: tempoParado });
+      const tempoForaDoRaio = Date.now() - (v.ultimaSaida || Date.now());
+
+      if (distancia > 100) {
+        // Se a distância for maior que 100m, verifica se isso está acontecendo há mais de 30 segundos
+        if (!v.ultimaSaida) {
+          v.ultimaSaida = Date.now(); // Marca o início da deriva
         }
-        addLog('[' + chipId.slice(-4) + '] Retomou movimento após ' + tempoParado + ' min', 'log-ok');
-        v.paradaInicio = Date.now(); // Começa nova contagem se parar em novo local
-        v.paradaPos    = pos;
+        if (Date.now() - v.ultimaSaida > 30000) {
+          // Veículo realmente se moveu (deriva persistente)
+          const tempoParado = Math.round((Date.now() - v.paradaInicio) / 60000);
+          if (v.paradaCirculo) {
+            v.pingos.push({ marker: v.paradaCirculo, mins: tempoParado });
+          }
+          addLog('[' + chipId.slice(-4) + '] Retomou movimento após ' + tempoParado + ' min', 'log-ok');
+          v.paradaInicio = Date.now();
+          v.paradaPos    = pos;
+          v.ultimaSaida  = null;
+        }
+      } else {
+        // Se a distância voltou para menos de 100m, a oscilação acabou
+        v.ultimaSaida = null;
       }
 
       // Se já passou mais de 6 minutos, cria UM único pingo (e não fica criando novos)
@@ -498,12 +508,14 @@ function processarGPS(chipId, d) {
     }
     v.paradaInicio = null;
     v.paradaPos    = null;
+    v.ultimaSaida  = null;
   }
 
   atualizarBotaoLista(chipId);
   if (chipId === ativoId) atualizarPainel(chipId);
 }
-// ═══════════════════════════════════════════════════
+
+  // ═══════════════════════════════════════════════════
 //  STATUS
 // ═══════════════════════════════════════════════════
 function processarStatus(chipId, d) {
