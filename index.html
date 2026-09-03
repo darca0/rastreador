@@ -225,114 +225,22 @@ const TILES = {
 // ═══════════════════════════════════════════════════
 //  ESTADO
 // ═══════════════════════════════════════════════════
-const RAIO_TOLERANCIA_METROS = 50; // Tolerância de 50m
-const TEMPO_GATILHO_MS = 6 * 60 * 1000; // 6 minutos
-const TEMPO_CONFIRMACAO_MOVIMENTO_MS = 30000; // 30 segundos para confirmar movimento real
+const _u = new URLSearchParams(window.location.search).get('u') || '';
+let usuarioId = _u.toLowerCase().trim();
+if (!usuarioId || !(usuarioId in USUARIOS)) usuarioId = 'admin';
+document.getElementById('loginNome').textContent = '👤 ' + usuarioId.toUpperCase();
+let map, tileLayer, mqttClient;
+const PARADA_MIN_MS  = 360000; // 6 min
+let panicoAtivo      = false;
+let panicoTimer      = null;
+let panicoCancelavel = true;
+let panicoChipId     = null;
+const PARADA_VEL     = 2.0;
+let veiculos    = {};
+let ativoId     = null;
+let pinBuffer   = '';
+let currentStyle = 'map';
 
-let paradaAtiva = false;
-let pingoInicial = null;
-let tempoInicioParada = null;
-let registroRelatorio = null;
-let idUnicoPingo = 0;
-let suspeitaMovimento = false;
-let tempoInicioSuspeita = null;
-
-let veiculos = [];
-let ativoId = null;
-let pinBuffer = '';
-let currentType = 'map';
-
-// ---------------------------------------------------------
-// FUNÇÃO PRINCIPAL DO GPS (COPIE ISSO PARA DENTRO DO SEU LOOP)
-// ---------------------------------------------------------
-function processarCoordenadaGPS(latAtual, lngAtual, timestampAtual) {
-
-    // 1. Início da parada
-    if (!paradaAtiva) {
-        paradaAtiva = true;
-        pingoInicial = { lat: latAtual, lng: lngAtual };
-        tempoInicioParada = timestampAtual;
-        registroRelatorio = null;
-        suspeitaMovimento = false;
-        return; 
-    }
-
-    // 2. Calcula a distância do ponto inicial
-    let distancia = calcularDistanciaMetros(pingoInicial.lat, pingoInicial.lng, latAtual, lngAtual);
-
-    // 3. Se o veículo está DENTRO do raio de 50m (parado)
-    if (distancia <= RAIO_TOLERANCIA_METROS) {
-        suspeitaMovimento = false;
-        tempoInicioSuspeita = null;
-
-        let duracaoAtualMs = timestampAtual - tempoInicioParada;
-        if (duracaoAtualMs >= TEMPO_GATILHO_MS && !registroRelatorio) {
-            idUnicoPingo++;
-            registroRelatorio = criarPingoNoRelatorio(idUnicoPingo, pingoInicial);
-        }
-        
-        if (registroRelatorio) {
-            atualizarDuracaoNoHTML(registroRelatorio, duracaoAtualMs);
-        }
-    } 
-    // 4. Se o veículo saiu do raio (> 50m) -> Inicia a suspeita
-    else {
-        if (!suspeitaMovimento) {
-            suspeitaMovimento = true;
-            tempoInicioSuspeita = timestampAtual;
-        } else {
-            let tempoForaDoRaio = timestampAtual - tempoInicioSuspeita;
-
-            if (tempoForaDoRaio >= TEMPO_CONFIRMACAO_MOVIMENTO_MS) {
-                if (registroRelatorio) {
-                    let duracaoTotalMs = timestampAtual - tempoInicioParada;
-                    finalizarRelatorio(registroRelatorio, duracaoTotalMs);
-                }
-
-                paradaAtiva = false;
-                pingoInicial = null;
-                tempoInicioParada = null;
-                registroRelatorio = null;
-                suspeitaMovimento = false;
-                tempoInicioSuspeita = null;
-            }
-        }
-    }
-}
-
-// Função matemática para calcular distância (HAVERSINE)
-function calcularDistanciaMetros(lat1, lon1, lat2, lon2) {
-    const R = 6371000; 
-    const dLat = (lat2 - lat1) * (Math.PI / 180);
-    const dLon = (lon2 - lon1) * (Math.PI / 180);
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-}
-
-// ---------------------------------------------------------
-// FUNÇÕES AUXILIARES (VOCÊ DEVE COMPLETAR COM SEU CÓDIGO)
-// ---------------------------------------------------------
-function criarPingoNoRelatorio(numero, localizacao) {
-    console.log(`Criando P${numero} em ${localizacao.lat}, ${localizacao.lng}`);
-    // AQUI: Adicione o código para criar a linha na sua tabela HTML e retorne a referência dela
-    return { id: numero }; 
-}
-
-function atualizarDuracaoNoHTML(registro, duracaoMs) {
-    let minutos = Math.floor(duracaoMs / 60000);
-    let segundos = Math.floor((duracaoMs % 60000) / 1000);
-    // AQUI: Atualize o texto da célula da duração no HTML
-    console.log(`Atualizando P${registro.id}: ${minutos} min e ${segundos} seg`);
-}
-
-function finalizarRelatorio(registro, duracaoMs) {
-    let minutos = Math.floor(duracaoMs / 60000);
-    let segundos = Math.floor((duracaoMs % 60000) / 1000);
-    console.log(`Parada P${registro.id} FINALIZADA com duração total de ${minutos} min e ${segundos} seg.`);
-}
 // ═══════════════════════════════════════════════════
 //  LOGIN
 // ═══════════════════════════════════════════════════
