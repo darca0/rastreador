@@ -225,21 +225,23 @@ const TILES = {
 // ═══════════════════════════════════════════════════
 //  ESTADO
 // ═══════════════════════════════════════════════════
-const _u = new URLSearchParams(window.location.search).get('u') || '';
-let usuarioId = _u.toLowerCase().trim();
-if (!usuarioId || !(usuarioId in USUARIOS)) usuarioId = 'admin';
-document.getElementById('loginNome').textContent = '👤 ' + usuarioId.toUpperCase();
-let map, tileLayer, mqttClient;
-const PARADA_MIN_MS  = 360000; // 6 min
-let panicoAtivo      = false;
-let panicoTimer      = null;
-let panicoCancelavel = true;
-let panicoChipId     = null;
-const PARADA_VEL     = 2.0;
-let veiculos    = {};
-let ativoId     = null;
-let pinBuffer   = '';
-let currentStyle = 'map';
+// ESTADO (NOVA LÓGICA)
+const RAIO_TOLERANCIA_METROS = 50; // Tolerância de 50m
+const TEMPO_GATILHO_MS = 6 * 60 * 1000; // 6 minutos
+const TEMPO_CONFIRMACAO_MOVIMENTO_MS = 30000; // 30 segundos para confirmar movimento real
+
+let paradaAtiva = false;
+let pingoInicial = null;
+let tempoInicioParada = null;
+let registroRelatorio = null;
+let idUnicoPingo = 0;
+let suspeitaMovimento = false;
+let tempoInicioSuspeita = null;
+
+let veiculos = [];
+let ativoId = null;
+let pinBuffer = '';
+let currentType = 'map';
 
 // ═══════════════════════════════════════════════════
 //  LOGIN
