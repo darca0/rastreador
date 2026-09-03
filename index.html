@@ -68,31 +68,37 @@
   #logBox { max-height: 40px; overflow-y: auto; margin-top: 3px; }
   #auxRow { display: flex; margin-top: 4px; }
 
-  /* PÂNICO */
-  #panicAlert { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:9999;
-    background:rgba(183, 28, 28, 0.95); color:#fff; padding:18px 30px; border-radius:16px;
-    border:3px solid #fff; box-shadow:0 0 30px rgba(255,0,0,0.8);
-    text-align:center; cursor:pointer; max-width:90vw; }
-  #panicAlert strong { font-size:26px; display:block; letter-spacing:2px; margin-bottom:8px; }
-  #panicAlert span { font-size:14px; opacity:0.9; }
-  #panicAlert small { font-size:11px; opacity:0.8; display:block; margin-top:8px; }
-  @keyframes panicPulse { 0% { transform:translate(-50%, -50%) scale(1); opacity:1; } 50% { transform:translate(-50%, -50%) scale(1.05); opacity:0.9; } 100% { transform:translate(-50%, -50%) scale(1); opacity:1; } }
-  #panicAlert.pulsing { animation:panicPulse 0.8s infinite; }
+  /* LED Pânico */
+  #panicWidget { display:none; position:fixed; top:8px; right:80px; z-index:9998; align-items:center; gap:6px; background:rgba(0,0,0,0.7); border:1px solid #c62828; border-radius:20px; padding:4px 10px; cursor:pointer; }
+  #panicDot { width:12px; height:12px; border-radius:50%; background:#ff0000; box-shadow:0 0 6px #ff0000; animation:panicoLed 0.4s infinite alternate; flex-shrink:0; }
+  #panicTxt { font-size:11px; font-weight:700; color:#ff6666; letter-spacing:1px; }
+  @keyframes panicoLed { from{opacity:1;} to{opacity:0.2;} }
+  #panicBanner { display:none; position:fixed; top:0; left:0; right:0; z-index:9997; background:#b71c1c; color:#fff; text-align:center; padding:8px; font-weight:700; font-size:13px; }
 
-  /* MODAL SEGURANÇA */
-  #modalSeguranca { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; }
-  #modalBox2 { background:#1a1a1a; border:1px solid #1565C0; border-radius:14px; padding:20px; width:80%; max-width:320px; text-align:center; }
-  #modalBox2 p { font-size:14px; color:#ccc; margin-bottom:16px; line-height:1.5; }
-  #modalBox2 input { width:100%; padding:8px; margin-bottom:10px; border-radius:5px; border:1px solid #444; background:#111; color:#fff; }
-  .modal-btns2 { display:flex; gap:10px; }
-  .modal-btns2 button { flex:1; padding:10px; border-radius:10px; border:none; font-size:14px; font-weight:700; cursor:pointer; }
-  #modalConfirm2 { background:#1565C0; color:#fff; }
-  #modalCancel2 { background:#333; color:#aaa; }
+  /* Botão salvar */
+  #btnSalvar { position:absolute; top:60px; right:10px; z-index:999; background:rgba(0,0,0,0.7); border:1px solid #444; color:#fff; padding:6px 12px; border-radius:20px; font-size:12px; cursor:pointer; }
+  .btn-aux { flex: 1; padding: 9px; border-radius: 10px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; background: #1565C0; color: #fff; transition: all 0.2s; }
+  .btn-aux:active { transform: scale(0.97); background: #0d47a1; }
+  .log-line { font-size: 11px; color: #666; }
+  .log-ok   { color: #4caf50; }
+  .log-err  { color: #ef5350; }
+  .log-warn { color: #ffa726; }
 
-  /* BOTÃO SALVAR */
-  #btnSalvar { position:absolute; top:60px; right:10px; z-index:999;
-    background:rgba(0,0,0,0.7); border:1px solid #444; color:#fff;
-    padding:6px 12px; border-radius:20px; font-size:12px; cursor:pointer; }
+  /* BOTÃO TODOS */
+  #btnTodos { position: absolute; top: 120px; right: 10px; z-index: 999; background: rgba(0,0,0,0.7); border: 1px solid #444; color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; display: none; }
+
+  /* Modal confirmação AUX */
+  #modalAux { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center; }
+  #modalAux.show { display:flex; }
+  #modalBox { background:#1a1a1a; border:1px solid #1565C0; border-radius:14px; padding:20px; width:80%; max-width:320px; text-align:center; }
+  #modalBox p { font-size:14px; color:#ccc; margin-bottom:16px; line-height:1.5; }
+  #modalBox strong { color:#fff; font-size:16px; display:block; margin-bottom:8px; }
+  .modal-btns { display:flex; gap:10px; }
+  .modal-btns button { flex:1; padding:10px; border-radius:10px; border:none; font-size:14px; font-weight:700; cursor:pointer; }
+  #modalConfirm { background:#1565C0; color:#fff; }
+  #modalCancel  { background:#333; color:#aaa; }
+
+  #pendenteBanner { background: #f9a825dd; border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 600; text-align: center; color: #fff; display: none; margin-bottom: 4px; }
 </style>
 </head>
 <body>
@@ -128,10 +134,11 @@
 </div>
 
 <!-- PÂNICO -->
-<div id="panicAlert" onclick="cancelarPanico()">
-  <strong>🚨 PÂNICO ATIVADO</strong>
-  <span id="panicTimer">60s para cancelar</span>
-  <br><small style="font-size:11px; opacity:0.8">Clique aqui para cancelar</small>
+<div id="panicBanner">🚨 PÂNICO ATIVADO — Veículo em perigo! <span id="panicTimer"></span></div>
+<div id="panicWidget" title="Clique para cancelar (60s)" onclick="cancelarPanico()">
+  <div id="panicDot"></div>
+  <span id="panicTxt">PÂNICO</span>
+  <span id="panicTimer" style="font-size:10px;color:#aaa;"></span>
 </div>
 
 <!-- BOTÃO SALVAR -->
@@ -139,6 +146,7 @@
 
 <!-- MAPA -->
 <div id="map"></div>
+<button id="btnTodos" onclick="centralizarTodos()">⊕ Todos</button>
 
 <!-- PAINEL -->
 <div id="panel" style="display:none">
@@ -163,16 +171,14 @@
   <div id="logBox"></div>
 </div>
 
-<!-- MODAL SEGURANÇA -->
-<div id="modalSeguranca">
-  <div id="modalBox2">
-    <strong>🔒 Autenticação</strong>
-    <p>Digite usuário e senha para bloquear:</p>
-    <input type="text" id="segUser" placeholder="Usuário">
-    <input type="password" id="segPass" placeholder="Senha">
-    <div class="modal-btns2">
-      <button id="modalConfirm2" onclick="confirmarBloqueio()">Confirmar</button>
-      <button id="modalCancel2" onclick="fecharModalSeguranca()">Cancelar</button>
+<!-- Modal AUX -->
+<div id="modalAux">
+  <div id="modalBox">
+    <strong>🔓 Destravar Portas</strong>
+    <p>Enviar pulso de 2 segundos para destravamento de emergência?</p>
+    <div class="modal-btns">
+      <button id="modalCancel"  onclick="fecharModal()">Cancelar</button>
+      <button id="modalConfirm" onclick="confirmarAux()">Confirmar</button>
     </div>
   </div>
 </div>
@@ -183,36 +189,42 @@
 // ═══════════════════════════════════════════════════
 const BROKER_WSS  = 'wss://5e7c95681b9f45068546a87087ed9e2c.s1.eu.hivemq.cloud/mqtt';
 const BROKER_PORT = 8884;
-const USUARIOS = { 'fulano': '1234', 'cicrano': '0123', 'beltrano': '9012', 'admin': '8912', 'zerruela': '3412' };
+
+const USUARIOS = {
+  'fulano':   '1234',
+  'cicrano':  '0123',
+  'beltrano': '9012',
+  'admin':    '8912',
+  'zerruela': '3412'
+};
+
 const TILES = {
   map:       { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attr: '© OpenStreetMap', label: '🛰 Satélite' },
   satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr: '© Esri', label: '🗺 Mapa claro' }
 };
+
+// ═══════════════════════════════════════════════════
+//  ESTADO
+// ═══════════════════════════════════════════════════
+const _u = new URLSearchParams(window.location.search).get('u') || '';
+let usuarioId = _u.toLowerCase().trim();
+if (!usuarioId || !(usuarioId in USUARIOS)) usuarioId = 'admin';
+document.getElementById('loginNome').textContent = '👤 ' + usuarioId.toUpperCase();
 let map, tileLayer, mqttClient;
-let usuarioId = '';
-let pinBuffer = '';
-let currentStyle = 'map';
-let veiculos = {};
-let ativoId = null;
-let panicoAtivo = false;
-let panicoTimer = null;
+const PARADA_MIN_MS  = 360000; // 6 min
+let panicoAtivo      = false;
+let panicoTimer      = null;
 let panicoCancelavel = true;
-let panicoChipId = null;
-const PARADA_MIN_MS = 360000;
-const RAIO_PARADA_M = 50;
-const PARADA_VEL = 2.0;
+let panicoChipId     = null;
+const PARADA_VEL     = 2.0;
+let veiculos    = {};
+let ativoId     = null;
+let pinBuffer   = '';
+let currentStyle = 'map';
 
 // ═══════════════════════════════════════════════════
 //  LOGIN
 // ═══════════════════════════════════════════════════
-const _u = new URLSearchParams(window.location.search).get('u') || '';
-usuarioId = _u.toLowerCase().trim();
-if (!usuarioId || !(usuarioId in USUARIOS)) usuarioId = 'admin';
-document.getElementById('loginNome').textContent = '👤 ' + usuarioId.toUpperCase();
-</script>
-</body>
-</html>
-<script>
 function pin(v) {
   if (!usuarioId || !(usuarioId in USUARIOS)) usuarioId = 'admin';
   if (v === 'del') { pinBuffer = pinBuffer.slice(0, -1); }
@@ -271,6 +283,7 @@ function conectarMQTT() {
   setBadge('mqttBadge', 'Conectando...', 'badge-warn');
   const clientId = 'Web_' + usuarioId + '_' + Math.random().toString(36).slice(2, 6);
   mqttClient = mqtt.connect(BROKER_WSS, { port: BROKER_PORT, clientId, username: 'ESP8266Dario', password: '3SP8266d4r10', reconnectPeriod: 5000 });
+
   mqttClient.on('connect', () => {
     setBadge('mqttBadge', 'Conectado', 'badge-ok');
     mqttClient.subscribe('rastreador/' + usuarioId + '/+/gps');
@@ -280,6 +293,7 @@ function conectarMQTT() {
   mqttClient.on('disconnect', () => setBadge('mqttBadge', 'Desconectado', 'badge-off'));
   mqttClient.on('offline',    () => setBadge('mqttBadge', 'Offline', 'badge-err'));
   mqttClient.on('error', (e)  => addLog('Erro broker: ' + e.message, 'log-err'));
+
   mqttClient.on('message', (topic, payload) => {
     try {
       const p      = topic.split('/');
@@ -301,6 +315,13 @@ function cmd(chipId, comando) {
 }
 function acionarAux() {
   if (!ativoId) { addLog('Nenhum veículo selecionado', 'log-err'); return; }
+  document.getElementById('modalAux').classList.add('show');
+}
+function fecharModal() {
+  document.getElementById('modalAux').classList.remove('show');
+}
+function confirmarAux() {
+  fecharModal();
   cmd(ativoId, 'AUX_DESTRAVAR');
   addLog('→ AUX destravamento acionado (2s)', 'log-warn');
 }
@@ -417,11 +438,11 @@ function processarGPS(chipId, d) {
       addLog('[' + chipId.slice(-4) + '] Parada detectada vel=' + v.vel.toFixed(1), 'log-warn');
     } else {
       const distancia = map.distance(v.paradaPos, pos);
-      if (distancia > RAIO_PARADA_M) {
+      if (distancia > 100) {
         v.paradaInicio = Date.now();
         v.paradaPos    = pos;
         if (v.paradaCirculo) { v.paradaCirculo.remove(); v.paradaCirculo = null; }
-        addLog('[' + chipId.slice(-4) + '] Veículo se moveu mais de 50m — conta como movimento', 'log-warn');
+        addLog('[' + chipId.slice(-4) + '] Veículo se moveu mais de 100m — conta como movimento', 'log-warn');
       }
 
       const tempoParado = Date.now() - v.paradaInicio;
@@ -459,87 +480,48 @@ function processarGPS(chipId, d) {
 }
 
 // ═══════════════════════════════════════════════════
-//  STATUS + PÂNICO + SEGURANÇA
+//  STATUS + PÂNICO
 // ═══════════════════════════════════════════════════
-function processarStatus(chipId, d) {
-  const v = obterVeiculo(chipId);
-  if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
-  if (d.pendente  !== undefined) v.pendente  = d.pendente  === true;
-  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
-  atualizarBotaoLista(chipId);
-  if (chipId === ativoId) atualizarPainel(chipId);
-  const m = d.motivo || '';
-  if (m === 'panico') { ativarPanico(chipId); }
-  if (m === 'panico_cancelado') { cancelarPanico(); }
-  if (m === 'panico_confirmado') {
-    panicoCancelavel = false;
-    clearInterval(panicoTimer);
-    document.getElementById('panicAlert').classList.remove('pulsing');
-    document.getElementById('panicTimer').textContent = '⚠️ TRAVADO';
-    addLog('🚨 Pânico TRAVADO pelo ESP [' + chipId.slice(-4) + ']', 'log-err');
-  }
-  if (v.bloqueado)               addLog('[' + chipId.slice(-4) + '] BLOQUEADO — ' + m, 'log-err');
-  else if (v.pendente)           addLog('[' + chipId.slice(-4) + '] Aguardando vel...', 'log-warn');
-  else if (m === 'desbloqueado') addLog('[' + chipId.slice(-4) + '] LIBERADO', 'log-ok');
-  else if (m === 'online' || m === 'reconectado') addLog('[' + chipId.slice(-4) + '] Online ✓', 'log-ok');
-}
-
 function ativarPanico(chipId) {
   if (panicoAtivo) return;
   panicoAtivo      = true;
   panicoCancelavel = true;
   panicoChipId     = chipId;
-  document.getElementById('panicAlert').style.display = 'block';
-  document.getElementById('panicAlert').classList.add('pulsing');
+
+  document.getElementById('panicWidget').style.display = 'flex';
+  document.getElementById('panicBanner').style.display = 'block';
+
   let segsRestantes = 60;
   const timer = document.getElementById('panicTimer');
-  timer.textContent = segsRestantes + 's para cancelar';
+  timer.textContent = '(' + segsRestantes + 's para cancelar)';
+
   panicoTimer = setInterval(() => {
     segsRestantes--;
     if (segsRestantes > 0) {
-      timer.textContent = segsRestantes + 's para cancelar';
-      addLog('🚨 PÂNICO [' + chipId.slice(-4) + '] ' + segsRestantes + 's para cancelar', 'log-err');
+      timer.textContent = '(' + segsRestantes + 's para cancelar)';
     } else {
       clearInterval(panicoTimer);
       panicoCancelavel = false;
-      timer.textContent = '⚠️ CONFIRMADO';
+      timer.textContent = '(CONFIRMADO — não pode ser cancelado)';
       addLog('🚨 PÂNICO CONFIRMADO [' + chipId.slice(-4) + ']', 'log-err');
     }
   }, 1000);
+
   addLog('🚨 PÂNICO ativado [' + chipId.slice(-4) + '] — 60s para cancelar', 'log-err');
 }
 
 function cancelarPanico() {
-  if (!panicoCancelavel) return;
+  if (!panicoAtivo || !panicoCancelavel) return;
   clearInterval(panicoTimer);
   panicoAtivo = false;
-  document.getElementById('panicAlert').style.display = 'none';
-  document.getElementById('panicAlert').classList.remove('pulsing');
+  document.getElementById('panicWidget').style.display = 'none';
+  document.getElementById('panicBanner').style.display = 'none';
   if (panicoChipId) cmd(panicoChipId, 'PANICO_CANCELADO');
   addLog('✅ Pânico cancelado', 'log-ok');
 }
 
-function solicitarBloqueio() {
-  document.getElementById('modalSeguranca').style.display = 'flex';
-}
-
-function confirmarBloqueio() {
-  let user = document.getElementById('segUser').value;
-  let pass = document.getElementById('segPass').value;
-  if (user === usuarioId && pass === USUARIOS[usuarioId]) {
-    document.getElementById('modalSeguranca').style.display = 'none';
-    cmdAtivo('BLOQUEAR');
-  } else {
-    alert('Usuário ou senha incorretos!');
-  }
-}
-
-function fecharModalSeguranca() {
-  document.getElementById('modalSeguranca').style.display = 'none';
-}
-
 // ═══════════════════════════════════════════════════
-//  HELPERS
+//  PAINEL
 // ═══════════════════════════════════════════════════
 function atualizarPainel(chipId) {
   const v = veiculos[chipId]; if (!v) return;
@@ -547,6 +529,7 @@ function atualizarPainel(chipId) {
   document.getElementById('pSat').textContent  = v.sat + ' sat';
   document.getElementById('pRssi').textContent = (v.rssi || '—') + ' dBm';
   document.getElementById('pAlt').textContent  = v.alt ? v.alt.toFixed(0) + ' m' : '— m';
+
   const st = document.getElementById('pStatus');
   const bB = document.getElementById('btnBlock');
   const bC = document.getElementById('btnCancel');
@@ -554,6 +537,7 @@ function atualizarPainel(chipId) {
   const bn = document.getElementById('pendenteBanner');
   bB.style.display = bC.style.display = bU.style.display = 'none';
   bn.style.display = 'none';
+
   if (v.bloqueado) {
     st.textContent = 'Bloqueado'; st.className = 'badge badge-err';
     bB.style.display = '';
@@ -571,6 +555,9 @@ function atualizarPainel(chipId) {
   }
 }
 
+// ═══════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════
 function atualizarBotaoLista(chipId) {
   const v   = veiculos[chipId];
   const btn = document.getElementById('vbtn_' + chipId);
@@ -629,6 +616,7 @@ function addLog(msg, cls) {
 function salvarMapa() {
   const data = new Date().toLocaleString('pt-BR');
   const dataArq = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
+
   let resumo = `<!DOCTYPE html><html><head><meta charset="UTF-8">
   <title>Rastreador — Trajeto ${dataArq}</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -650,11 +638,13 @@ function salvarMapa() {
   <div id="mapaExport"></div>
   <div class="info">
   <h2>🛡️ Rastreador — Trajeto salvo em ${data}</h2>`;
+
   Object.values(veiculos).forEach(v => {
     const pontos = v.trail.getLatLngs();
     const status = v.bloqueado ? '<span class="verm">BLOQUEADO</span>' : '<span class="verde">LIBERADO</span>';
     resumo += `<h3>🚗 ${v.nome} (${v.chipId}) — ${status}</h3>`;
     resumo += `<p>📍 Pontos registrados: <b>${pontos.length}</b> | 🅿️ Paradas: <b>${v.pingos.length}</b></p>`;
+
     if (v.pingos.length > 0) {
       resumo += '<h4>🅿️ Paradas registradas:</h4><table>';
       resumo += '<tr><th>#</th><th>Duração</th><th>Localização</th><th>Google Maps</th></tr>';
@@ -665,12 +655,15 @@ function salvarMapa() {
       resumo += '</table>';
     }
   });
+
   const trailData = Object.values(veiculos).map(v => ({
-    nome: v.nome, chipId: v.chipId,
+    nome: v.nome,
+    chipId: v.chipId,
     pontos: v.trail.getLatLngs().map(p => [p.lat, p.lng]),
     pingos: v.pingos.map(p => ({ ll: p.marker.getLatLng(), mins: p.mins })),
     bloqueado: v.bloqueado
   }));
+
   resumo += `</div>
   <script>
   const dados = ${JSON.stringify(trailData)};
@@ -697,6 +690,7 @@ function salvarMapa() {
   if (bounds.length > 0) m.fitBounds(bounds, {padding:[30,30]});
   <\/script>
   </body></html>`;
+
   const blob = new Blob([resumo], {type:'text/html'});
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
