@@ -628,47 +628,53 @@ function addLog(msg, cls) {
 }
 
 // ══════════════════════════════════════════════════
-//  PÂNICO - MODIFICADO PARA ACEITAR ORIGEM
+//  PÂNICO - SIMPLES
 // ══════════════════════════════════════════════════
-function ativarPanico(chipId, origem = 'mqtt') {
-  if (panicoAtivo) return;
-  panicoAtivo      = true;
-  panicoCancelavel = true;
-  panicoChipId     = chipId;
+let panicoAtivo = false;
 
-  document.getElementById('panicWidget').style.display = 'flex';
-  document.getElementById('panicBanner').style.display = 'block';
-
-  let segsRestantes = 60;
-  const timer = document.getElementById('panicTimer');
-  timer.textContent = '(' + segsRestantes + 's para cancelar)';
-
-  panicoTimer = setInterval(() => {
-    segsRestantes--;
-    if (segsRestantes > 0) {
-      timer.textContent = '(' + segsRestantes + 's para cancelar)';
-    } else {
-      clearInterval(panicoTimer);
-      panicoCancelavel = false;
-      timer.textContent = '(CONFIRMADO — não pode ser cancelado)';
-      addLog('🚨 PÂNICO CONFIRMADO [' + chipId.slice(-4) + ']', 'log-err');
+function testarPanicoD0() {
+    if (!ativoId) {
+        alert('Selecione um veículo primeiro!');
+        return;
     }
-  }, 1000);
+    
+    panicoAtivo = !panicoAtivo; // Inverte: liga/desliga
+    
+    if (panicoAtivo) {
+        document.getElementById('panicWidget').style.display = 'flex';
+        document.getElementById('panicBanner').style.display = 'block';
+        document.getElementById('panicTxt').textContent = '🔴 ATIVO';
+        addLog('🚨 PÂNICO ATIVADO', 'log-err');
+        cmd(ativoId, 'PANICO_ATIVAR');
+    } else {
+        document.getElementById('panicWidget').style.display = 'none';
+        document.getElementById('panicBanner').style.display = 'none';
+        document.getElementById('panicTxt').textContent = 'PÂNICO';
+        addLog('✅ Pânico desativado', 'log-ok');
+        cmd(ativoId, 'PANICO_CANCELADO');
+    }
+}
 
-  const origemTxt = origem === 'manual' ? 'MANUAL (D0)' : 'MQTT';
-  addLog('🚨 PÂNICO ativado [' + chipId.slice(-4) + '] via ' + origemTxt + ' — 60s para cancelar', 'log-err');
+// Esta função mantém compatibilidade com o MQTT
+function ativarPanico(chipId) {
+    if (!panicoAtivo) {
+        panicoAtivo = true;
+        document.getElementById('panicWidget').style.display = 'flex';
+        document.getElementById('panicBanner').style.display = 'block';
+        document.getElementById('panicTxt').textContent = '🔴 ATIVO';
+        addLog('🚨 PÂNICO recebido via MQTT', 'log-err');
+    }
 }
 
 function cancelarPanico() {
-  if (!panicoAtivo || !panicoCancelavel) return;
-  clearInterval(panicoTimer);
-  panicoAtivo = false;
-  document.getElementById('panicWidget').style.display = 'none';
-  document.getElementById('panicBanner').style.display = 'none';
-  if (panicoChipId) cmd(panicoChipId, 'PANICO_CANCELADO');
-  addLog('✅ Pânico cancelado', 'log-ok');
+    if (panicoAtivo) {
+        panicoAtivo = false;
+        document.getElementById('panicWidget').style.display = 'none';
+        document.getElementById('panicBanner').style.display = 'none';
+        document.getElementById('panicTxt').textContent = 'PÂNICO';
+        addLog('✅ Pânico cancelado via MQTT', 'log-ok');
+    }
 }
-
 // ══════════════════════════════════════════════════
 //  TESTE DO PINO D0 (via botão e console)
 // ══════════════════════════════════════════════════
