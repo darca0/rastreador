@@ -539,9 +539,8 @@ function processarStatus(chipId, d) {
   else if (m === 'online' || m === 'reconectado') addLog('[' + chipId.slice(-4) + '] Online ✓', 'log-ok');
 }
 
-
 // ═══════════════════════════════════════════════════
-//  PAINEL + SEGURANÇA PARA BLOQUEIO
+//  PAINEL
 // ═══════════════════════════════════════════════════
 function atualizarPainel(chipId) {
   const v = veiculos[chipId]; if (!v) return;
@@ -559,42 +558,26 @@ function atualizarPainel(chipId) {
   bn.style.display = 'none';
 
   if (v.bloqueado) {
+    // BLOQUEADO → mostra botão vermelho, ao clicar libera
     st.textContent = 'Bloqueado'; st.className = 'badge badge-err';
-    bB.style.display = '';
+    bB.style.display = '';        // 🔴 Bloqueado visível
+    // sobrescreve onclick para DESBLOQUEAR
     bB.onclick = () => cmdAtivo('DESBLOQUEAR');
     bB.textContent = '🔴 Bloqueado';
   } else if (v.pendente) {
+    // PENDENTE → mostra botão amarelo, ao clicar cancela
     st.textContent = 'Aguardando'; st.className = 'badge badge-warn';
-    bC.style.display = '';
+    bC.style.display = '';        // 🟡 Aguardando... visível
     bn.style.display = 'block';
   } else {
+    // LIBERADO → mostra botão verde, ao clicar bloqueia
     st.textContent = 'Liberado'; st.className = 'badge badge-ok';
-    bU.style.display = '';
-    bU.onclick = () => solicitarBloqueio();
+    bU.style.display = '';        // 🟢 Liberado visível
+    // sobrescreve onclick para BLOQUEAR
+    bU.onclick = () => cmdAtivo('BLOQUEAR');
     bU.textContent = '🟢 Liberado';
   }
 }
-
-// 🔒 SEGURANÇA PARA BLOQUEIO
-function solicitarBloqueio() {
-  document.getElementById('modalSeguranca').style.display = 'flex';
-}
-
-function confirmarBloqueio() {
-  let user = document.getElementById('segUser').value;
-  let pass = document.getElementById('segPass').value;
-  if (user === usuarioId && pass === USUARIOS[usuarioId]) {
-    document.getElementById('modalSeguranca').style.display = 'none';
-    cmdAtivo('BLOQUEAR');
-  } else {
-    alert('Usuário ou senha incorretos!');
-  }
-}
-
-function fecharModalSeguranca() {
-  document.getElementById('modalSeguranca').style.display = 'none';
-}
-
 
 // ═══════════════════════════════════════════════════
 //  HELPERS
@@ -804,23 +787,5 @@ function salvarMapa() {
 }
 
 </script>
- </script>
-
-<!-- 🔒 MODAL DE SEGURANÇA (BLOQUEIO) -->
-<div id="modalSeguranca" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
-  <div style="background:#222; padding:20px; border-radius:10px; width:300px; text-align:center;">
-    <h3 style="color:#fff">🔒 Autenticação</h3>
-    <p style="color:#aaa; font-size:12px; margin-bottom:15px;">Digite usuário e senha para bloquear:</p>
-    <input type="text" id="segUser" placeholder="Usuário" style="width:100%; padding:8px; margin-bottom:10px; border-radius:5px; border:1px solid #444; background:#111; color:#fff;">
-    <input type="password" id="segPass" placeholder="Senha" style="width:100%; padding:8px; margin-bottom:15px; border-radius:5px; border:1px solid #444; background:#111; color:#fff;">
-    <div style="display:flex; gap:10px;">
-      <button onclick="confirmarBloqueio()" style="flex:1; background:#c62828; color:#fff; padding:10px; border:none; border-radius:5px; font-weight:700; cursor:pointer;">Confirmar</button>
-      <button onclick="fecharModalSeguranca()" style="flex:1; background:#333; color:#aaa; padding:10px; border:none; border-radius:5px; font-weight:700; cursor:pointer;">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-</body>
-</html>
 </body>
 </html>
