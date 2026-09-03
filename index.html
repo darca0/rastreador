@@ -517,6 +517,7 @@ function processarGPS(chipId, d) {
   if (chipId === ativoId) atualizarPainel(chipId);
 }
  
+
 // ═══════════════════════════════════════════════════
 //  STATUS
 // ═══════════════════════════════════════════════════
@@ -528,17 +529,15 @@ function processarStatus(chipId, d) {
   atualizarBotaoLista(chipId);
   if (chipId === ativoId) atualizarPainel(chipId);
   const m = d.motivo || '';
-  if (m === 'panico') {
-    ativarPanico(chipId);
-  }
-  if (m === 'panico_cancelado') {
-    cancelarPanico();
-  }
+  
+  if (m === 'panico') { ativarPanico(chipId); }
+  if (m === 'panico_cancelado') { cancelarPanico(); }
   if (m === 'panico_confirmado') {
     panicoCancelavel = false;
     clearInterval(panicoTimer);
-    document.getElementById('panicBanner').style.display = 'none';
-    document.getElementById('panicWidget').style.display = 'none';
+    document.getElementById('panicAlert').style.display = 'block'; // Mantém visível
+    document.getElementById('panicAlert').classList.remove('pulsing');
+    document.getElementById('panicTimer').textContent = '⚠️ TRAVADO';
     addLog('🚨 Pânico TRAVADO pelo ESP [' + chipId.slice(-4) + ']', 'log-err');
   }
   if (v.bloqueado)               addLog('[' + chipId.slice(-4) + '] BLOQUEADO — ' + m, 'log-err');
@@ -548,41 +547,47 @@ function processarStatus(chipId, d) {
 }
 
 // ═══════════════════════════════════════════════════
-//  PAINEL + SEGURANÇA
+//  PÂNICO + SEGURANÇA
 // ═══════════════════════════════════════════════════
-function atualizarPainel(chipId) {
-  const v = veiculos[chipId]; if (!v) return;
-  document.getElementById('pVel').textContent  = v.vel.toFixed(1) + ' km/h';
-  document.getElementById('pSat').textContent  = v.sat + ' sat';
-  document.getElementById('pRssi').textContent = (v.rssi || '—') + ' dBm';
-  document.getElementById('pAlt').textContent  = v.alt ? v.alt.toFixed(0) + ' m' : '— m';
+function ativarPanico(chipId) {
+  if (panicoAtivo) return;
+  panicoAtivo      = true;
+  panicoCancelavel = true;
+  panicoChipId     = chipId;
 
-  const st = document.getElementById('pStatus');
-  const bB = document.getElementById('btnBlock');
-  const bC = document.getElementById('btnCancel');
-  const bU = document.getElementById('btnUnlock');
-  const bn = document.getElementById('pendenteBanner');
-  bB.style.display = bC.style.display = bU.style.display = 'none';
-  bn.style.display = 'none';
+  document.getElementById('panicAlert').style.display = 'block';
+  document.getElementById('panicAlert').classList.add('pulsing');
 
-  if (v.bloqueado) {
-    st.textContent = 'Bloqueado'; st.className = 'badge badge-err';
-    bB.style.display = '';
-    bB.onclick = () => cmdAtivo('DESBLOQUEAR');
-    bB.textContent = '🔴 Bloqueado';
-  } else if (v.pendente) {
-    st.textContent = 'Aguardando'; st.className = 'badge badge-warn';
-    bC.style.display = '';
-    bn.style.display = 'block';
-  } else {
-    st.textContent = 'Liberado'; st.className = 'badge badge-ok';
-    bU.style.display = '';
-    bU.onclick = () => solicitarBloqueio();
-    bU.textContent = '🟢 Liberado';
-  }
+  let segsRestantes = 60;
+  const timer = document.getElementById('panicTimer');
+  timer.textContent = segsRestantes + 's para cancelar';
+
+  panicoTimer = setInterval(() => {
+    segsRestantes--;
+    if (segsRestantes > 0) {
+      timer.textContent = segsRestantes + 's para cancelar';
+      addLog('🚨 PÂNICO [' + chipId.slice(-4) + '] ' + segsRestantes + 's para cancelar', 'log-err');
+    } else {
+      clearInterval(panicoTimer);
+      panicoCancelavel = false;
+      timer.textContent = '⚠️ CONFIRMADO';
+      addLog('🚨 PÂNICO CONFIRMADO [' + chipId.slice(-4) + ']', 'log-err');
+    }
+  }, 1000);
+
+  addLog('🚨 PÂNICO ativado [' + chipId.slice(-4) + '] — 60s para cancelar', 'log-err');
 }
 
-// 🔒 SEGURANÇA PARA BLOQUEIO
+function cancelarPanico() {
+  if (!panicoCancelavel) return;
+  clearInterval(panicoTimer);
+  panicoAtivo = false;
+  document.getElementById('panicAlert').style.display = 'none';
+  document.getElementById('panicAlert').classList.remove('pulsing');
+  if (panicoChipId) cmd(panicoChipId, 'PANICO_CANCELADO');
+  addLog('✅ Pânico cancelado', 'log-ok');
+}
+
 function solicitarBloqueio() {
   document.getElementById('modalSeguranca').style.display = 'flex';
 }
@@ -601,6 +606,10 @@ function confirmarBloqueio() {
 function fecharModalSeguranca() {
   document.getElementById('modalSeguranca').style.display = 'none';
 }
+
+// ═══════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════
 //  HELPERS
@@ -689,11 +698,11 @@ function ativarPanico(chipId) {
 }
 
 function cancelarPanico() {
-  if (!panicoAtivo || !panicoCancelavel) return;
+  if (!panicoCancelavel) return;  // TRAVA! Se não pode cancelar, não cancela!
   clearInterval(panicoTimer);
   panicoAtivo = false;
-  document.getElementById('panicWidget').style.display = 'none';
-  document.getElementById('panicBanner').style.display = 'none';
+  document.getElementById('panicAlert').style.display = 'none';
+  document.getElementById('panicAlert').classList.remove('pulsing');
   if (panicoChipId) cmd(panicoChipId, 'PANICO_CANCELADO');
   addLog('✅ Pânico cancelado', 'log-ok');
 }
