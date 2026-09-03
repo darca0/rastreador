@@ -58,13 +58,30 @@
   #panelNome { font-size: 11px; font-weight: 700; color: #90caf9; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .info-row { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 4px; }
   .info-pill { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 2px 8px; font-size: 11px; color: #ccc; }
-  .btn-row { display: flex; gap: 4px; }
-  .map-btn { flex: 1; padding: 9px 4px; border-radius: 10px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+  .btn-row { display: flex; gap: 4px; flex-wrap: wrap; }
+  .map-btn { flex: 1; padding: 9px 4px; border-radius: 10px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; min-width: 60px; }
   .map-btn:active { transform: scale(0.97); }
   .btn-block  { background: #c62828; color: #fff; }
   .btn-unlock { background: #2e7d32; color: #fff; }
   .btn-cancel { background: #f9a825; color: #fff; }
   .btn-center { flex: 0 0 42px; background: #1565C0; color: #fff; border-radius: 10px; border: none; font-size: 16px; cursor: pointer; }
+  
+  /* Botão de teste D0 */
+  .btn-panic {
+    background: #b71c1c;
+    color: #fff;
+    font-weight: 700;
+    border: none;
+    border-radius: 10px;
+    padding: 9px 4px;
+    flex: 1;
+    min-width: 70px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-panic:active { transform: scale(0.95); }
+  .btn-panic:disabled { opacity: 0.5; cursor: not-allowed; }
+  
   #logBox { max-height: 40px; overflow-y: auto; margin-top: 3px; }
   #auxRow { display: flex; margin-top: 4px; }
 
@@ -162,8 +179,10 @@
   <div class="btn-row">
     <button class="map-btn btn-block"  id="btnBlock"  onclick="cmdAtivo('BLOQUEAR')"         style="display:none">🔴 Bloqueado</button>
     <button class="map-btn btn-cancel" id="btnCancel" onclick="cmdAtivo('CANCELAR_BLOQUEIO')" style="display:none">🟡 Aguardando...</button>
-    <button class="map-btn btn-unlock" id="btnUnlock" onclick="cmdAtivo('DESBLOQUEAR')"       >🟢 Liberado</button>
+    <button class="map-btn btn-unlock" id="btnUnlock" onclick="cmdAtivo('DESBLOQUEAR')">🟢 Liberado</button>
     <button class="btn-center" onclick="centralizarAtivo()">◎</button>
+    <!-- BOTÃO TESTE D0 ADICIONADO AQUI -->
+    <button class="btn-panic" id="btnPanicD0" onclick="testarPanicoD0()">🔴 TESTE D0</button>
   </div>
   <div id="auxRow">
     <button class="btn-aux" onclick="acionarAux()">🔓 AUX — Destravar Portas (emergência)</button>
@@ -609,9 +628,9 @@ function addLog(msg, cls) {
 }
 
 // ══════════════════════════════════════════════════
-//  PÂNICO
+//  PÂNICO - MODIFICADO PARA ACEITAR ORIGEM
 // ══════════════════════════════════════════════════
-function ativarPanico(chipId) {
+function ativarPanico(chipId, origem = 'mqtt') {
   if (panicoAtivo) return;
   panicoAtivo      = true;
   panicoCancelavel = true;
@@ -636,7 +655,8 @@ function ativarPanico(chipId) {
     }
   }, 1000);
 
-  addLog('🚨 PÂNICO ativado [' + chipId.slice(-4) + '] — 60s para cancelar', 'log-err');
+  const origemTxt = origem === 'manual' ? 'MANUAL (D0)' : 'MQTT';
+  addLog('🚨 PÂNICO ativado [' + chipId.slice(-4) + '] via ' + origemTxt + ' — 60s para cancelar', 'log-err');
 }
 
 function cancelarPanico() {
@@ -647,6 +667,49 @@ function cancelarPanico() {
   document.getElementById('panicBanner').style.display = 'none';
   if (panicoChipId) cmd(panicoChipId, 'PANICO_CANCELADO');
   addLog('✅ Pânico cancelado', 'log-ok');
+}
+
+// ══════════════════════════════════════════════════
+//  TESTE DO PINO D0 (via botão e console)
+// ══════════════════════════════════════════════════
+function testarPanicoD0() {
+    console.log('🔴 Simulando acionamento do pino D0...');
+    
+    if (!ativoId) {
+        console.warn('⚠️ Nenhum veículo selecionado');
+        addLog('❌ Nenhum veículo selecionado para teste D0!', 'log-err');
+        alert('⚠️ Selecione um veículo primeiro!');
+        return false;
+    }
+    
+    if (panicoAtivo) {
+        addLog('⚠️ Pânico já está ativo! Use cancelarPanico() primeiro.', 'log-warn');
+        return false;
+    }
+    
+    const v = veiculos[ativoId];
+    addLog('🚨 TESTE D0: Enviando pânico para ' + v.nome, 'log-warn');
+    cmd(ativoId, 'PANICO_ATIVAR');
+    ativarPanico(ativoId, 'manual');
+    return true;
+}
+
+// Atalho para console
+function simularD0() {
+    console.log('🔴 Simulando pino D0 pressionado...');
+    testarPanicoD0();
+}
+
+// ══════════════════════════════════════════════════
+//  COMANDOS PARA CONSOLE
+// ══════════════════════════════════════════════════
+function verEstado() {
+    console.log('📊 ESTADO ATUAL:');
+    console.log('  Pânico ativo:', panicoAtivo);
+    console.log('  Cancelável:', panicoCancelavel);
+    console.log('  Veículo ativo:', ativoId);
+    console.log('  Veículos:', Object.keys(veiculos).length);
+    console.log('  MQTT conectado:', mqttClient ? mqttClient.connected : false);
 }
 
 // ══════════════════════════════════════════════════
