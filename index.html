@@ -482,6 +482,31 @@ function processarGPS(chipId, d) {
 // ═══════════════════════════════════════════════════
 //  STATUS + PÂNICO
 // ═══════════════════════════════════════════════════
+function processarStatus(chipId, d) {
+  const v = obterVeiculo(chipId);
+  if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
+  if (d.pendente  !== undefined) v.pendente  = d.pendente  === true;
+  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
+  atualizarBotaoLista(chipId);
+  if (chipId === ativoId) atualizarPainel(chipId);
+  const m = d.motivo || '';
+  
+  if (m === 'panico') ativarPanico(chipId);
+  if (m === 'panico_cancelado') cancelarPanico();
+  if (m === 'panico_confirmado') {
+    panicoCancelavel = false;
+    clearInterval(panicoTimer);
+    document.getElementById('panicBanner').style.display = 'none';
+    document.getElementById('panicWidget').style.display = 'none';
+    addLog('🚨 Pânico TRAVADO pelo ESP [' + chipId.slice(-4) + ']', 'log-err');
+  }
+  
+  if (v.bloqueado)               addLog('[' + chipId.slice(-4) + '] BLOQUEADO — ' + m, 'log-err');
+  else if (v.pendente)           addLog('[' + chipId.slice(-4) + '] Aguardando vel...', 'log-warn');
+  else if (m === 'desbloqueado') addLog('[' + chipId.slice(-4) + '] LIBERADO', 'log-ok');
+  else if (m === 'online' || m === 'reconectado') addLog('[' + chipId.slice(-4) + '] Online ✓', 'log-ok');
+}
+
 function ativarPanico(chipId) {
   if (panicoAtivo) return;
   panicoAtivo      = true;
@@ -521,7 +546,7 @@ function cancelarPanico() {
 }
 
 // ═══════════════════════════════════════════════════
-//  PAINEL
+//  PAINEL + SEGURANÇA
 // ═══════════════════════════════════════════════════
 function atualizarPainel(chipId) {
   const v = veiculos[chipId]; if (!v) return;
@@ -553,6 +578,26 @@ function atualizarPainel(chipId) {
     bU.onclick = () => cmdAtivo('BLOQUEAR');
     bU.textContent = '🟢 Liberado';
   }
+}
+
+// 🔒 SEGURANÇA PARA BLOQUEIO
+function solicitarBloqueio() {
+  document.getElementById('modalSeguranca').style.display = 'flex';
+}
+
+function confirmarBloqueio() {
+  let user = document.getElementById('segUser').value;
+  let pass = document.getElementById('segPass').value;
+  if (user === usuarioId && pass === USUARIOS[usuarioId]) {
+    document.getElementById('modalSeguranca').style.display = 'none';
+    cmdAtivo('BLOQUEAR');
+  } else {
+    alert('Usuário ou senha incorretos!');
+  }
+}
+
+function fecharModalSeguranca() {
+  document.getElementById('modalSeguranca').style.display = 'none';
 }
 
 // ═══════════════════════════════════════════════════
@@ -644,7 +689,6 @@ function salvarMapa() {
     const status = v.bloqueado ? '<span class="verm">BLOQUEADO</span>' : '<span class="verde">LIBERADO</span>';
     resumo += `<h3>🚗 ${v.nome} (${v.chipId}) — ${status}</h3>`;
     resumo += `<p>📍 Pontos registrados: <b>${pontos.length}</b> | 🅿️ Paradas: <b>${v.pingos.length}</b></p>`;
-
     if (v.pingos.length > 0) {
       resumo += '<h4>🅿️ Paradas registradas:</h4><table>';
       resumo += '<tr><th>#</th><th>Duração</th><th>Localização</th><th>Google Maps</th></tr>';
