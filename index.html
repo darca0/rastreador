@@ -454,6 +454,7 @@ function processarGPS(chipId, d) {
             <circle cx="30" cy="28" r="17" fill="white" opacity="0.95"/>
             <text x="30" y="33" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="14" font-weight="900" fill="#CC5500">P${num}</text>
           </svg>`;
+
           const icone = L.divIcon({
             className: '',
             html: pingoSVG(v.contador),
@@ -462,6 +463,7 @@ function processarGPS(chipId, d) {
             popupAnchor: [0, -58]
           });
           v.paradaCirculo = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
+          v.pingos.push({ marker: v.paradaCirculo, num: v.contador, mins: Math.round(tempoParado / 60000) });
           addLog('[' + chipId.slice(-4) + '] Parada P' + v.contador + ' registrada', 'log-warn');
         }
       }
@@ -480,7 +482,7 @@ function processarGPS(chipId, d) {
 }
 
 // ═══════════════════════════════════════════════════
-//  STATUS + PÂNICO
+//  STATUS
 // ═══════════════════════════════════════════════════
 function processarStatus(chipId, d) {
   const v = obterVeiculo(chipId);
@@ -490,59 +492,10 @@ function processarStatus(chipId, d) {
   atualizarBotaoLista(chipId);
   if (chipId === ativoId) atualizarPainel(chipId);
   const m = d.motivo || '';
-  
-  if (m === 'panico') ativarPanico(chipId);
-  if (m === 'panico_cancelado') cancelarPanico();
-  if (m === 'panico_confirmado') {
-    panicoCancelavel = false;
-    clearInterval(panicoTimer);
-    document.getElementById('panicBanner').style.display = 'none';
-    document.getElementById('panicWidget').style.display = 'none';
-    addLog('🚨 Pânico TRAVADO pelo ESP [' + chipId.slice(-4) + ']', 'log-err');
-  }
-  
   if (v.bloqueado)               addLog('[' + chipId.slice(-4) + '] BLOQUEADO — ' + m, 'log-err');
   else if (v.pendente)           addLog('[' + chipId.slice(-4) + '] Aguardando vel...', 'log-warn');
   else if (m === 'desbloqueado') addLog('[' + chipId.slice(-4) + '] LIBERADO', 'log-ok');
   else if (m === 'online' || m === 'reconectado') addLog('[' + chipId.slice(-4) + '] Online ✓', 'log-ok');
-}
-
-function ativarPanico(chipId) {
-  if (panicoAtivo) return;
-  panicoAtivo      = true;
-  panicoCancelavel = true;
-  panicoChipId     = chipId;
-
-  document.getElementById('panicWidget').style.display = 'flex';
-  document.getElementById('panicBanner').style.display = 'block';
-
-  let segsRestantes = 60;
-  const timer = document.getElementById('panicTimer');
-  timer.textContent = '(' + segsRestantes + 's para cancelar)';
-
-  panicoTimer = setInterval(() => {
-    segsRestantes--;
-    if (segsRestantes > 0) {
-      timer.textContent = '(' + segsRestantes + 's para cancelar)';
-    } else {
-      clearInterval(panicoTimer);
-      panicoCancelavel = false;
-      timer.textContent = '(CONFIRMADO — não pode ser cancelado)';
-      addLog('🚨 PÂNICO CONFIRMADO [' + chipId.slice(-4) + ']', 'log-err');
-    }
-  }, 1000);
-
-  addLog('🚨 PÂNICO ativado [' + chipId.slice(-4) + '] — 60s para cancelar', 'log-err');
-}
-
-function cancelarPanico() {
-  if (!panicoAtivo || !panicoCancelavel) return;
-  clearInterval(panicoTimer);
-  panicoAtivo = false;
-  document.getElementById('panicWidget').style.display = 'none';
-  document.getElementById('panicBanner').style.display = 'none';
-  if (panicoChipId) cmd(panicoChipId, 'PANICO_CANCELADO');
-  addLog('✅ Pânico cancelado', 'log-ok');
 }
 
 // ═══════════════════════════════════════════════════
@@ -575,7 +528,7 @@ function atualizarPainel(chipId) {
   } else {
     st.textContent = 'Liberado'; st.className = 'badge badge-ok';
     bU.style.display = '';
-    bU.onclick = () => cmdAtivo('BLOQUEAR');
+    bU.onclick = () => solicitarBloqueio();
     bU.textContent = '🟢 Liberado';
   }
 }
@@ -656,6 +609,47 @@ function addLog(msg, cls) {
 }
 
 // ══════════════════════════════════════════════════
+//  PÂNICO
+// ══════════════════════════════════════════════════
+function ativarPanico(chipId) {
+  if (panicoAtivo) return;
+  panicoAtivo      = true;
+  panicoCancelavel = true;
+  panicoChipId     = chipId;
+
+  document.getElementById('panicWidget').style.display = 'flex';
+  document.getElementById('panicBanner').style.display = 'block';
+
+  let segsRestantes = 60;
+  const timer = document.getElementById('panicTimer');
+  timer.textContent = '(' + segsRestantes + 's para cancelar)';
+
+  panicoTimer = setInterval(() => {
+    segsRestantes--;
+    if (segsRestantes > 0) {
+      timer.textContent = '(' + segsRestantes + 's para cancelar)';
+    } else {
+      clearInterval(panicoTimer);
+      panicoCancelavel = false;
+      timer.textContent = '(CONFIRMADO — não pode ser cancelado)';
+      addLog('🚨 PÂNICO CONFIRMADO [' + chipId.slice(-4) + ']', 'log-err');
+    }
+  }, 1000);
+
+  addLog('🚨 PÂNICO ativado [' + chipId.slice(-4) + '] — 60s para cancelar', 'log-err');
+}
+
+function cancelarPanico() {
+  if (!panicoAtivo || !panicoCancelavel) return;
+  clearInterval(panicoTimer);
+  panicoAtivo = false;
+  document.getElementById('panicWidget').style.display = 'none';
+  document.getElementById('panicBanner').style.display = 'none';
+  if (panicoChipId) cmd(panicoChipId, 'PANICO_CANCELADO');
+  addLog('✅ Pânico cancelado', 'log-ok');
+}
+
+// ══════════════════════════════════════════════════
 //  SALVAR MAPA
 // ══════════════════════════════════════════════════
 function salvarMapa() {
@@ -687,14 +681,21 @@ function salvarMapa() {
   Object.values(veiculos).forEach(v => {
     const pontos = v.trail.getLatLngs();
     const status = v.bloqueado ? '<span class="verm">BLOQUEADO</span>' : '<span class="verde">LIBERADO</span>';
+
     resumo += `<h3>🚗 ${v.nome} (${v.chipId}) — ${status}</h3>`;
     resumo += `<p>📍 Pontos registrados: <b>${pontos.length}</b> | 🅿️ Paradas: <b>${v.pingos.length}</b></p>`;
+
     if (v.pingos.length > 0) {
       resumo += '<h4>🅿️ Paradas registradas:</h4><table>';
       resumo += '<tr><th>#</th><th>Duração</th><th>Localização</th><th>Google Maps</th></tr>';
       v.pingos.forEach((p, i) => {
         const ll = p.marker.getLatLng();
-        resumo += `<tr><td>${i+1}</td><td>${p.mins} min</td><td>${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}</td><td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td></tr>`;
+        resumo += `<tr>
+          <td>${i+1}</td>
+          <td>${p.mins} min</td>
+          <td>${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}</td>
+          <td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td>
+        </tr>`;
       });
       resumo += '</table>';
     }
@@ -718,7 +719,8 @@ function salvarMapa() {
     if (v.pontos.length > 0) {
       const poly = L.polyline(v.pontos, {color:'#1565C0',weight:3,opacity:0.8}).addTo(m);
       v.pontos.forEach(p => bounds.push(p));
-      L.circleMarker(v.pontos[v.pontos.length-1], {radius:8,color:'#2e7d32',fillColor:'#2e7d32',fillOpacity:1}).addTo(m).bindTooltip(v.nome, {permanent:false});
+      L.circleMarker(v.pontos[v.pontos.length-1], {radius:8,color:'#2e7d32',fillColor:'#2e7d32',fillOpacity:1}).addTo(m)
+        .bindTooltip(v.nome, {permanent:false});
     }
     v.pingos.forEach(p => {
       const svg = \`<svg xmlns="http://www.w3.org/2000/svg" width="44" height="58" viewBox="0 0 60 80">
@@ -745,5 +747,20 @@ function salvarMapa() {
   addLog('💾 Trajeto salvo com ' + Object.values(veiculos).reduce((s,v) => s + v.trail.getLatLngs().length, 0) + ' pontos!', 'log-ok');
 }
 </script>
+
+<!-- 🔒 MODAL DE SEGURANÇA (BLOQUEIO) -->
+<div id="modalSeguranca" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#222; padding:20px; border-radius:10px; width:300px; text-align:center;">
+    <h3 style="color:#fff">🔒 Autenticação</h3>
+    <p style="color:#aaa; font-size:12px; margin-bottom:15px;">Digite usuário e senha para bloquear:</p>
+    <input type="text" id="segUser" placeholder="Usuário" style="width:100%; padding:8px; margin-bottom:10px; border-radius:5px; border:1px solid #444; background:#111; color:#fff;">
+    <input type="password" id="segPass" placeholder="Senha" style="width:100%; padding:8px; margin-bottom:15px; border-radius:5px; border:1px solid #444; background:#111; color:#fff;">
+    <div style="display:flex; gap:10px;">
+      <button onclick="confirmarBloqueio()" style="flex:1; background:#c62828; color:#fff; padding:10px; border:none; border-radius:5px; font-weight:700; cursor:pointer;">Confirmar</button>
+      <button onclick="fecharModalSeguranca()" style="flex:1; background:#333; color:#aaa; padding:10px; border:none; border-radius:5px; font-weight:700; cursor:pointer;">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
