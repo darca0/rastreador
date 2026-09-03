@@ -66,10 +66,9 @@
   .btn-cancel { background: #f9a825; color: #fff; }
   .btn-center { flex: 0 0 42px; background: #1565C0; color: #fff; border-radius: 10px; border: none; font-size: 16px; cursor: pointer; }
   
-  /* Botão de teste D0 */
-  .btn-panic { background: #b71c1c; color: #fff; font-weight: 700; border: none; border-radius: 10px; padding: 9px 4px; flex: 1; min-width: 70px; cursor: pointer; transition: all 0.2s; }
-  .btn-panic:active { transform: scale(0.95); }
-  .btn-panic:disabled { opacity: 0.5; cursor: not-allowed; }
+  /* Botão de teste D8 - DISCRETO */
+  .btn-test-hidden { flex: 0 0 auto; background: transparent; color: #555; font-size: 10px; padding: 4px; border: none; cursor: pointer; text-decoration: underline; margin-top: 2px; }
+  .btn-test-hidden:active { color: #888; }
   
   #logBox { max-height: 40px; overflow-y: auto; margin-top: 3px; }
   #auxRow { display: flex; margin-top: 4px; }
@@ -170,11 +169,14 @@
     <button class="map-btn btn-cancel" id="btnCancel" onclick="cmdAtivo('CANCELAR_BLOQUEIO')" style="display:none">🟡 Aguardando...</button>
     <button class="map-btn btn-unlock" id="btnUnlock" onclick="cmdAtivo('DESBLOQUEAR')">🟢 Liberado</button>
     <button class="btn-center" onclick="centralizarAtivo()">◎</button>
-    <!-- BOTÃO TESTE D0 ADICIONADO AQUI -->
-    <button class="btn-panic" id="btnPanicD0" onclick="testarPanicoD0()">🔴 TESTE D0</button>
+    <!-- BOTÃO TESTE D8 DISCRETO -->
   </div>
   <div id="auxRow">
     <button class="btn-aux" onclick="acionarAux()">🔓 AUX — Destravar Portas (emergência)</button>
+  </div>
+  <!-- Botão de teste escondido -->
+  <div style="text-align:right;">
+    <button class="btn-test-hidden" onclick="confirmarTesteD8()">🔧 Teste D8</button>
   </div>
   <div id="logBox"></div>
 </div>
@@ -187,6 +189,18 @@
     <div class="modal-btns">
       <button id="modalCancel"  onclick="fecharModal()">Cancelar</button>
       <button id="modalConfirm" onclick="confirmarAux()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmação Teste D8 -->
+<div id="modalTesteD8" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#1a1a1a; border:1px solid #555; border-radius:14px; padding:20px; width:80%; max-width:320px; text-align:center;">
+    <strong style="color:#fff; font-size:16px; display:block; margin-bottom:8px;">🔧 Teste Manual D8</strong>
+    <p style="font-size:13px; color:#aaa; margin-bottom:16px;">Isso vai simular um pânico. Deseja realmente testar?</p>
+    <div class="modal-btns">
+      <button onclick="executarTesteD8()" style="flex:1; background:#1565C0; color:#fff; padding:10px; border:none; border-radius:10px; font-weight:700; cursor:pointer;">Sim, testar</button>
+      <button onclick="fecharModalTesteD8()" style="flex:1; background:#333; color:#aaa; padding:10px; border:none; border-radius:10px; font-weight:700; cursor:pointer;">Cancelar</button>
     </div>
   </div>
 </div>
@@ -469,21 +483,18 @@ function processarGPS(chipId, d) {
 
       const tempoParado = Date.now() - v.paradaInicio;
       if (tempoParado >= PARADA_MIN_MS) {
-        // CORREÇÃO DO MULTI-PINGO: Verifica se já existe um pingo na mesma localização
+        // CORREÇÃO DO MULTI-PINGO
         let pingoExistente = null;
         if (v.pingos.length > 0) {
-            // Procura um pingo que esteja a menos de 50 metros do local atual
             pingoExistente = v.pingos.find(p => map.distance(p.marker.getLatLng(), pos) < 50);
         }
 
         if (pingoExistente) {
-            // Se existir, atualiza apenas o tempo/duração
             pingoExistente.mins = Math.round(tempoParado / 60000);
             const novoIcone = criarIconePingo(pingoExistente.num, pingoExistente.mins);
             pingoExistente.marker.setIcon(novoIcone);
             addLog('[' + chipId.slice(-4) + '] Parada P' + pingoExistente.num + ' atualizada (' + pingoExistente.mins + ' min)', 'log-warn');
         } else {
-            // Se não existir, cria um novo
             v.contador++;
             const icone = criarIconePingo(v.contador, Math.round(tempoParado / 60000));
             v.paradaCirculo = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
@@ -648,7 +659,7 @@ function addLog(msg, cls) {
 }
 
 // ══════════════════════════════════════════════════
-//  PÂNICO - MODIFICADO PARA ACEITAR ORIGEM
+//  PÂNICO
 // ══════════════════════════════════════════════════
 function ativarPanico(chipId, origem = 'mqtt') {
   if (panicoAtivo) return;
@@ -675,7 +686,7 @@ function ativarPanico(chipId, origem = 'mqtt') {
     }
   }, 1000);
 
-  const origemTxt = origem === 'manual' ? 'MANUAL (D0)' : 'MQTT';
+  const origemTxt = origem === 'manual' ? 'MANUAL (D8)' : 'MQTT';
   addLog('🚨 PÂNICO ativado [' + chipId.slice(-4) + '] via ' + origemTxt + ' — 60s para cancelar', 'log-err');
 }
 
@@ -690,34 +701,43 @@ function cancelarPanico() {
 }
 
 // ══════════════════════════════════════════════════
-//  TESTE DO PINO D0 (via botão e console)
+//  TESTE DO PINO D8 (via botão e console)
 // ══════════════════════════════════════════════════
-function testarPanicoD0() {
-    console.log('🔴 Simulando acionamento do pino D0...');
-    
-    if (!ativoId) {
-        console.warn('⚠️ Nenhum veículo selecionado');
-        addLog('❌ Nenhum veículo selecionado para teste D0!', 'log-err');
-        alert('⚠️ Selecione um veículo primeiro!');
-        return false;
-    }
-    
-    if (panicoAtivo) {
-        addLog('⚠️ Pânico já está ativo! Use cancelarPanico() primeiro.', 'log-warn');
-        return false;
-    }
-    
-    const v = veiculos[ativoId];
-    addLog('🚨 TESTE D0: Enviando pânico para ' + v.nome, 'log-warn');
-    cmd(ativoId, 'PANICO_ATIVAR');
-    ativarPanico(ativoId, 'manual');
-    return true;
+function confirmarTesteD8() {
+  document.getElementById('modalTesteD8').style.display = 'flex';
+}
+
+function fecharModalTesteD8() {
+  document.getElementById('modalTesteD8').style.display = 'none';
+}
+
+function executarTesteD8() {
+  fecharModalTesteD8();
+  console.log('🔴 Simulando acionamento do pino D8...');
+  
+  if (!ativoId) {
+    console.warn('⚠️ Nenhum veículo selecionado');
+    addLog('❌ Nenhum veículo selecionado para teste D8!', 'log-err');
+    alert('⚠️ Selecione um veículo primeiro!');
+    return false;
+  }
+  
+  if (panicoAtivo) {
+    addLog('⚠️ Pânico já está ativo! Use cancelarPanico() primeiro.', 'log-warn');
+    return false;
+  }
+  
+  const v = veiculos[ativoId];
+  addLog('🚨 TESTE D8: Enviando pânico para ' + v.nome, 'log-warn');
+  cmd(ativoId, 'PANICO_ATIVAR');
+  ativarPanico(ativoId, 'manual');
+  return true;
 }
 
 // Atalho para console
 function simularD0() {
-    console.log('🔴 Simulando pino D0 pressionado...');
-    testarPanicoD0();
+    console.log('🔴 Simulando pino D8 pressionado...');
+    confirmarTesteD8();
 }
 
 // ══════════════════════════════════════════════════
