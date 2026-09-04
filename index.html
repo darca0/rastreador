@@ -473,16 +473,14 @@ function processarGPS(chipId, d) {
   }
   v.trail.addLatLng(pos);
 
-  // ── Detecta parada prolongada (BASEADO EM DISTÂNCIA) ──
-  // Se o carro não andar mais de 50 metros, ele continua contando o tempo
-  if (v.vel <= 5.0) { // Tolerância: aceita até 5.0 km/h (GPS oscila)
+  // ── Detecta parada prolongada (TOLERÂNCIA 5.0) ──
+  if (v.vel <= 5.0) {
     if (!v.paradaInicio) {
       v.paradaInicio = Date.now();
       v.paradaPos    = pos;
       addLog('[' + chipId.slice(-4) + '] Parada detectada (vel=' + v.vel.toFixed(1) + ')', 'log-warn');
     } else {
       const distancia = map.distance(v.paradaPos, pos);
-      // SE O CARRO ANDOU MAIS DE 50 METROS, SÓ AÍ REINICIA A CONTAGEM
       if (distancia > 50) {
         v.paradaInicio = Date.now();
         v.paradaPos    = pos;
@@ -490,17 +488,14 @@ function processarGPS(chipId, d) {
         addLog('[' + chipId.slice(-4) + '] Veículo se moveu > 50m — conta como movimento', 'log-warn');
       }
 
-      // Calcular o tempo REAL de parede
       const tempoParado = Date.now() - v.paradaInicio;
       if (tempoParado >= PARADA_MIN_MS) {
-        // CORREÇÃO DO MULTI-PINGO
         let pingoExistente = null;
         if (v.pingos.length > 0) {
             pingoExistente = v.pingos.find(p => map.distance(p.marker.getLatLng(), pos) < 50);
         }
 
         if (pingoExistente) {
-            // Mantém os minutos reais de parede, mesmo com GPS oscilando
             pingoExistente.mins = Math.round(tempoParado / 60000);
             const novoIcone = criarIconePingo(pingoExistente.num, pingoExistente.mins);
             pingoExistente.marker.setIcon(novoIcone);
@@ -508,6 +503,7 @@ function processarGPS(chipId, d) {
         } else {
             v.contador++;
             const icone = criarIconePingo(v.contador, Math.round(tempoParado / 60000));
+            // CORREÇÃO: iconAnchor ajustado para o centro
             v.paradaCirculo = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
             v.pingos.push({ marker: v.paradaCirculo, num: v.contador, mins: Math.round(tempoParado / 60000) });
             addLog('[' + chipId.slice(-4) + '] Parada P' + v.contador + ' registrada', 'log-warn');
@@ -515,7 +511,6 @@ function processarGPS(chipId, d) {
       }
     }
   } else {
-    // Se estiver andando ACIMA de 5.0 km/h, aí sim reinicia tudo
     if (v.paradaCirculo) {
       v.paradaCirculo.remove();
       v.paradaCirculo = null;
@@ -523,7 +518,6 @@ function processarGPS(chipId, d) {
     v.paradaInicio = null;
     v.paradaPos    = null;
   }
-
   atualizarBotaoLista(chipId);
   if (chipId === ativoId) atualizarPainel(chipId);
 }
