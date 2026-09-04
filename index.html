@@ -104,6 +104,10 @@
   #modalCancel  { background:#333; color:#aaa; }
 
   #pendenteBanner { background: #f9a825dd; border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 600; text-align: center; color: #fff; display: none; margin-bottom: 4px; }
+
+  /* MODO FESTA */
+  #btnFesta { background: #333; color: #fff; font-size: 11px; padding: 6px; border: 1px solid #555; border-radius: 8px; cursor: pointer; flex: 1; }
+  #btnFesta.ativo { background: #f9a825; color: #111; font-weight: 700; border-color: #f9a825; }
 </style>
 </head>
 <body>
@@ -169,10 +173,10 @@
     <button class="map-btn btn-cancel" id="btnCancel" onclick="cmdAtivo('CANCELAR_BLOQUEIO')" style="display:none">🟡 Aguardando...</button>
     <button class="map-btn btn-unlock" id="btnUnlock" onclick="cmdAtivo('DESBLOQUEAR')">🟢 Liberado</button>
     <button class="btn-center" onclick="centralizarAtivo()">◎</button>
-    <!-- BOTÃO TESTE D8 DISCRETO -->
   </div>
   <div id="auxRow">
     <button class="btn-aux" onclick="acionarAux()">🔓 AUX — Destravar Portas (emergência)</button>
+    <button id="btnFesta" onclick="toggleModoFesta()">🛡️ Modo Festa</button>
   </div>
   <!-- Botão de teste escondido -->
   <div style="text-align:right;">
@@ -257,6 +261,8 @@ let veiculos    = {};
 let ativoId     = null;
 let pinBuffer   = '';
 let currentStyle = 'map';
+let modoFestaAtivo = false;
+let circuloFesta = null;
 
 // ═══════════════════════════════════════════════════
 //  LOGIN
@@ -340,6 +346,7 @@ function conectarMQTT() {
       if (tipo === 'status') processarStatus(chipId, d);
       if (tipo === 'status' && d.motivo === 'panico') ativarPanico(chipId);
       if (tipo === 'status' && d.motivo === 'panico_cancelado') cancelarPanico();
+      if (tipo === 'status' && d.motivo === 'alerta_movimento') ativarAlertaMovimento(chipId, d);
     } catch(e) {}
   });
 }
@@ -531,6 +538,9 @@ function processarStatus(chipId, d) {
   else if (v.pendente)           addLog('[' + chipId.slice(-4) + '] Aguardando vel...', 'log-warn');
   else if (m === 'desbloqueado') addLog('[' + chipId.slice(-4) + '] LIBERADO', 'log-ok');
   else if (m === 'online' || m === 'reconectado') addLog('[' + chipId.slice(-4) + '] Online ✓', 'log-ok');
+  // Adicionado Modo Festa
+  if (m === 'modo_festa_ativado') addLog('🛡️ Modo Festa ATIVADO no ESP', 'log-warn');
+  if (m === 'modo_festa_desativado') addLog('🛡️ Modo Festa DESATIVADO no ESP', 'log-ok');
 }
 
 // ═══════════════════════════════════════════════════
@@ -658,9 +668,52 @@ function addLog(msg, cls) {
   while (box.children.length > 10) box.removeChild(box.lastChild);
 }
 
-// ══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+//  MODO FESTA
+// ═══════════════════════════════════════════════════
+function toggleModoFesta() {
+  if (!ativoId) return;
+  
+  if (!modoFestaAtivo) {
+    cmd(ativoId, 'ATIVAR_MODO_FESTA');
+    const v = veiculos[ativoId];
+    if (v && v.ultimaPos) {
+      circuloFesta = L.circle(v.ultimaPos, {
+        color: '#f9a825', fillColor: '#f9a825', fillOpacity: 0.15, radius: 50
+      }).addTo(map);
+    }
+    document.getElementById('btnFesta').classList.add('ativo');
+    document.getElementById('btnFesta').textContent = '🛡️ Ativo';
+    modoFestaAtivo = true;
+    addLog('🛡️ Modo Festa ATIVADO — Círculo de 50m', 'log-warn');
+  } else {
+    cmd(ativoId, 'DESATIVAR_MODO_FESTA');
+    if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
+    document.getElementById('btnFesta').classList.remove('ativo');
+    document.getElementById('btnFesta').textContent = '🛡️ Modo Festa';
+    modoFestaAtivo = false;
+    addLog('🛡️ Modo Festa DESATIVADO', 'log-warn');
+  }
+}
+
+function ativarAlertaMovimento(chipId, d) {
+  const pos = L.latLng(d.lat, d.lng);
+  if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
+  
+  document.getElementById('btnFesta').classList.remove('ativo');
+  document.getElementById('btnFesta').textContent = '🛡️ Modo Festa';
+  modoFestaAtivo = false;
+
+  // Alerta visual
+  setBadge('pStatus', '🚨 FURTO', 'badge-err');
+  alert('🚨 ALERTA DE SEGURANÇA! O veículo se moveu mais de 50 metros!');
+  map.setView(pos, 15);
+  addLog('🚨 ALERTA DE FURTO DETECTADO!', 'log-err');
+}
+
+// ═══════════════════════════════════════════════════
 //  PÂNICO
-// ══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
 function ativarPanico(chipId, origem = 'mqtt') {
   if (panicoAtivo) return;
   panicoAtivo      = true;
@@ -700,9 +753,9 @@ function cancelarPanico() {
   addLog('✅ Pânico cancelado', 'log-ok');
 }
 
-// ══════════════════════════════════════════════════
-//  TESTE DO PINO D8 (via botão e console)
-// ══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
+//  TESTE DO PINO D8
+// ═══════════════════════════════════════════════════
 function confirmarTesteD8() {
   document.getElementById('modalTesteD8').style.display = 'flex';
 }
@@ -716,14 +769,13 @@ function executarTesteD8() {
   console.log('🔴 Simulando acionamento do pino D8...');
   
   if (!ativoId) {
-    console.warn('⚠️ Nenhum veículo selecionado');
     addLog('❌ Nenhum veículo selecionado para teste D8!', 'log-err');
     alert('⚠️ Selecione um veículo primeiro!');
     return false;
   }
   
   if (panicoAtivo) {
-    addLog('⚠️ Pânico já está ativo! Use cancelarPanico() primeiro.', 'log-warn');
+    addLog('⚠️ Pânico já está ativo!', 'log-warn');
     return false;
   }
   
@@ -736,13 +788,12 @@ function executarTesteD8() {
 
 // Atalho para console
 function simularD0() {
-    console.log('🔴 Simulando pino D8 pressionado...');
     confirmarTesteD8();
 }
 
-// ══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
 //  COMANDOS PARA CONSOLE
-// ══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
 function verEstado() {
     console.log('📊 ESTADO ATUAL:');
     console.log('  Pânico ativo:', panicoAtivo);
@@ -752,9 +803,9 @@ function verEstado() {
     console.log('  MQTT conectado:', mqttClient ? mqttClient.connected : false);
 }
 
-// ══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
 //  SALVAR MAPA
-// ══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
 function salvarMapa() {
   const data = new Date().toLocaleString('pt-BR');
   const dataArq = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
@@ -792,11 +843,10 @@ function salvarMapa() {
       resumo += '<h4>🅿️ Paradas registradas:</h4><table>';
       resumo += '<tr><th>#</th><th>Duração</th><th>Localização</th><th>Google Maps</th></tr>';
       
-      // CORREÇÃO AQUI: Calcula o tempo real baseado no relógio do navegador
       v.pingos.forEach((p, i) => {
         const ll = p.marker.getLatLng();
-        const tempoRealMs = Date.now() - v.paradaInicio; // Tempo total desde que o veículo parou
-        const minutosReais = Math.max(p.mins, Math.round(tempoRealMs / 60000)); // Pega o maior valor
+        const tempoRealMs = Date.now() - v.paradaInicio;
+        const minutosReais = Math.max(p.mins, Math.round(tempoRealMs / 60000));
 
         resumo += `<tr>
           <td>${i+1}</td>
