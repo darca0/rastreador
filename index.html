@@ -474,26 +474,31 @@ function processarGPS(chipId, d) {
   v.trail.addLatLng(pos);
 
 // ── Detecta parada prolongada (com anti-duplicação) ──
+// ── Detecta parada prolongada (COM GPS TIMESTAMP) ──
 if (v.vel <= PARADA_VEL) {
+    // Usa o timestamp do GPS ou fallback para o PC
+    const timestampAtual = d.ts || Date.now(); // usa o ts do GPS se disponível
+    
     if (!v.paradaInicio) {
-        v.paradaInicio = Date.now();
+        v.paradaInicio = timestampAtual;
         v.paradaPos = pos;
+        v.paradaOrigem = 'gps'; // marca que veio do GPS
         addLog('[' + chipId.slice(-4) + '] Parada detectada (vel=' + v.vel.toFixed(1) + ' km/h)', 'log-warn');
     } else {
         if (v.paradaPos) {
             const distancia = map.distance(v.paradaPos, pos);
             if (distancia > 100) {
-                v.paradaInicio = Date.now();
+                v.paradaInicio = timestampAtual;
                 v.paradaPos = pos;
                 addLog('[' + chipId.slice(-4) + '] Movimento >100m, resetando contagem', 'log-warn');
             }
         }
         
-        const tempoParado = Date.now() - v.paradaInicio;
+        const tempoParado = timestampAtual - v.paradaInicio;
         const minutosTotais = Math.round(tempoParado / 60000);
         
         if (tempoParado >= PARADA_MIN_MS) {
-            // 🔍 VERIFICA SE JÁ EXISTE PINGO PRÓXIMO (menos de 50m)
+            // 🔍 VERIFICA PINGO PRÓXIMO (menos de 50m)
             let pingoProximo = null;
             for (let p of v.pingos) {
                 const dist = map.distance(v.paradaPos, p.marker.getLatLng());
@@ -519,7 +524,7 @@ if (v.vel <= PARADA_VEL) {
                     popupAnchor: [0, -70]
                 });
                 pingoProximo.marker.setIcon(novoIcone);
-                addLog('[' + chipId.slice(-4) + '] ⏱️ Atualizado P' + pingoProximo.num + ': ' + minutosTotais + 'min', 'log-warn');
+                addLog('[' + chipId.slice(-4) + '] ⏱️ Atualizado P' + pingoProximo.num + ': ' + minutosTotais + 'min (GPS)', 'log-warn');
             } else {
                 // Cria um NOVO pingo
                 v.contador++;
@@ -539,9 +544,9 @@ if (v.vel <= PARADA_VEL) {
                 });
                 
                 const marker = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
-                v.pingos.push({ marker: marker, num: v.contador, mins: minutosTotais });
+                v.pingos.push({ marker: marker, num: v.contador, mins: minutosTotais, origem: 'gps' });
                 v.paradaCirculo = marker;
-                addLog('[' + chipId.slice(-4) + '] 🅿️ Nova parada P' + v.contador + ' (' + minutosTotais + 'min)', 'log-warn');
+                addLog('[' + chipId.slice(-4) + '] 🅿️ Nova parada P' + v.contador + ' (' + minutosTotais + 'min) via GPS', 'log-warn');
             }
         }
     }
@@ -552,6 +557,7 @@ if (v.vel <= PARADA_VEL) {
     }
     v.paradaInicio = null;
     v.paradaPos = null;
+    v.paradaOrigem = null;
 }
   atualizarBotaoLista(chipId);
   if (chipId === ativoId) atualizarPainel(chipId);
