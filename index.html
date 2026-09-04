@@ -473,21 +473,24 @@ function processarGPS(chipId, d) {
   }
   v.trail.addLatLng(pos);
 
-  // ── Detecta parada prolongada ──────────────────────
-  if (v.vel <= PARADA_VEL) {
+  // ── Detecta parada prolongada (BASEADO EM DISTÂNCIA) ──
+  // Se o carro não andar mais de 50 metros, ele continua contando o tempo
+  if (v.vel <= 5.0) { // Tolerância: aceita até 5.0 km/h (GPS oscila)
     if (!v.paradaInicio) {
       v.paradaInicio = Date.now();
       v.paradaPos    = pos;
-      addLog('[' + chipId.slice(-4) + '] Parada detectada vel=' + v.vel.toFixed(1), 'log-warn');
+      addLog('[' + chipId.slice(-4) + '] Parada detectada (vel=' + v.vel.toFixed(1) + ')', 'log-warn');
     } else {
       const distancia = map.distance(v.paradaPos, pos);
-      if (distancia > 100) {
+      // SE O CARRO ANDOU MAIS DE 50 METROS, SÓ AÍ REINICIA A CONTAGEM
+      if (distancia > 50) {
         v.paradaInicio = Date.now();
         v.paradaPos    = pos;
         if (v.paradaCirculo) { v.paradaCirculo.remove(); v.paradaCirculo = null; }
-        addLog('[' + chipId.slice(-4) + '] Veículo se moveu mais de 100m — conta como movimento', 'log-warn');
+        addLog('[' + chipId.slice(-4) + '] Veículo se moveu > 50m — conta como movimento', 'log-warn');
       }
 
+      // Calcular o tempo REAL de parede
       const tempoParado = Date.now() - v.paradaInicio;
       if (tempoParado >= PARADA_MIN_MS) {
         // CORREÇÃO DO MULTI-PINGO
@@ -497,6 +500,7 @@ function processarGPS(chipId, d) {
         }
 
         if (pingoExistente) {
+            // Mantém os minutos reais de parede, mesmo com GPS oscilando
             pingoExistente.mins = Math.round(tempoParado / 60000);
             const novoIcone = criarIconePingo(pingoExistente.num, pingoExistente.mins);
             pingoExistente.marker.setIcon(novoIcone);
@@ -511,6 +515,7 @@ function processarGPS(chipId, d) {
       }
     }
   } else {
+    // Se estiver andando ACIMA de 5.0 km/h, aí sim reinicia tudo
     if (v.paradaCirculo) {
       v.paradaCirculo.remove();
       v.paradaCirculo = null;
