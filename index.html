@@ -473,51 +473,86 @@ function processarGPS(chipId, d) {
   }
   v.trail.addLatLng(pos);
 
-  // ── Detecta parada prolongada (TOLERÂNCIA 5.0) ──
-  if (v.vel <= 5.0) {
+ // ── Detecta parada prolongada (CORRIGIDO) ──────────
+if (v.vel <= PARADA_VEL) {
+    // Se não tem início de parada, começa a contar
     if (!v.paradaInicio) {
-      v.paradaInicio = Date.now();
-      v.paradaPos    = pos;
-      addLog('[' + chipId.slice(-4) + '] Parada detectada (vel=' + v.vel.toFixed(1) + ')', 'log-warn');
-    } else {
-      const distancia = map.distance(v.paradaPos, pos);
-      if (distancia > 50) {
         v.paradaInicio = Date.now();
-        v.paradaPos    = pos;
-        if (v.paradaCirculo) { v.paradaCirculo.remove(); v.paradaCirculo = null; }
-        addLog('[' + chipId.slice(-4) + '] Veículo se moveu > 50m — conta como movimento', 'log-warn');
-      }
-
-      const tempoParado = Date.now() - v.paradaInicio;
-      if (tempoParado >= PARADA_MIN_MS) {
-        let pingoExistente = null;
-        if (v.pingos.length > 0) {
-            pingoExistente = v.pingos.find(p => map.distance(p.marker.getLatLng(), pos) < 50);
+        v.paradaPos = pos;
+        addLog('[' + chipId.slice(-4) + '] Parada detectada (vel=' + v.vel.toFixed(1) + ' km/h)', 'log-warn');
+    } else {
+        // Verifica se o veículo se moveu mais de 100m
+        if (v.paradaPos) {
+            const distancia = map.distance(v.paradaPos, pos);
+            if (distancia > 100) {
+                // Moveu muito - reseta
+                v.paradaInicio = Date.now();
+                v.paradaPos = pos;
+                if (v.paradaCirculo) {
+                    v.paradaCirculo.remove();
+                    v.paradaCirculo = null;
+                }
+                addLog('[' + chipId.slice(-4) + '] Movimento >100m, resetando contagem', 'log-warn');
+            }
         }
-
-        if (pingoExistente) {
-            pingoExistente.mins = Math.round(tempoParado / 60000);
-            const novoIcone = criarIconePingo(pingoExistente.num, pingoExistente.mins);
-            pingoExistente.marker.setIcon(novoIcone);
-            addLog('[' + chipId.slice(-4) + '] Parada P' + pingoExistente.num + ' atualizada (' + pingoExistente.mins + ' min)', 'log-warn');
+        
+        // Calcula o tempo parado
+        const tempoParado = Date.now() - v.paradaInicio;
+        
+        // Se passou do tempo mínimo (6min)
+        if (tempoParado >= PARADA_MIN_MS) {
+            const mins = Math.round(tempoParado / 60000);
+            
+            // Se ainda não tem círculo, cria
+            if (!v.paradaCirculo) {
+                v.contador++;
+                const pingoSVG = (num) => `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="58" viewBox="0 0 60 80">
+                    <path d="M30 0 C13 0 0 13 0 30 C0 47 30 80 30 80 C30 80 60 47 60 30 C60 13 47 0 30 0Z" fill="#FF6B00" stroke="#CC5500" stroke-width="2"/>
+                    <circle cx="30" cy="28" r="17" fill="white" opacity="0.95"/>
+                    <text x="30" y="33" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="14" font-weight="900" fill="#CC5500">P${num}</text>
+                </svg>`;
+                
+                const icone = L.divIcon({
+                    className: '',
+                    html: pingoSVG(v.contador),
+                    iconSize: [44, 58],
+                    iconAnchor: [22, 58],
+                    popupAnchor: [0, -58]
+                });
+                
+                v.paradaCirculo = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
+                v.pingos.push({ marker: v.paradaCirculo, num: v.contador, mins: mins });
+                addLog('[' + chipId.slice(-4) + '] 🅿️ Parada P' + v.contador + ' registrada (' + mins + 'min)', 'log-warn');
+            } else {
+                // Atualiza o tempo no pingo existente
+                const novoIcone = L.divIcon({
+                    className: '',
+                    html: `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="58" viewBox="0 0 60 80">
+                        <path d="M30 0 C13 0 0 13 0 30 C0 47 30 80 30 80 C30 80 60 47 60 30 C60 13 47 0 30 0Z" fill="#FF6B00" stroke="#CC5500" stroke-width="2"/>
+                        <circle cx="30" cy="28" r="17" fill="white" opacity="0.95"/>
+                        <text x="30" y="33" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="14" font-weight="900" fill="#CC5500">P${v.contador}</text>
+                    </svg>`,
+                    iconSize: [44, 58],
+                    iconAnchor: [22, 58],
+                    popupAnchor: [0, -58]
+                });
+                v.paradaCirculo.setIcon(novoIcone);
+            }
         } else {
-            v.contador++;
-            const icone = criarIconePingo(v.contador, Math.round(tempoParado / 60000));
-            // CORREÇÃO: iconAnchor ajustado para o centro
-            v.paradaCirculo = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
-            v.pingos.push({ marker: v.paradaCirculo, num: v.contador, mins: Math.round(tempoParado / 60000) });
-            addLog('[' + chipId.slice(-4) + '] Parada P' + v.contador + ' registrada', 'log-warn');
+            // Se ainda não passou 6min, não faz nada
+            // (mantém o pingo se já existir)
         }
-      }
     }
-  } else {
+} else {
+    // Veículo em movimento - reseta tudo
     if (v.paradaCirculo) {
-      v.paradaCirculo.remove();
-      v.paradaCirculo = null;
+        v.paradaCirculo.remove();
+        v.paradaCirculo = null;
+        addLog('[' + chipId.slice(-4) + '] Veículo moveu, pingo removido', 'log-warn');
     }
     v.paradaInicio = null;
-    v.paradaPos    = null;
-  }
+    v.paradaPos = null;
+}
   atualizarBotaoLista(chipId);
   if (chipId === ativoId) atualizarPainel(chipId);
 }
