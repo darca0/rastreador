@@ -791,11 +791,16 @@ function salvarMapa() {
     if (v.pingos.length > 0) {
       resumo += '<h4>🅿️ Paradas registradas:</h4><table>';
       resumo += '<tr><th>#</th><th>Duração</th><th>Localização</th><th>Google Maps</th></tr>';
+      
+      // CORREÇÃO AQUI: Calcula o tempo real baseado no relógio do navegador
       v.pingos.forEach((p, i) => {
         const ll = p.marker.getLatLng();
+        const tempoRealMs = Date.now() - v.paradaInicio; // Tempo total desde que o veículo parou
+        const minutosReais = Math.max(p.mins, Math.round(tempoRealMs / 60000)); // Pega o maior valor
+
         resumo += `<tr>
           <td>${i+1}</td>
-          <td>${p.mins} min</td>
+          <td>${minutosReais} min</td>
           <td>${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}</td>
           <td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td>
         </tr>`;
