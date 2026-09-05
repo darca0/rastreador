@@ -733,8 +733,309 @@ function addLog(msg, cls) {
 }
 
 // ═══════════════════════════════════════════════════
-//  MODO FESTA
+//  MODO FESTA - ALARME DE CARRO
 // ═══════════════════════════════════════════════════
+
+let alarmeAtivo = false;
+let alarmeInterval = null;
+let alarmeAudio = null;
+let alarmeFlashInterval = null;
+
+// 1. ATIVA ALARME COMPLETO (como alarme de carro)
+function ativarAlarmeCarro(mensagem) {
+    if (alarmeAtivo) return;
+    alarmeAtivo = true;
+    
+    console.log('🚨 ALARME DO CARRO DISPARADO!');
+    
+    // ── VIBRAÇÃO FORTE ──
+    if (navigator.vibrate) {
+        navigator.vibrate([500, 200, 500, 200, 500, 200, 1000, 500, 500, 500, 500, 500, 500]);
+    }
+    
+    // ── SOM DE ALARME ──
+    tocarSireneCarro();
+    
+    // ── FLASH DA TELA ──
+    ativarFlashAlarme();
+    
+    // ── MODAL DE ALERTA ──
+    mostrarModalAlarme(mensagem || '🚨 ALARME DO CARRO DISPARADO!');
+    
+    // ── MUDA O STATUS NO PAINEL ──
+    setBadge('pStatus', '🚨 ALARME', 'badge-err');
+    
+    // ── LOG ──
+    addLog('🚨 ALARME DO CARRO DISPARADO!', 'log-err');
+}
+
+// 2. SOM DE SIRENE DE CARRO
+function tocarSireneCarro() {
+    try {
+        alarmeAudio = new Audio('https://www.soundjay.com/car-sounds/car-alarm-sound-effect-1.mp3');
+        alarmeAudio.loop = true;
+        alarmeAudio.volume = 1.0;
+        alarmeAudio.play().catch(() => {
+            tocarBeepAlarmeCarro();
+        });
+        console.log('🔊 Sirene do carro acionada!');
+    } catch (e) {
+        console.warn('⚠️ Falha na sirene:', e);
+        tocarBeepAlarmeCarro();
+    }
+}
+
+// Fallback: beep estilo alarme de carro
+function tocarBeepAlarmeCarro() {
+    let beepCount = 0;
+    const maxBeeps = 20;
+    
+    const beepInterval = setInterval(() => {
+        if (beepCount >= maxBeeps || !alarmeAtivo) {
+            clearInterval(beepInterval);
+            return;
+        }
+        
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            
+            osc.frequency.value = 880;
+            osc.type = 'square';
+            gain.gain.setValueAtTime(0.8, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.3);
+            
+            beepCount++;
+        } catch (e) {
+            console.warn('⚠️ Erro no beep:', e);
+        }
+    }, 400);
+}
+
+// 3. FLASH DA TELA (pisca-alerta)
+function ativarFlashAlarme() {
+    const body = document.body;
+    let flash = false;
+    let count = 0;
+    
+    desativarFlashAlarme();
+    
+    alarmeFlashInterval = setInterval(() => {
+        flash = !flash;
+        count++;
+        
+        body.style.backgroundColor = flash ? '#cc0000' : '#111';
+        body.style.transition = 'background-color 0.1s';
+        
+        if (count % 10 === 0) {
+            clearInterval(alarmeFlashInterval);
+            alarmeFlashInterval = setInterval(() => {
+                flash = !flash;
+                body.style.backgroundColor = flash ? '#ff0000' : '#111';
+                body.style.transition = 'background-color 0.05s';
+            }, 150);
+        }
+    }, 300);
+    
+    console.log('🔄 Pisca-alerta ativado!');
+}
+
+function desativarFlashAlarme() {
+    if (alarmeFlashInterval) {
+        clearInterval(alarmeFlashInterval);
+        alarmeFlashInterval = null;
+        document.body.style.backgroundColor = '#111';
+        document.body.style.transition = 'background-color 0.5s';
+        console.log('🔄 Pisca-alerta desativado');
+    }
+}
+
+// 4. MODAL DE ALARME
+function mostrarModalAlarme(mensagem) {
+    const existente = document.getElementById('modalAlarmeCarro');
+    if (existente) existente.remove();
+    
+    const modal = document.createElement('div');
+    modal.id = 'modalAlarmeCarro';
+    modal.style.cssText = `
+        position: fixed;
+        inset: 0;
+        background: rgba(200, 0, 0, 0.95);
+        z-index: 99999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        text-align: center;
+        animation: pulseAlarme 0.3s infinite alternate;
+        cursor: pointer;
+    `;
+    
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes pulseAlarme {
+            0% { background: rgba(200, 0, 0, 0.95); }
+            100% { background: rgba(255, 0, 0, 0.98); box-shadow: inset 0 0 100px rgba(255, 200, 0, 0.2); }
+        }
+        @keyframes shakeAlarme {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(-8px, 0) rotate(-2deg); }
+            50% { transform: translate(8px, 0) rotate(2deg); }
+            75% { transform: translate(-8px, 0) rotate(-2deg); }
+            100% { transform: translate(0, 0) rotate(0deg); }
+        }
+        @keyframes blinkAlarme {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .btn-desligar-alarme {
+            background: #ff1744;
+            color: #fff;
+            border: 3px solid #fff;
+            padding: 18px 50px;
+            border-radius: 50px;
+            font-size: 24px;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow: 0 0 60px rgba(255, 0, 0, 0.8);
+            animation: pulseAlarme 0.5s infinite alternate, shakeAlarme 0.3s infinite;
+            transition: all 0.2s;
+            margin-top: 20px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+        }
+        .btn-desligar-alarme:hover {
+            transform: scale(1.05);
+            background: #ff0000;
+        }
+        .btn-desligar-alarme:active {
+            transform: scale(0.95);
+        }
+        .icone-alarme {
+            font-size: 100px;
+            animation: blinkAlarme 0.3s infinite;
+        }
+        .texto-alarme {
+            font-size: 36px;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 40px #ff0000, 0 0 80px #ff0000;
+            margin: 10px 0;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            animation: shakeAlarme 0.2s infinite;
+        }
+        .subtexto-alarme {
+            font-size: 18px;
+            color: #ffcccc;
+            margin-bottom: 10px;
+            animation: blinkAlarme 0.5s infinite;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    modal.innerHTML = `
+        <div class="icone-alarme">🚨</div>
+        <div class="texto-alarme">${mensagem || 'ALARME DO CARRO'}</div>
+        <div class="subtexto-alarme">🔴 VEÍCULO SAIU DO CÍRCULO DE SEGURANÇA! 🔴</div>
+        <div class="subtexto-alarme" style="font-size:14px; color:#ff9999;">
+            ⚠️ Toque no botão para desligar o alarme
+        </div>
+        <button class="btn-desligar-alarme" onclick="desligarAlarmeCarro()">
+            🔓 DESLIGAR ALARME
+        </button>
+    `;
+    
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            if (confirm('🚨 Deseja realmente desligar o alarme?')) {
+                desligarAlarmeCarro();
+            }
+        }
+    };
+    
+    document.body.appendChild(modal);
+    
+    setTimeout(() => {
+        if (document.getElementById('modalAlarmeCarro')) {
+            desligarAlarmeCarro();
+        }
+    }, 60000);
+}
+
+// 5. DESLIGAR ALARME
+function desligarAlarmeCarro() {
+    if (!alarmeAtivo) return;
+    
+    console.log('🔓 Desligando alarme do carro...');
+    alarmeAtivo = false;
+    
+    const modal = document.getElementById('modalAlarmeCarro');
+    if (modal) modal.remove();
+    
+    desativarFlashAlarme();
+    
+    if (alarmeAudio) {
+        alarmeAudio.pause();
+        alarmeAudio.currentTime = 0;
+        alarmeAudio = null;
+    }
+    
+    if (navigator.vibrate) {
+        navigator.vibrate(0);
+    }
+    
+    const v = veiculos[ativoId];
+    if (v) {
+        atualizarPainel(ativoId);
+    }
+    
+    document.getElementById('btnFesta').classList.remove('ativo');
+    document.getElementById('btnFesta').textContent = '🛡️ Modo Festa';
+    modoFestaAtivo = false;
+    if (circuloFesta) {
+        circuloFesta.remove();
+        circuloFesta = null;
+    }
+    
+    addLog('🔓 Alarme do carro desligado', 'log-ok');
+    
+    document.body.style.backgroundColor = '#1b5e20';
+    setTimeout(() => {
+        document.body.style.backgroundColor = '#111';
+    }, 500);
+}
+
+// 6. FUNÇÃO DE ALERTA DE MOVIMENTO (dispara o alarme)
+function ativarAlertaMovimento(chipId, d) {
+    const pos = L.latLng(d.lat, d.lng);
+    if (circuloFesta) {
+        circuloFesta.remove();
+        circuloFesta = null;
+    }
+    
+    document.getElementById('btnFesta').classList.remove('ativo');
+    document.getElementById('btnFesta').textContent = '🛡️ Modo Festa';
+    modoFestaAtivo = false;
+    
+    const v = veiculos[chipId];
+    const nomeVeiculo = v ? v.nome : 'Veículo';
+    
+    ativarAlarmeCarro(`🚨 ALARME: ${nomeVeiculo} SAIU DO CÍRCULO!`);
+    
+    map.setView(pos, 15);
+    addLog(`🚨 ALARME: ${nomeVeiculo} saiu do círculo de 50m!`, 'log-err');
+}
+
+// 7. FUNÇÃO ORIGINAL DO MODO FESTA (mantida)
 function toggleModoFesta() {
   if (!ativoId) return;
   
@@ -758,21 +1059,6 @@ function toggleModoFesta() {
     modoFestaAtivo = false;
     addLog('🛡️ Modo Festa DESATIVADO', 'log-warn');
   }
-}
-
-function ativarAlertaMovimento(chipId, d) {
-  const pos = L.latLng(d.lat, d.lng);
-  if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
-  
-  document.getElementById('btnFesta').classList.remove('ativo');
-  document.getElementById('btnFesta').textContent = '🛡️ Modo Festa';
-  modoFestaAtivo = false;
-
-  // Alerta visual
-  setBadge('pStatus', '🚨 FURTO', 'badge-err');
-  alert('🚨 ALERTA DE SEGURANÇA! O veículo se moveu mais de 50 metros!');
-  map.setView(pos, 15);
-  addLog('🚨 ALERTA DE FURTO DETECTADO!', 'log-err');
 }
 
 // ═══════════════════════════════════════════════════
