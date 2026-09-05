@@ -408,19 +408,32 @@ function confirmarAux() {
 
 function cmdAtivo(comando) {
   if (!ativoId) return;
+  
+  // Envia o comando MQTT
   cmd(ativoId, comando);
+  
   const v = veiculos[ativoId];
   if (!v) return;
+  
+  // ════════════════════════════════════════════════
+  //  MUDA O ESTADO LOCAL IMEDIATAMENTE
+  // ════════════════════════════════════════════════
   if (comando === 'BLOQUEAR') {
-    v.pendente  = true;
+    // Já muda para "pendente" (amarelo)
+    v.pendente = true;
     v.bloqueado = false;
+    addLog('⏳ Aguardando bloqueio...', 'log-warn');
   } else if (comando === 'DESBLOQUEAR') {
-    v.pendente  = false;
+    v.pendente = false;
     v.bloqueado = false;
+    addLog('🔓 Liberado', 'log-ok');
   } else if (comando === 'CANCELAR_BLOQUEIO') {
-    v.pendente  = false;
+    v.pendente = false;
     v.bloqueado = false;
+    addLog('🟡 Bloqueio cancelado', 'log-warn');
   }
+  
+  // Atualiza a interface
   atualizarPainel(ativoId);
   atualizarBotaoLista(ativoId);
   if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
