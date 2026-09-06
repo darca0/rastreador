@@ -596,7 +596,7 @@ function atualizarPainel(chipId) {
   const v = veiculos[chipId]; if (!v) return;
   document.getElementById('pVel').textContent  = v.vel.toFixed(1) + ' km/h';
   document.getElementById('pSat').textContent  = v.sat + ' sat';
-  document.getElementById('pRssi').textContent = (v.rssi || '—') + ' dBm';
+  document.getElementById('pRssi').textContent = (v.rssi !== undefined && v.rssi !== null) ? v.rssi + ' dBm' : '— dBm';
   document.getElementById('pAlt').textContent  = v.alt ? v.alt.toFixed(0) + ' m' : '— m';
 
   const st = document.getElementById('pStatus');
