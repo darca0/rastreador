@@ -380,24 +380,61 @@ function confirmarAux() {
 
 function cmdAtivo(comando) {
   if (!ativoId) return;
+  
+  // Envia o comando MQTT
   cmd(ativoId, comando);
+  
   const v = veiculos[ativoId];
   if (!v) return;
+  
   if (comando === 'BLOQUEAR') {
-    v.pendente  = true;
-    v.bloqueado = false;
+    // ════════════════════════════════════════════════
+    //  VERIFICA A VELOCIDADE
+    // ════════════════════════════════════════════════
+    if (v.vel <= 8.0) {
+      // VEÍCULO PARADO → BLOQUEIA IMEDIATAMENTE
+      v.pendente = false;
+      v.bloqueado = true;
+      addLog('🔒 VEÍCULO BLOQUEADO! (vel: ' + v.vel.toFixed(1) + ' km/h)', 'log-err');
+    } else {
+      // VEÍCULO EM MOVIMENTO → AGUARDA
+      v.pendente = true;
+      v.bloqueado = false;
+      addLog('⏳ Aguardando velocidade ≤ 8 km/h (atual: ' + v.vel.toFixed(1) + ' km/h)', 'log-warn');
+      
+      // Tenta novamente após 5 segundos
+      setTimeout(() => {
+        if (v.pendente && !v.bloqueado) {
+          if (v.vel <= 8.0) {
+            v.pendente = false;
+            v.bloqueado = true;
+            addLog('🔒 VEÍCULO BLOQUEADO! (vel: ' + v.vel.toFixed(1) + ' km/h)', 'log-err');
+          } else {
+            addLog('⏳ Veículo ainda em movimento (' + v.vel.toFixed(1) + ' km/h)', 'log-warn');
+          }
+          atualizarPainel(ativoId);
+          atualizarBotaoLista(ativoId);
+          if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
+        }
+      }, 5000);
+    }
+    
   } else if (comando === 'DESBLOQUEAR') {
-    v.pendente  = false;
+    v.pendente = false;
     v.bloqueado = false;
+    addLog('🔓 Veículo DESBLOQUEADO', 'log-ok');
+    
   } else if (comando === 'CANCELAR_BLOQUEIO') {
-    v.pendente  = false;
+    v.pendente = false;
     v.bloqueado = false;
+    addLog('🟡 Bloqueio cancelado', 'log-warn');
   }
+  
+  // Atualiza a interface
   atualizarPainel(ativoId);
   atualizarBotaoLista(ativoId);
   if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
 }
-
 // ═══════════════════════════════════════════════════
 //  VEÍCULOS
 // ═══════════════════════════════════════════════════
