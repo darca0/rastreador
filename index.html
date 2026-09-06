@@ -638,7 +638,13 @@ function atualizarPainel(chipId) {
   const bC = document.getElementById('btnCancel');
   const bU = document.getElementById('btnUnlock');
   const bn = document.getElementById('pendenteBanner');
-  bB.style.display = bC.style.display = bU.style.display = 'none';
+  
+  // ════════════════════════════════════════════════
+  //  GARANTE QUE OS BOTÕES ESTEJAM VISÍVEIS
+  // ════════════════════════════════════════════════
+  bB.style.display = 'none';
+  bC.style.display = 'none';
+  bU.style.display = '';  // ← GARANTE QUE O BOTÃO LIBERADO APAREÇA
   bn.style.display = 'none';
 
   if (v.bloqueado) {
@@ -646,13 +652,15 @@ function atualizarPainel(chipId) {
     bB.style.display = '';
     bB.onclick = () => cmdAtivo('DESBLOQUEAR');
     bB.textContent = '🔴 Bloqueado';
+    bU.style.display = 'none';  // ESCONDE O LIBERADO QUANDO BLOQUEADO
   } else if (v.pendente) {
     st.textContent = 'Aguardando'; st.className = 'badge-sm badge-warn';
     bC.style.display = '';
     bn.style.display = 'block';
+    bU.style.display = 'none';  // ESCONDE O LIBERADO QUANDO PENDENTE
   } else {
     st.textContent = 'Liberado'; st.className = 'badge-sm badge-ok';
-    bU.style.display = '';
+    bU.style.display = '';  // ← MOSTRA O LIBERADO
     bU.onclick = () => solicitarBloqueio();
     bU.textContent = '🟢 Liberado';
   }
