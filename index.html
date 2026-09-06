@@ -1104,6 +1104,10 @@ function tocarAlarmeNavegador() {
     }
 }
 
+// ═══════════════════════════════════════════════════
+//  SIRENE POLÍCIA FRANCESA (440Hz ↔ 880Hz)
+// ═══════════════════════════════════════════════════
+
 function iniciarSomContinuo(ctx) {
     try {
         const osc = ctx.createOscillator();
@@ -1112,39 +1116,58 @@ function iniciarSomContinuo(ctx) {
         osc.connect(gain);
         gain.connect(ctx.destination);
         
-        osc.frequency.value = 880;
-        osc.type = 'square';
-        gain.gain.value = 0.5;
+        osc.type = 'sawtooth';  // Som mais "agressivo" igual sirene
+        gain.gain.value = 0.4;
         
         osc.start();
         
-        // Varia a frequência para efeito de alarme (loop contínuo)
+        // ════════════════════════════════════════════════
+        //  SIRENE FRANCESA: 440Hz ↔ 880Hz
+        //  Alterna a cada 300ms (ritmo de sirene)
+        // ════════════════════════════════════════════════
+        let alternar = true;
         let count = 0;
+        const maxCycles = 20; // 20 alternâncias (12 segundos)
+        
         const interval = setInterval(() => {
-            if (!alarmeAtivo) {
+            if (!alarmeAtivo || count >= maxCycles) {
                 clearInterval(interval);
                 return;
             }
             count++;
-            if (count % 2 === 0) {
-                osc.frequency.value = 1200;
+            alternar = !alternar;
+            
+            if (alternar) {
+                osc.frequency.value = 880;  // Agudo
+                gain.gain.value = 0.5;
             } else {
-                osc.frequency.value = 880;
+                osc.frequency.value = 440;  // Grave
+                gain.gain.value = 0.3;
             }
-        }, 400);
+            
+            console.log(`🔊 Sirene: ${osc.frequency.value}Hz`);
+            
+        }, 300);  // Troca a cada 300ms
+        
+        // Após os ciclos, mantém o som em 660Hz (suave)
+        setTimeout(() => {
+            if (alarmeAtivo && osc) {
+                osc.frequency.value = 660;
+                gain.gain.value = 0.2;
+            }
+        }, maxCycles * 300 + 500);
         
         alarmeOscilador = osc;
         alarmeGanho = gain;
         alarmeAtivo = true;
         alarmeContexto = ctx;
         
-        console.log('🔊 Alarme contínuo iniciado!');
+        console.log('🚨 SIRENE FRANCESA INICIADA! 440Hz ↔ 880Hz');
         
     } catch (e) {
-        console.warn('⚠️ Erro ao iniciar som:', e);
+        console.warn('⚠️ Erro ao iniciar sirene:', e);
     }
 }
-
 // ═══════════════════════════════════════════════════
 //  DESLIGAR ALARME
 // ═══════════════════════════════════════════════════
