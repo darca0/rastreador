@@ -1042,6 +1042,9 @@ function tocarAlarmeNavegador() {
 }
 
 // Função auxiliar para tocar o som (separada para iOS)
+// ═══════════════════════════════════════════════════
+//  ALARME PULSANTE (estilo alarme de carro)
+// ═══════════════════════════════════════════════════
 function tocarSom(ctx) {
     try {
         const osc = ctx.createOscillator();
@@ -1054,17 +1057,32 @@ function tocarSom(ctx) {
         osc.type = 'square';
         gain.gain.value = 0.6;
         
-        osc.start();
+        // ── PULSOS: liga/desliga o som ──────────────
+        let count = 0;
+        const maxPulses = 6; // número de pulsos (3 segundos)
         
-        // Alarme intermitente
-        setTimeout(() => { osc.frequency.value = 1200; }, 300);
-        setTimeout(() => { osc.frequency.value = 1600; }, 600);
-        setTimeout(() => { osc.frequency.value = 880; }, 900);
-        setTimeout(() => { osc.frequency.value = 1400; }, 1200);
-        setTimeout(() => { 
-            osc.stop(); 
-            ctx.close(); 
-        }, 1500);
+        function pulso() {
+            if (count >= maxPulses) {
+                osc.stop();
+                ctx.close();
+                return;
+            }
+            count++;
+            
+            // Liga o som
+            gain.gain.setValueAtTime(0.6, ctx.currentTime);
+            setTimeout(() => {
+                // Desliga o som (pausa)
+                gain.gain.setValueAtTime(0, ctx.currentTime + 0.1);
+            }, 250);
+            
+            // Próximo pulso
+            setTimeout(pulso, 500);
+        }
+        
+        osc.start();
+        pulso();
+        
     } catch (e) {
         console.warn('⚠️ Erro ao tocar som:', e);
     }
