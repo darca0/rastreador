@@ -786,23 +786,33 @@ function toggleModoFesta() {
 }
 
 function ativarAlertaMovimento(chipId, d) {
-  const pos = L.latLng(d.lat, d.lng);
-  if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
-  
-  document.getElementById('btnFesta').classList.remove('ativo');
-  document.getElementById('btnFesta').textContent = '🛡️ Modo Festa';
-  modoFestaAtivo = false;
-
-  // ════════════════════════════════════════════════
-  //  ALARME SONORO + VIBRAÇÃO (PC + ANDROID + iOS)
-  // ════════════════════════════════════════════════
-  tocarAlarmeNavegador();
-
-  // Alerta visual
-  setBadge('pStatus', '🚨 FURTO', 'badge-err');
-  alert('🚨 ALERTA DE SEGURANÇA! O veículo se moveu mais de 50 metros!');
-  map.setView(pos, 15);
-  addLog('🚨 ALERTA DE FURTO DETECTADO!', 'log-err');
+    const pos = L.latLng(d.lat, d.lng);
+    if (circuloFesta) {
+        circuloFesta.remove();
+        circuloFesta = null;
+    }
+    
+    document.getElementById('btnFesta').classList.remove('ativo');
+    document.getElementById('btnFesta').textContent = '🛡️ Modo Festa';
+    modoFestaAtivo = false;
+    
+    // ════════════════════════════════════════════════
+    //  INICIA O ALARME CONTÍNUO
+    // ════════════════════════════════════════════════
+    tocarAlarmeNavegador();
+    
+    // Alerta visual
+    setBadge('pStatus', '🚨 FURTO', 'badge-err');
+    
+    // ════════════════════════════════════════════════
+    //  ALERTA COM CALLBACK PARA DESLIGAR O ALARME
+    // ════════════════════════════════════════════════
+    if (confirm('🚨 ALERTA DE SEGURANÇA!\n\nO veículo se moveu mais de 50 metros!\n\nClique em OK para desligar o alarme.')) {
+        desligarAlarme();
+    }
+    
+    map.setView(pos, 15);
+    addLog('🚨 ALERTA DE FURTO DETECTADO!', 'log-err');
 }
 
 // ═══════════════════════════════════════════════════
@@ -1041,11 +1051,60 @@ function tocarAlarmeNavegador() {
     }
 }
 
-// Função auxiliar para tocar o som (separada para iOS)
 // ═══════════════════════════════════════════════════
-//  ALARME PULSANTE (estilo alarme de carro)
+//  ALARME CONTÍNUO (loop infinito até desligar)
 // ═══════════════════════════════════════════════════
-function tocarSom(ctx) {
+
+let alarmeContexto = null;
+let alarmeOscilador = null;
+let alarmeGanho = null;
+let alarmeAtivo = false;
+
+function tocarAlarmeNavegador() {
+    console.log('🔊 Iniciando alarme contínuo...');
+    
+    // Se já está tocando, não faz nada
+    if (alarmeAtivo) {
+        console.log('ℹ️ Alarme já está tocando');
+        return;
+    }
+    
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        alarmeContexto = ctx;
+        
+        if (ctx.state === 'suspended') {
+            ctx.resume().then(() => {
+                console.log('🔊 Contexto de áudio retomado (iOS)');
+                iniciarSomContinuo(ctx);
+            }).catch(() => {
+                console.warn('⚠️ Não foi possível retomar o áudio');
+            });
+        } else {
+            iniciarSomContinuo(ctx);
+        }
+    } catch (e) {
+        console.warn('⚠️ Falha no som:', e);
+        // Fallback: toca áudio externo
+        try {
+            const audio = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3');
+            audio.loop = true;
+            audio.volume = 1.0;
+            audio.play().catch(() => {});
+            alarmeAtivo = true;
+        } catch(e2) {
+            console.warn('⚠️ Falha no áudio fallback:', e2);
+        }
+    }
+    
+    // ── VIBRAÇÃO ──────────────────────────────────────
+    if (navigator.vibrate) {
+        navigator.vibrate([500, 200, 500, 200, 500, 200, 1000, 500, 500, 500, 500]);
+        console.log('📳 Vibração acionada!');
+    }
+}
+
+function iniciarSomContinuo(ctx) {
     try {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -1055,37 +1114,69 @@ function tocarSom(ctx) {
         
         osc.frequency.value = 880;
         osc.type = 'square';
-        gain.gain.value = 0.6;
+        gain.gain.value = 0.5;
         
-        // ── PULSOS: liga/desliga o som ──────────────
+        osc.start();
+        
+        // Varia a frequência para efeito de alarme (loop contínuo)
         let count = 0;
-        const maxPulses = 6; // número de pulsos (3 segundos)
-        
-        function pulso() {
-            if (count >= maxPulses) {
-                osc.stop();
-                ctx.close();
+        const interval = setInterval(() => {
+            if (!alarmeAtivo) {
+                clearInterval(interval);
                 return;
             }
             count++;
-            
-            // Liga o som
-            gain.gain.setValueAtTime(0.6, ctx.currentTime);
-            setTimeout(() => {
-                // Desliga o som (pausa)
-                gain.gain.setValueAtTime(0, ctx.currentTime + 0.1);
-            }, 250);
-            
-            // Próximo pulso
-            setTimeout(pulso, 500);
-        }
+            if (count % 2 === 0) {
+                osc.frequency.value = 1200;
+            } else {
+                osc.frequency.value = 880;
+            }
+        }, 400);
         
-        osc.start();
-        pulso();
+        alarmeOscilador = osc;
+        alarmeGanho = gain;
+        alarmeAtivo = true;
+        alarmeContexto = ctx;
+        
+        console.log('🔊 Alarme contínuo iniciado!');
         
     } catch (e) {
-        console.warn('⚠️ Erro ao tocar som:', e);
+        console.warn('⚠️ Erro ao iniciar som:', e);
     }
+}
+
+// ═══════════════════════════════════════════════════
+//  DESLIGAR ALARME
+// ═══════════════════════════════════════════════════
+function desligarAlarme() {
+    console.log('🔇 Desligando alarme...');
+    
+    alarmeAtivo = false;
+    
+    // Para o oscilador
+    if (alarmeOscilador) {
+        try {
+            alarmeOscilador.stop();
+            alarmeOscilador = null;
+        } catch(e) {}
+    }
+    
+    // Fecha o contexto de áudio
+    if (alarmeContexto) {
+        try {
+            alarmeContexto.close();
+            alarmeContexto = null;
+        } catch(e) {}
+    }
+    
+    alarmeGanho = null;
+    
+    // Para a vibração
+    if (navigator.vibrate) {
+        navigator.vibrate(0);
+    }
+    
+    console.log('✅ Alarme desligado');
 }
 
 </script>
