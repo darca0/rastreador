@@ -53,21 +53,31 @@
   /* MAPA */
   #map { flex: 1; }
 
-  /* PAINEL */
-  #panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.88); padding: 6px 10px; z-index: 1000; border-top: 1px solid #222; }
-  #panelNome { font-size: 11px; font-weight: 700; color: #90caf9; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .info-row { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 4px; }
-  .info-pill { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 2px 8px; font-size: 11px; color: #ccc; }
-  .btn-row { display: flex; gap: 4px; flex-wrap: wrap; }
-  .map-btn { flex: 1; padding: 9px 4px; border-radius: 10px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; min-width: 60px; }
-  .map-btn:active { transform: scale(0.97); }
-  .btn-block  { background: #c62828; color: #fff; }
-  .btn-unlock { background: #2e7d32; color: #fff; }
-  .btn-cancel { background: #f9a825; color: #fff; }
-  .btn-center { flex: 0 0 42px; background: #1565C0; color: #fff; border-radius: 10px; border: none; font-size: 16px; cursor: pointer; }
+  /* PAINEL COMPACTO - 2 LINHAS */
+  #panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.88); padding: 4px 8px; z-index: 1000; border-top: 1px solid #222; }
+  #panelNome { font-size: 10px; font-weight: 700; color: #90caf9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+  #pendenteBanner { background: #f9a825dd; border-radius: 6px; padding: 1px 8px; font-size: 9px; font-weight: 600; text-align: center; color: #fff; display: none; margin-bottom: 2px; }
   
-  #logBox { max-height: 40px; overflow-y: auto; margin-top: 3px; }
-  #auxRow { display: flex; margin-top: 4px; }
+  .info-row { display: flex; align-items: center; gap: 3px; flex-wrap: nowrap; overflow-x: auto; margin-bottom: 2px; }
+  .info-pill { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 1px 6px; font-size: 9px; color: #ccc; white-space: nowrap; }
+  .badge-sm { font-size: 8px; padding: 1px 6px; border-radius: 10px; border: 1px solid; white-space: nowrap; }
+  .badge-sm.badge-ok   { background: #2e7d3288; color: #a5d6a7; border-color: #2e7d32; }
+  .badge-sm.badge-err  { background: #c6282888; color: #ef9a9a; border-color: #c62828; }
+  .badge-sm.badge-warn { background: #f9a82588; color: #fff8e1; border-color: #f9a825; animation: blink 1s infinite; }
+  .badge-sm.badge-off  { background: #33333388; color: #888; border-color: #444; }
+  
+  .btn-row { display: flex; align-items: center; gap: 3px; flex-wrap: nowrap; overflow-x: auto; }
+  .btn-row button { padding: 3px 6px; font-size: 9px; border-radius: 6px; border: none; cursor: pointer; white-space: nowrap; flex: 1; min-width: 40px; height: 28px; }
+  .btn-row .btn-block  { background: #c62828; color: #fff; display: none; }
+  .btn-row .btn-cancel { background: #f9a825; color: #fff; display: none; }
+  .btn-row .btn-unlock { background: #2e7d32; color: #fff; }
+  .btn-row .btn-center { flex: 0 0 28px; background: #1565C0; color: #fff; font-size: 12px; }
+  .btn-row .btn-festa  { background: #333; color: #fff; border: 1px solid #555; flex: 1; }
+  .btn-row .btn-festa.ativo { background: #f9a825; color: #111; font-weight: 700; border-color: #f9a825; }
+  .btn-row .btn-d8     { flex: 0 0 28px; background: #c62828; color: #fff; font-size: 10px; padding: 0; text-align: center; }
+  .btn-row .btn-aux    { background: #1565C0; color: #fff; flex: 1; }
+
+  #logBox { max-height: 20px; overflow-y: auto; margin-top: 2px; font-size: 8px; color: #666; }
 
   /* LED Pânico */
   #panicWidget { display:none; position:fixed; top:8px; right:80px; z-index:9998; align-items:center; gap:6px; background:rgba(0,0,0,0.7); border:1px solid #c62828; border-radius:20px; padding:4px 10px; cursor:pointer; }
@@ -99,11 +109,18 @@
   #modalConfirm { background:#1565C0; color:#fff; }
   #modalCancel  { background:#333; color:#aaa; }
 
-  #pendenteBanner { background: #f9a825dd; border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 600; text-align: center; color: #fff; display: none; margin-bottom: 4px; }
-
   /* MODO FESTA */
   #btnFesta { background: #333; color: #fff; font-size: 11px; padding: 6px; border: 1px solid #555; border-radius: 8px; cursor: pointer; flex: 1; }
   #btnFesta.ativo { background: #f9a825; color: #111; font-weight: 700; border-color: #f9a825; }
+
+  /* Modal de confirmação Teste D8 */
+  #modalTesteD8 { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:99999; align-items:center; justify-content:center; }
+  #modalTesteD8 .box { background:#1a1a1a; border:1px solid #555; border-radius:14px; padding:20px; width:80%; max-width:320px; text-align:center; }
+
+  /* Modal de segurança (bloqueio) */
+  #modalSeguranca { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:99999; align-items:center; justify-content:center; }
+  #modalSeguranca .box { background:#222; padding:20px; border-radius:10px; width:300px; text-align:center; }
+  #modalSeguranca input { width:100%; padding:8px; margin-bottom:10px; border-radius:5px; border:1px solid #444; background:#111; color:#fff; }
 </style>
 </head>
 <body>
@@ -153,31 +170,31 @@
 <div id="map"></div>
 <button id="btnTodos" onclick="centralizarTodos()">⊕ Todos</button>
 
-<!-- PAINEL -->
+<!-- PAINEL COMPACTO -->
 <div id="panel" style="display:none">
   <div id="panelNome">Aguardando veículo...</div>
   <div id="pendenteBanner">🟡 Aguardando velocidade ≤ 8 km/h...</div>
+  
+  <!-- LINHA 1: INFORMAÇÕES -->
   <div class="info-row">
     <span class="info-pill" id="pVel">0.0 km/h</span>
     <span class="info-pill" id="pSat">0 sat</span>
     <span class="info-pill" id="pRssi">— dBm</span>
     <span class="info-pill" id="pAlt">— m</span>
-    <span class="badge badge-off" id="pStatus">Aguardando</span>
+    <span class="badge-sm badge-off" id="pStatus">Aguardando</span>
   </div>
+  
+  <!-- LINHA 2: BOTÕES -->
   <div class="btn-row">
-    <button class="map-btn btn-block"  id="btnBlock"  onclick="cmdAtivo('BLOQUEAR')"         style="display:none">🔴 Bloqueado</button>
-    <button class="map-btn btn-cancel" id="btnCancel" onclick="cmdAtivo('CANCELAR_BLOQUEIO')" style="display:none">🟡 Aguardando...</button>
-    <button class="map-btn btn-unlock" id="btnUnlock" onclick="solicitarBloqueio()">🟢 Liberado</button>
     <button class="btn-center" onclick="centralizarAtivo()">◎</button>
+    <button class="btn-block"  id="btnBlock"  onclick="cmdAtivo('BLOQUEAR')"         style="display:none">🔴 Bloqueado</button>
+    <button class="btn-cancel" id="btnCancel" onclick="cmdAtivo('CANCELAR_BLOQUEIO')" style="display:none">🟡 Aguardando...</button>
+    <button class="btn-unlock" id="btnUnlock" onclick="solicitarBloqueio()">🟢 Liberado</button>
+    <button class="btn-aux" onclick="acionarAux()">🔓 AUX</button>
+    <button class="btn-festa" id="btnFesta" onclick="toggleModoFesta()">🛡️ Festa</button>
+    <button class="btn-d8" onclick="confirmarTesteD8()">🚨</button>
   </div>
-  <div id="auxRow">
-    <button class="btn-aux" onclick="acionarAux()">🔓 AUX — Destravar Portas (emergência)</button>
-    <button id="btnFesta" onclick="toggleModoFesta()">🛡️ Modo Festa</button>
-  </div>
-  <!-- Botão de teste escondido -->
-  <div style="text-align:right;">
-    <button class="btn-test-hidden" onclick="confirmarTesteD8()">🔧 Teste D8</button>
-  </div>
+  
   <div id="logBox"></div>
 </div>
 
@@ -194,8 +211,8 @@
 </div>
 
 <!-- Modal de confirmação Teste D8 -->
-<div id="modalTesteD8" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center;">
-  <div style="background:#1a1a1a; border:1px solid #555; border-radius:14px; padding:20px; width:80%; max-width:320px; text-align:center;">
+<div id="modalTesteD8" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:99999; align-items:center; justify-content:center;">
+  <div class="box">
     <strong style="color:#fff; font-size:16px; display:block; margin-bottom:8px;">🔧 Teste Manual D8</strong>
     <p style="font-size:13px; color:#aaa; margin-bottom:16px;">Isso vai simular um pânico. Deseja realmente testar?</p>
     <div class="modal-btns">
@@ -206,12 +223,12 @@
 </div>
 
 <!-- 🔒 MODAL DE SEGURANÇA (BLOQUEIO) -->
-<div id="modalSeguranca" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
-  <div style="background:#222; padding:20px; border-radius:10px; width:300px; text-align:center;">
+<div id="modalSeguranca" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:99999; align-items:center; justify-content:center;">
+  <div class="box">
     <h3 style="color:#fff">🔒 Autenticação</h3>
     <p style="color:#aaa; font-size:12px; margin-bottom:15px;">Digite usuário e senha para bloquear:</p>
-    <input type="text" id="segUser" placeholder="Usuário" style="width:100%; padding:8px; margin-bottom:10px; border-radius:5px; border:1px solid #444; background:#111; color:#fff;">
-    <input type="password" id="segPass" placeholder="Senha" style="width:100%; padding:8px; margin-bottom:15px; border-radius:5px; border:1px solid #444; background:#111; color:#fff;">
+    <input type="text" id="segUser" placeholder="Usuário">
+    <input type="password" id="segPass" placeholder="Senha">
     <div style="display:flex; gap:10px;">
       <button onclick="confirmarBloqueio()" style="flex:1; background:#c62828; color:#fff; padding:10px; border:none; border-radius:5px; font-weight:700; cursor:pointer;">Confirmar</button>
       <button onclick="fecharModalSeguranca()" style="flex:1; background:#333; color:#aaa; padding:10px; border:none; border-radius:5px; font-weight:700; cursor:pointer;">Cancelar</button>
@@ -365,86 +382,24 @@ function confirmarAux() {
   addLog('→ AUX destravamento acionado (2s)', 'log-warn');
 }
 
-// ═══════════════════════════════════════════════════
-//  BLOQUEIO - CORRIGIDO
-// ═══════════════════════════════════════════════════
 function cmdAtivo(comando) {
   if (!ativoId) return;
-  
-  // Envia o comando MQTT
   cmd(ativoId, comando);
-  
   const v = veiculos[ativoId];
   if (!v) return;
-  
-  // ════════════════════════════════════════════════
-  //  FORÇA O ESTADO LOCAL IMEDIATAMENTE
-  // ════════════════════════════════════════════════
   if (comando === 'BLOQUEAR') {
-    // Verifica a velocidade
-    if (v.vel <= 8.0) {
-      // Veículo parado → bloqueia imediatamente
-      v.pendente = false;
-      v.bloqueado = true;
-      addLog('🔒 VEÍCULO BLOQUEADO! (vel: ' + v.vel.toFixed(1) + ' km/h)', 'log-err');
-    } else {
-      // Veículo em movimento → aguarda
-      v.pendente = true;
-      v.bloqueado = false;
-      addLog('⏳ Aguardando velocidade ≤ 8 km/h (atual: ' + v.vel.toFixed(1) + ' km/h)', 'log-warn');
-      
-      // Tenta novamente após 5 segundos
-      setTimeout(() => {
-        if (v.pendente && !v.bloqueado) {
-          if (v.vel <= 8.0) {
-            v.pendente = false;
-            v.bloqueado = true;
-            addLog('🔒 VEÍCULO BLOQUEADO! (vel: ' + v.vel.toFixed(1) + ' km/h)', 'log-err');
-          } else {
-            addLog('⏳ Veículo ainda em movimento (' + v.vel.toFixed(1) + ' km/h)', 'log-warn');
-          }
-          atualizarPainel(ativoId);
-          atualizarBotaoLista(ativoId);
-          if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
-        }
-      }, 5000);
-    }
-    
+    v.pendente  = true;
+    v.bloqueado = false;
   } else if (comando === 'DESBLOQUEAR') {
-    v.pendente = false;
+    v.pendente  = false;
     v.bloqueado = false;
-    addLog('🔓 Veículo DESBLOQUEADO', 'log-ok');
-    
   } else if (comando === 'CANCELAR_BLOQUEIO') {
-    v.pendente = false;
+    v.pendente  = false;
     v.bloqueado = false;
-    addLog('🟡 Bloqueio cancelado', 'log-warn');
   }
-  
-  // Atualiza a interface
   atualizarPainel(ativoId);
   atualizarBotaoLista(ativoId);
   if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
-}
-
-// 🔒 SEGURANÇA PARA BLOQUEIO
-function solicitarBloqueio() {
-  document.getElementById('modalSeguranca').style.display = 'flex';
-}
-
-function confirmarBloqueio() {
-  let user = document.getElementById('segUser').value;
-  let pass = document.getElementById('segPass').value;
-  if (user === usuarioId && pass === USUARIOS[usuarioId]) {
-    document.getElementById('modalSeguranca').style.display = 'none';
-    cmdAtivo('BLOQUEAR');
-  } else {
-    alert('Usuário ou senha incorretos!');
-  }
-}
-
-function fecharModalSeguranca() {
-  document.getElementById('modalSeguranca').style.display = 'none';
 }
 
 // ═══════════════════════════════════════════════════
@@ -542,41 +497,36 @@ function processarGPS(chipId, d) {
       if (distancia > 100) {
         v.paradaInicio = Date.now();
         v.paradaPos    = pos;
-        if (v.paradaCirculo) { 
-          v.paradaCirculo = null; 
-        }
+        if (v.paradaCirculo) { v.paradaCirculo.remove(); v.paradaCirculo = null; }
         addLog('[' + chipId.slice(-4) + '] Veículo se moveu mais de 100m — conta como movimento', 'log-warn');
       }
 
       const tempoParado = Date.now() - v.paradaInicio;
       if (tempoParado >= PARADA_MIN_MS) {
-        // Verifica se já existe pingo próximo
+        // CORREÇÃO DO MULTI-PINGO
         let pingoExistente = null;
         if (v.pingos.length > 0) {
-          pingoExistente = v.pingos.find(p => map.distance(p.marker.getLatLng(), pos) < 50);
+            pingoExistente = v.pingos.find(p => map.distance(p.marker.getLatLng(), pos) < 50);
         }
 
         if (pingoExistente) {
-          // Atualiza o pingo existente com o tempo total
-          pingoExistente.mins = Math.round(tempoParado / 60000);
-          const novoIcone = criarIconePingo(pingoExistente.num, pingoExistente.mins);
-          pingoExistente.marker.setIcon(novoIcone);
-          addLog('[' + chipId.slice(-4) + '] Parada P' + pingoExistente.num + ' atualizada (' + pingoExistente.mins + ' min)', 'log-warn');
+            pingoExistente.mins = Math.round(tempoParado / 60000);
+            const novoIcone = criarIconePingo(pingoExistente.num, pingoExistente.mins);
+            pingoExistente.marker.setIcon(novoIcone);
+            addLog('[' + chipId.slice(-4) + '] Parada P' + pingoExistente.num + ' atualizada (' + pingoExistente.mins + ' min)', 'log-warn');
         } else {
-          // Cria um novo pingo
-          v.contador++;
-          const icone = criarIconePingo(v.contador, Math.round(tempoParado / 60000));
-          v.paradaCirculo = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
-          v.pingos.push({ marker: v.paradaCirculo, num: v.contador, mins: Math.round(tempoParado / 60000) });
-          addLog('[' + chipId.slice(-4) + '] Parada P' + v.contador + ' registrada', 'log-warn');
+            v.contador++;
+            const icone = criarIconePingo(v.contador, Math.round(tempoParado / 60000));
+            v.paradaCirculo = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
+            v.pingos.push({ marker: v.paradaCirculo, num: v.contador, mins: Math.round(tempoParado / 60000) });
+            addLog('[' + chipId.slice(-4) + '] Parada P' + v.contador + ' registrada', 'log-warn');
         }
       }
     }
   } else {
-    // Veículo em movimento: NÃO remove o pingo!
     if (v.paradaCirculo) {
+      v.paradaCirculo.remove();
       v.paradaCirculo = null;
-      addLog('[' + chipId.slice(-4) + '] Veículo moveu, pingos permanecem', 'log-warn');
     }
     v.paradaInicio = null;
     v.paradaPos    = null;
@@ -601,6 +551,7 @@ function processarStatus(chipId, d) {
   else if (v.pendente)           addLog('[' + chipId.slice(-4) + '] Aguardando vel...', 'log-warn');
   else if (m === 'desbloqueado') addLog('[' + chipId.slice(-4) + '] LIBERADO', 'log-ok');
   else if (m === 'online' || m === 'reconectado') addLog('[' + chipId.slice(-4) + '] Online ✓', 'log-ok');
+  // Adicionado Modo Festa
   if (m === 'modo_festa_ativado') addLog('🛡️ Modo Festa ATIVADO no ESP', 'log-warn');
   if (m === 'modo_festa_desativado') addLog('🛡️ Modo Festa DESATIVADO no ESP', 'log-ok');
 }
@@ -612,7 +563,7 @@ function atualizarPainel(chipId) {
   const v = veiculos[chipId]; if (!v) return;
   document.getElementById('pVel').textContent  = v.vel.toFixed(1) + ' km/h';
   document.getElementById('pSat').textContent  = v.sat + ' sat';
-  document.getElementById('pRssi').textContent = (v.rssi !== undefined && v.rssi !== null) ? v.rssi + ' dBm' : '— dBm';
+  document.getElementById('pRssi').textContent = (v.rssi || '—') + ' dBm';
   document.getElementById('pAlt').textContent  = v.alt ? v.alt.toFixed(0) + ' m' : '— m';
 
   const st = document.getElementById('pStatus');
@@ -624,16 +575,16 @@ function atualizarPainel(chipId) {
   bn.style.display = 'none';
 
   if (v.bloqueado) {
-    st.textContent = 'Bloqueado'; st.className = 'badge badge-err';
+    st.textContent = 'Bloqueado'; st.className = 'badge-sm badge-err';
     bB.style.display = '';
     bB.onclick = () => cmdAtivo('DESBLOQUEAR');
     bB.textContent = '🔴 Bloqueado';
   } else if (v.pendente) {
-    st.textContent = 'Aguardando'; st.className = 'badge badge-warn';
+    st.textContent = 'Aguardando'; st.className = 'badge-sm badge-warn';
     bC.style.display = '';
     bn.style.display = 'block';
   } else {
-    st.textContent = 'Liberado'; st.className = 'badge badge-ok';
+    st.textContent = 'Liberado'; st.className = 'badge-sm badge-ok';
     bU.style.display = '';
     bU.onclick = () => solicitarBloqueio();
     bU.textContent = '🟢 Liberado';
@@ -766,6 +717,7 @@ function ativarAlertaMovimento(chipId, d) {
   document.getElementById('btnFesta').textContent = '🛡️ Modo Festa';
   modoFestaAtivo = false;
 
+  // Alerta visual
   setBadge('pStatus', '🚨 FURTO', 'badge-err');
   alert('🚨 ALERTA DE SEGURANÇA! O veículo se moveu mais de 50 metros!');
   map.setView(pos, 15);
@@ -906,9 +858,12 @@ function salvarMapa() {
       
       v.pingos.forEach((p, i) => {
         const ll = p.marker.getLatLng();
+        const tempoRealMs = Date.now() - v.paradaInicio;
+        const minutosReais = Math.max(p.mins, Math.round(tempoRealMs / 60000));
+
         resumo += `<tr>
           <td>${i+1}</td>
-          <td>${p.mins} min</td>
+          <td>${minutosReais} min</td>
           <td>${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}</td>
           <td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td>
         </tr>`;
