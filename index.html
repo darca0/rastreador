@@ -628,6 +628,8 @@ function processarStatus(chipId, d) {
 // ═══════════════════════════════════════════════════
 function atualizarPainel(chipId) {
   const v = veiculos[chipId]; if (!v) return;
+  
+  // Atualiza as informações
   document.getElementById('pVel').textContent  = v.vel.toFixed(1) + ' km/h';
   document.getElementById('pSat').textContent  = v.sat + ' sat';
   document.getElementById('pRssi').textContent = (v.rssi || '—') + ' dBm';
@@ -640,27 +642,31 @@ function atualizarPainel(chipId) {
   const bn = document.getElementById('pendenteBanner');
   
   // ════════════════════════════════════════════════
-  //  GARANTE QUE OS BOTÕES ESTEJAM VISÍVEIS
+  //  RESETA TODOS OS BOTÕES
   // ════════════════════════════════════════════════
   bB.style.display = 'none';
   bC.style.display = 'none';
-  bU.style.display = '';  // ← GARANTE QUE O BOTÃO LIBERADO APAREÇA
+  bU.style.display = 'none';
   bn.style.display = 'none';
 
   if (v.bloqueado) {
-    st.textContent = 'Bloqueado'; st.className = 'badge-sm badge-err';
+    // 🔴 BLOQUEADO
+    st.textContent = 'Bloqueado';
+    st.className = 'badge-sm badge-err';
     bB.style.display = '';
     bB.onclick = () => cmdAtivo('DESBLOQUEAR');
-    bB.textContent = '🔴 Bloqueado';
-    bU.style.display = 'none';  // ESCONDE O LIBERADO QUANDO BLOQUEADO
+    bB.textContent = '🔴 Desbloquear';
   } else if (v.pendente) {
-    st.textContent = 'Aguardando'; st.className = 'badge-sm badge-warn';
+    // 🟡 AGUARDANDO
+    st.textContent = 'Aguardando';
+    st.className = 'badge-sm badge-warn';
     bC.style.display = '';
     bn.style.display = 'block';
-    bU.style.display = 'none';  // ESCONDE O LIBERADO QUANDO PENDENTE
   } else {
-    st.textContent = 'Liberado'; st.className = 'badge-sm badge-ok';
-    bU.style.display = '';  // ← MOSTRA O LIBERADO
+    // 🟢 LIBERADO
+    st.textContent = 'Liberado';
+    st.className = 'badge-sm badge-ok';
+    bU.style.display = '';
     bU.onclick = () => solicitarBloqueio();
     bU.textContent = '🟢 Liberado';
   }
