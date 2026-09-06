@@ -104,6 +104,10 @@
   /* MODO FESTA */
   #btnFesta { background: #333; color: #fff; font-size: 11px; padding: 6px; border: 1px solid #555; border-radius: 8px; cursor: pointer; flex: 1; }
   #btnFesta.ativo { background: #f9a825; color: #111; font-weight: 700; border-color: #f9a825; }
+  
+  /* Botão de teste D8 - DISCRETO */
+  .btn-test-hidden { flex: 0 0 auto; background: transparent; color: #555; font-size: 10px; padding: 4px; border: none; cursor: pointer; text-decoration: underline; margin-top: 2px; }
+  .btn-test-hidden:active { color: #888; }
 </style>
 </head>
 <body>
@@ -167,7 +171,7 @@
   <div class="btn-row">
     <button class="map-btn btn-block"  id="btnBlock"  onclick="cmdAtivo('BLOQUEAR')"         style="display:none">🔴 Bloqueado</button>
     <button class="map-btn btn-cancel" id="btnCancel" onclick="cmdAtivo('CANCELAR_BLOQUEIO')" style="display:none">🟡 Aguardando...</button>
-    <button class="map-btn btn-unlock" id="btnUnlock" onclick="solicitarBloqueio()">🟢 Liberado</button>
+    <button class="map-btn btn-unlock" id="btnUnlock" onclick="cmdAtivo('DESBLOQUEAR')">🟢 Liberado</button>
     <button class="btn-center" onclick="centralizarAtivo()">◎</button>
   </div>
   <div id="auxRow">
@@ -377,23 +381,17 @@ function cmdAtivo(comando) {
   const v = veiculos[ativoId];
   if (!v) return;
   
-  // ════════════════════════════════════════════════
-  //  FORÇA O ESTADO LOCAL IMEDIATAMENTE
-  // ════════════════════════════════════════════════
   if (comando === 'BLOQUEAR') {
     // Verifica a velocidade
     if (v.vel <= 8.0) {
-      // Veículo parado → bloqueia imediatamente
       v.pendente = false;
       v.bloqueado = true;
       addLog('🔒 VEÍCULO BLOQUEADO! (vel: ' + v.vel.toFixed(1) + ' km/h)', 'log-err');
     } else {
-      // Veículo em movimento → aguarda
       v.pendente = true;
       v.bloqueado = false;
       addLog('⏳ Aguardando velocidade ≤ 8 km/h (atual: ' + v.vel.toFixed(1) + ' km/h)', 'log-warn');
       
-      // Tenta novamente após 5 segundos
       setTimeout(() => {
         if (v.pendente && !v.bloqueado) {
           if (v.vel <= 8.0) {
@@ -421,7 +419,6 @@ function cmdAtivo(comando) {
     addLog('🟡 Bloqueio cancelado', 'log-warn');
   }
   
-  // Atualiza a interface
   atualizarPainel(ativoId);
   atualizarBotaoLista(ativoId);
   if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
@@ -499,7 +496,7 @@ function selecionarVeiculo(chipId) {
 }
 
 // ═══════════════════════════════════════════════════
-//  GPS
+//  GPS - CORRIGIDO (PINGOS FIXOS E TEMPO ATUALIZANDO)
 // ═══════════════════════════════════════════════════
 function processarGPS(chipId, d) {
   const v = obterVeiculo(chipId);
@@ -531,49 +528,66 @@ function processarGPS(chipId, d) {
   }
   v.trail.addLatLng(pos);
 
-  // ── Detecta parada prolongada ──────────────────────
+  // ════════════════════════════════════════════════════════
+  //  DETECTA PARADA PROLONGADA (PINGOS FIXOS)
+  // ════════════════════════════════════════════════════════
   if (v.vel <= PARADA_VEL) {
+    // INÍCIO DA PARADA
     if (!v.paradaInicio) {
       v.paradaInicio = Date.now();
       v.paradaPos    = pos;
-      addLog('[' + chipId.slice(-4) + '] Parada detectada vel=' + v.vel.toFixed(1), 'log-warn');
+      addLog('[' + chipId.slice(-4) + '] Parada detectada (vel=' + v.vel.toFixed(1) + ' km/h)', 'log-warn');
     } else {
+      // VERIFICA SE O VEÍCULO SE MOVEU MAIS DE 100m (RESETA CONTAGEM)
       const distancia = map.distance(v.paradaPos, pos);
       if (distancia > 100) {
         v.paradaInicio = Date.now();
         v.paradaPos    = pos;
-        if (v.paradaCirculo) { 
-          v.paradaCirculo = null; 
+        if (v.paradaCirculo) {
+          v.paradaCirculo = null;
         }
-        addLog('[' + chipId.slice(-4) + '] Veículo se moveu mais de 100m — conta como movimento', 'log-warn');
+        addLog('[' + chipId.slice(-4) + '] Movimento >100m, resetando contagem', 'log-warn');
       }
 
+      // CALCULA O TEMPO PARADO
       const tempoParado = Date.now() - v.paradaInicio;
+      const minutos = Math.round(tempoParado / 60000);
+      
+      // SÓ CRIA/ATUALIZA PINGO APÓS 6 MINUTOS
       if (tempoParado >= PARADA_MIN_MS) {
-        // Verifica se já existe pingo próximo
+        // VERIFICA SE JÁ EXISTE PINGO NESTA POSIÇÃO (RAIO 50m)
         let pingoExistente = null;
         if (v.pingos.length > 0) {
-          pingoExistente = v.pingos.find(p => map.distance(p.marker.getLatLng(), pos) < 50);
+          for (let p of v.pingos) {
+            const dist = map.distance(p.marker.getLatLng(), pos);
+            if (dist < 50) {
+              pingoExistente = p;
+              break;
+            }
+          }
         }
 
         if (pingoExistente) {
-          // Atualiza o pingo existente com o tempo total
-          pingoExistente.mins = Math.round(tempoParado / 60000);
-          const novoIcone = criarIconePingo(pingoExistente.num, pingoExistente.mins);
+          // ATUALIZA O PINGO EXISTENTE (TEMPO AUMENTA)
+          const minsAnterior = pingoExistente.mins;
+          pingoExistente.mins = minutos;
+          const novoIcone = criarIconePingo(pingoExistente.num, minutos);
           pingoExistente.marker.setIcon(novoIcone);
-          addLog('[' + chipId.slice(-4) + '] Parada P' + pingoExistente.num + ' atualizada (' + pingoExistente.mins + ' min)', 'log-warn');
+          if (minutos !== minsAnterior) {
+            addLog('[' + chipId.slice(-4) + '] P' + pingoExistente.num + ' atualizado: ' + minutos + ' min', 'log-warn');
+          }
         } else {
-          // Cria um novo pingo
+          // CRIA UM NOVO PINGO
           v.contador++;
-          const icone = criarIconePingo(v.contador, Math.round(tempoParado / 60000));
+          const icone = criarIconePingo(v.contador, minutos);
           v.paradaCirculo = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
-          v.pingos.push({ marker: v.paradaCirculo, num: v.contador, mins: Math.round(tempoParado / 60000) });
-          addLog('[' + chipId.slice(-4) + '] Parada P' + v.contador + ' registrada', 'log-warn');
+          v.pingos.push({ marker: v.paradaCirculo, num: v.contador, mins: minutos });
+          addLog('[' + chipId.slice(-4) + '] P' + v.contador + ' criado: ' + minutos + ' min', 'log-warn');
         }
       }
     }
   } else {
-    // Veículo em movimento: NÃO remove o pingo!
+    // VEÍCULO EM MOVIMENTO: NÃO REMOVE O PINGO!
     if (v.paradaCirculo) {
       v.paradaCirculo = null;
       addLog('[' + chipId.slice(-4) + '] Veículo moveu, pingos permanecem', 'log-warn');
@@ -606,7 +620,7 @@ function processarStatus(chipId, d) {
 }
 
 // ═══════════════════════════════════════════════════
-//  PAINEL + SEGURANÇA
+//  PAINEL
 // ═══════════════════════════════════════════════════
 function atualizarPainel(chipId) {
   const v = veiculos[chipId]; if (!v) return;
@@ -635,29 +649,9 @@ function atualizarPainel(chipId) {
   } else {
     st.textContent = 'Liberado'; st.className = 'badge badge-ok';
     bU.style.display = '';
-    bU.onclick = () => solicitarBloqueio();
+    bU.onclick = () => cmdAtivo('BLOQUEAR');
     bU.textContent = '🟢 Liberado';
   }
-}
-
-// 🔒 SEGURANÇA PARA BLOQUEIO
-function solicitarBloqueio() {
-  document.getElementById('modalSeguranca').style.display = 'flex';
-}
-
-function confirmarBloqueio() {
-  let user = document.getElementById('segUser').value;
-  let pass = document.getElementById('segPass').value;
-  if (user === usuarioId && pass === USUARIOS[usuarioId]) {
-    document.getElementById('modalSeguranca').style.display = 'none';
-    cmdAtivo('BLOQUEAR');
-  } else {
-    alert('Usuário ou senha incorretos!');
-  }
-}
-
-function fecharModalSeguranca() {
-  document.getElementById('modalSeguranca').style.display = 'none';
 }
 
 // ═══════════════════════════════════════════════════
