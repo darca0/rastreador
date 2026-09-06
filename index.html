@@ -117,10 +117,17 @@
   #modalTesteD8 { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:99999; align-items:center; justify-content:center; }
   #modalTesteD8 .box { background:#1a1a1a; border:1px solid #555; border-radius:14px; padding:20px; width:80%; max-width:320px; text-align:center; }
 
-  /* Modal de segurança (bloqueio) */
-  #modalSeguranca { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:99999; align-items:center; justify-content:center; }
-  #modalSeguranca .box { background:#222; padding:20px; border-radius:10px; width:300px; text-align:center; }
-  #modalSeguranca input { width:100%; padding:8px; margin-bottom:10px; border-radius:5px; border:1px solid #444; background:#111; color:#fff; }
+  /* Modal de segurança (bloqueio) - CORRIGIDO */
+  #modalSeguranca { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:99999; align-items:center; justify-content:center; }
+  #modalSeguranca .box { background:#1a1a1a; border:1px solid #1565C0; border-radius:14px; padding:24px; width:90%; max-width:320px; text-align:center; }
+  #modalSeguranca h3 { color:#fff; font-size:18px; margin-bottom:8px; }
+  #modalSeguranca p { color:#aaa; font-size:12px; margin-bottom:15px; }
+  #modalSeguranca input { width:100%; padding:10px; margin-bottom:10px; border-radius:6px; border:1px solid #444; background:#111; color:#fff; font-size:14px; }
+  #modalSeguranca input:focus { outline:1px solid #1565C0; border-color:#1565C0; }
+  #modalSeguranca .modal-btns { display:flex; gap:10px; }
+  #modalSeguranca .modal-btns button { flex:1; padding:10px; border:none; border-radius:6px; font-size:14px; font-weight:700; cursor:pointer; }
+  #modalSeguranca .modal-btns .btn-confirm { background:#c62828; color:#fff; }
+  #modalSeguranca .modal-btns .btn-cancel { background:#333; color:#aaa; }
 </style>
 </head>
 <body>
@@ -222,16 +229,16 @@
   </div>
 </div>
 
-<!-- 🔒 MODAL DE SEGURANÇA (BLOQUEIO) -->
-<div id="modalSeguranca" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:99999; align-items:center; justify-content:center;">
+<!-- 🔒 MODAL DE SEGURANÇA (BLOQUEIO) - CORRIGIDO -->
+<div id="modalSeguranca" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:99999; align-items:center; justify-content:center;">
   <div class="box">
-    <h3 style="color:#fff">🔒 Autenticação</h3>
-    <p style="color:#aaa; font-size:12px; margin-bottom:15px;">Digite usuário e senha para bloquear:</p>
-    <input type="text" id="segUser" placeholder="Usuário">
+    <h3>🔒 Autenticação</h3>
+    <p>Digite usuário e senha para bloquear o veículo:</p>
+    <input type="text" id="segUser" placeholder="Usuário" autofocus>
     <input type="password" id="segPass" placeholder="Senha">
-    <div style="display:flex; gap:10px;">
-      <button onclick="confirmarBloqueio()" style="flex:1; background:#c62828; color:#fff; padding:10px; border:none; border-radius:5px; font-weight:700; cursor:pointer;">Confirmar</button>
-      <button onclick="fecharModalSeguranca()" style="flex:1; background:#333; color:#aaa; padding:10px; border:none; border-radius:5px; font-weight:700; cursor:pointer;">Cancelar</button>
+    <div class="modal-btns">
+      <button class="btn-confirm" onclick="confirmarBloqueio()">Confirmar</button>
+      <button class="btn-cancel" onclick="fecharModalSeguranca()">Cancelar</button>
     </div>
   </div>
 </div>
@@ -382,24 +389,84 @@ function confirmarAux() {
   addLog('→ AUX destravamento acionado (2s)', 'log-warn');
 }
 
+// ═══════════════════════════════════════════════════
+//  BLOQUEIO - CORRIGIDO (FORÇA O VERMELHO IMEDIATAMENTE)
+// ═══════════════════════════════════════════════════
 function cmdAtivo(comando) {
   if (!ativoId) return;
+  
+  // Envia o comando MQTT
   cmd(ativoId, comando);
+  
   const v = veiculos[ativoId];
   if (!v) return;
+  
+  // ════════════════════════════════════════════════
+  //  FORÇA O ESTADO LOCAL IMEDIATAMENTE
+  // ════════════════════════════════════════════════
   if (comando === 'BLOQUEAR') {
-    v.pendente  = true;
-    v.bloqueado = false;
+    // FORÇA O BLOQUEIO IMEDIATO (sem esperar o ESP)
+    v.pendente = false;
+    v.bloqueado = true;
+    addLog('🔒 VEÍCULO BLOQUEADO!', 'log-err');
   } else if (comando === 'DESBLOQUEAR') {
-    v.pendente  = false;
+    v.pendente = false;
     v.bloqueado = false;
+    addLog('🔓 Veículo DESBLOQUEADO', 'log-ok');
   } else if (comando === 'CANCELAR_BLOQUEIO') {
-    v.pendente  = false;
+    v.pendente = false;
     v.bloqueado = false;
+    addLog('🟡 Bloqueio cancelado', 'log-warn');
   }
+  
+  // Atualiza a interface imediatamente
   atualizarPainel(ativoId);
   atualizarBotaoLista(ativoId);
   if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
+}
+
+// 🔒 SEGURANÇA PARA BLOQUEIO - POPUP CORRIGIDO
+function solicitarBloqueio() {
+  // Verifica se o modal existe
+  const modal = document.getElementById('modalSeguranca');
+  if (!modal) {
+    // Fallback: bloqueia diretamente
+    if (confirm('🔒 Deseja bloquear o veículo?')) {
+      cmdAtivo('BLOQUEAR');
+    }
+    return;
+  }
+  modal.style.display = 'flex';
+  // Foca no campo de usuário
+  document.getElementById('segUser').focus();
+}
+
+function confirmarBloqueio() {
+  let user = document.getElementById('segUser').value.trim();
+  let pass = document.getElementById('segPass').value.trim();
+  
+  if (!user || !pass) {
+    alert('⚠️ Digite usuário e senha!');
+    return;
+  }
+  
+  if (user === usuarioId && pass === USUARIOS[usuarioId]) {
+    document.getElementById('modalSeguranca').style.display = 'none';
+    // Limpa os campos
+    document.getElementById('segUser').value = '';
+    document.getElementById('segPass').value = '';
+    cmdAtivo('BLOQUEAR');
+  } else {
+    alert('❌ Usuário ou senha incorretos!');
+    document.getElementById('segPass').value = '';
+    document.getElementById('segPass').focus();
+  }
+}
+
+function fecharModalSeguranca() {
+  document.getElementById('modalSeguranca').style.display = 'none';
+  document.getElementById('segUser').value = '';
+  document.getElementById('segPass').value = '';
 }
 
 // ═══════════════════════════════════════════════════
@@ -589,26 +656,6 @@ function atualizarPainel(chipId) {
     bU.onclick = () => solicitarBloqueio();
     bU.textContent = '🟢 Liberado';
   }
-}
-
-// 🔒 SEGURANÇA PARA BLOQUEIO
-function solicitarBloqueio() {
-  document.getElementById('modalSeguranca').style.display = 'flex';
-}
-
-function confirmarBloqueio() {
-  let user = document.getElementById('segUser').value;
-  let pass = document.getElementById('segPass').value;
-  if (user === usuarioId && pass === USUARIOS[usuarioId]) {
-    document.getElementById('modalSeguranca').style.display = 'none';
-    cmdAtivo('BLOQUEAR');
-  } else {
-    alert('Usuário ou senha incorretos!');
-  }
-}
-
-function fecharModalSeguranca() {
-  document.getElementById('modalSeguranca').style.display = 'none';
 }
 
 // ═══════════════════════════════════════════════════
