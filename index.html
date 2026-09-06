@@ -66,10 +66,6 @@
   .btn-cancel { background: #f9a825; color: #fff; }
   .btn-center { flex: 0 0 42px; background: #1565C0; color: #fff; border-radius: 10px; border: none; font-size: 16px; cursor: pointer; }
   
-  /* Botão de teste D8 - DISCRETO */
-  .btn-test-hidden { flex: 0 0 auto; background: transparent; color: #555; font-size: 10px; padding: 4px; border: none; cursor: pointer; text-decoration: underline; margin-top: 2px; }
-  .btn-test-hidden:active { color: #888; }
-  
   #logBox { max-height: 40px; overflow-y: auto; margin-top: 3px; }
   #auxRow { display: flex; margin-top: 4px; }
 
@@ -161,8 +157,6 @@
 <div id="panel" style="display:none">
   <div id="panelNome">Aguardando veículo...</div>
   <div id="pendenteBanner">🟡 Aguardando velocidade ≤ 8 km/h...</div>
-  
-  <!-- LINHA 1: INFO -->
   <div class="info-row">
     <span class="info-pill" id="pVel">0.0 km/h</span>
     <span class="info-pill" id="pSat">0 sat</span>
@@ -170,27 +164,20 @@
     <span class="info-pill" id="pAlt">— m</span>
     <span class="badge badge-off" id="pStatus">Aguardando</span>
   </div>
-  
-  <!-- LINHA 2: BOTÕES (NOVA ORDEM) -->
   <div class="btn-row">
-    <!-- 1. CENTRALIZAR (fixo) -->
-    <button class="btn-center" onclick="centralizarAtivo()">◎</button>
-    
-    <!-- 2. BLOQUEAR/LIBERAR (flexível) -->
     <button class="map-btn btn-block"  id="btnBlock"  onclick="cmdAtivo('BLOQUEAR')"         style="display:none">🔴 Bloqueado</button>
     <button class="map-btn btn-cancel" id="btnCancel" onclick="cmdAtivo('CANCELAR_BLOQUEIO')" style="display:none">🟡 Aguardando...</button>
     <button class="map-btn btn-unlock" id="btnUnlock" onclick="solicitarBloqueio()">🟢 Liberado</button>
-    
-    <!-- 3. AUX (flexível) -->
-    <button class="map-btn" onclick="acionarAux()" style="background:#1565C0; color:#fff; border:none; border-radius:10px; padding:9px 4px; font-size:13px; font-weight:700; cursor:pointer; flex:1; min-width:60px;">🔓 AUX</button>
-    
-    <!-- 4. MODO FESTA (flexível) -->
-    <button id="btnFesta" onclick="toggleModoFesta()" style="background:#333; color:#fff; font-size:11px; padding:6px; border:1px solid #555; border-radius:8px; cursor:pointer; flex:1;">🛡️ Festa</button>
-    
-    <!-- 5. D8 (fixo, pequeno) -->
-    <button onclick="confirmarTesteD8()" style="flex:0 0 42px; background:#c62828; color:#fff; font-size:14px; border:none; border-radius:10px; cursor:pointer; padding:0; line-height:42px; text-align:center;">🚨</button>
+    <button class="btn-center" onclick="centralizarAtivo()">◎</button>
   </div>
-  
+  <div id="auxRow">
+    <button class="btn-aux" onclick="acionarAux()">🔓 AUX — Destravar Portas (emergência)</button>
+    <button id="btnFesta" onclick="toggleModoFesta()">🛡️ Modo Festa</button>
+  </div>
+  <!-- Botão de teste escondido -->
+  <div style="text-align:right;">
+    <button class="btn-test-hidden" onclick="confirmarTesteD8()">🔧 Teste D8</button>
+  </div>
   <div id="logBox"></div>
 </div>
 
@@ -378,6 +365,9 @@ function confirmarAux() {
   addLog('→ AUX destravamento acionado (2s)', 'log-warn');
 }
 
+// ═══════════════════════════════════════════════════
+//  BLOQUEIO - CORRIGIDO
+// ═══════════════════════════════════════════════════
 function cmdAtivo(comando) {
   if (!ativoId) return;
   
@@ -387,17 +377,18 @@ function cmdAtivo(comando) {
   const v = veiculos[ativoId];
   if (!v) return;
   
+  // ════════════════════════════════════════════════
+  //  FORÇA O ESTADO LOCAL IMEDIATAMENTE
+  // ════════════════════════════════════════════════
   if (comando === 'BLOQUEAR') {
-    // ════════════════════════════════════════════════
-    //  VERIFICA A VELOCIDADE
-    // ════════════════════════════════════════════════
+    // Verifica a velocidade
     if (v.vel <= 8.0) {
-      // VEÍCULO PARADO → BLOQUEIA IMEDIATAMENTE
+      // Veículo parado → bloqueia imediatamente
       v.pendente = false;
       v.bloqueado = true;
       addLog('🔒 VEÍCULO BLOQUEADO! (vel: ' + v.vel.toFixed(1) + ' km/h)', 'log-err');
     } else {
-      // VEÍCULO EM MOVIMENTO → AGUARDA
+      // Veículo em movimento → aguarda
       v.pendente = true;
       v.bloqueado = false;
       addLog('⏳ Aguardando velocidade ≤ 8 km/h (atual: ' + v.vel.toFixed(1) + ' km/h)', 'log-warn');
@@ -435,6 +426,27 @@ function cmdAtivo(comando) {
   atualizarBotaoLista(ativoId);
   if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
 }
+
+// 🔒 SEGURANÇA PARA BLOQUEIO
+function solicitarBloqueio() {
+  document.getElementById('modalSeguranca').style.display = 'flex';
+}
+
+function confirmarBloqueio() {
+  let user = document.getElementById('segUser').value;
+  let pass = document.getElementById('segPass').value;
+  if (user === usuarioId && pass === USUARIOS[usuarioId]) {
+    document.getElementById('modalSeguranca').style.display = 'none';
+    cmdAtivo('BLOQUEAR');
+  } else {
+    alert('Usuário ou senha incorretos!');
+  }
+}
+
+function fecharModalSeguranca() {
+  document.getElementById('modalSeguranca').style.display = 'none';
+}
+
 // ═══════════════════════════════════════════════════
 //  VEÍCULOS
 // ═══════════════════════════════════════════════════
@@ -520,59 +532,60 @@ function processarGPS(chipId, d) {
   v.trail.addLatLng(pos);
 
   // ── Detecta parada prolongada ──────────────────────
-  // ── Detecta parada prolongada ──────────────────────
-if (v.vel <= PARADA_VEL) {
+  if (v.vel <= PARADA_VEL) {
     if (!v.paradaInicio) {
+      v.paradaInicio = Date.now();
+      v.paradaPos    = pos;
+      addLog('[' + chipId.slice(-4) + '] Parada detectada vel=' + v.vel.toFixed(1), 'log-warn');
+    } else {
+      const distancia = map.distance(v.paradaPos, pos);
+      if (distancia > 100) {
         v.paradaInicio = Date.now();
         v.paradaPos    = pos;
-        addLog('[' + chipId.slice(-4) + '] Parada detectada vel=' + v.vel.toFixed(1), 'log-warn');
-    } else {
-        const distancia = map.distance(v.paradaPos, pos);
-        if (distancia > 100) {
-            // Moveu >100m: finaliza a parada atual
-            if (v.paradaCirculo) {
-                v.paradaCirculo = null;
-            }
-            v.paradaInicio = Date.now();
-            v.paradaPos    = pos;
-            addLog('[' + chipId.slice(-4) + '] Movimento >100m, resetando contagem', 'log-warn');
+        if (v.paradaCirculo) { 
+          v.paradaCirculo = null; 
+        }
+        addLog('[' + chipId.slice(-4) + '] Veículo se moveu mais de 100m — conta como movimento', 'log-warn');
+      }
+
+      const tempoParado = Date.now() - v.paradaInicio;
+      if (tempoParado >= PARADA_MIN_MS) {
+        // Verifica se já existe pingo próximo
+        let pingoExistente = null;
+        if (v.pingos.length > 0) {
+          pingoExistente = v.pingos.find(p => map.distance(p.marker.getLatLng(), pos) < 50);
         }
 
-        const tempoParado = Date.now() - v.paradaInicio;
-        const minutosTotais = Math.round(tempoParado / 60000);
-        
-        if (tempoParado >= PARADA_MIN_MS) {
-            // Verifica se já existe pingo próximo (menos de 50m)
-            let pingoExistente = null;
-            if (v.pingos.length > 0) {
-                pingoExistente = v.pingos.find(p => map.distance(p.marker.getLatLng(), pos) < 50);
-            }
-
-            if (pingoExistente) {
-                // ✅ ATUALIZA O TEMPO DO PINGO EXISTENTE
-                pingoExistente.mins = minutosTotais;
-                const novoIcone = criarIconePingo(pingoExistente.num, minutosTotais);
-                pingoExistente.marker.setIcon(novoIcone);
-                addLog('[' + chipId.slice(-4) + '] P' + pingoExistente.num + ' atualizado: ' + minutosTotais + 'min', 'log-warn');
-            } else {
-                // ✅ CRIA UM NOVO PINGO
-                v.contador++;
-                const icone = criarIconePingo(v.contador, minutosTotais);
-                v.paradaCirculo = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
-                v.pingos.push({ marker: v.paradaCirculo, num: v.contador, mins: minutosTotais });
-                addLog('[' + chipId.slice(-4) + '] P' + v.contador + ' criado: ' + minutosTotais + 'min', 'log-warn');
-            }
+        if (pingoExistente) {
+          // Atualiza o pingo existente com o tempo total
+          pingoExistente.mins = Math.round(tempoParado / 60000);
+          const novoIcone = criarIconePingo(pingoExistente.num, pingoExistente.mins);
+          pingoExistente.marker.setIcon(novoIcone);
+          addLog('[' + chipId.slice(-4) + '] Parada P' + pingoExistente.num + ' atualizada (' + pingoExistente.mins + ' min)', 'log-warn');
+        } else {
+          // Cria um novo pingo
+          v.contador++;
+          const icone = criarIconePingo(v.contador, Math.round(tempoParado / 60000));
+          v.paradaCirculo = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
+          v.pingos.push({ marker: v.paradaCirculo, num: v.contador, mins: Math.round(tempoParado / 60000) });
+          addLog('[' + chipId.slice(-4) + '] Parada P' + v.contador + ' registrada', 'log-warn');
         }
+      }
     }
-} else {
+  } else {
     // Veículo em movimento: NÃO remove o pingo!
     if (v.paradaCirculo) {
-        v.paradaCirculo = null;
-        addLog('[' + chipId.slice(-4) + '] Veículo moveu, pingos permanecem', 'log-warn');
+      v.paradaCirculo = null;
+      addLog('[' + chipId.slice(-4) + '] Veículo moveu, pingos permanecem', 'log-warn');
     }
     v.paradaInicio = null;
     v.paradaPos    = null;
+  }
+
+  atualizarBotaoLista(chipId);
+  if (chipId === ativoId) atualizarPainel(chipId);
 }
+
 // ═══════════════════════════════════════════════════
 //  STATUS
 // ═══════════════════════════════════════════════════
@@ -588,7 +601,6 @@ function processarStatus(chipId, d) {
   else if (v.pendente)           addLog('[' + chipId.slice(-4) + '] Aguardando vel...', 'log-warn');
   else if (m === 'desbloqueado') addLog('[' + chipId.slice(-4) + '] LIBERADO', 'log-ok');
   else if (m === 'online' || m === 'reconectado') addLog('[' + chipId.slice(-4) + '] Online ✓', 'log-ok');
-  // Adicionado Modo Festa
   if (m === 'modo_festa_ativado') addLog('🛡️ Modo Festa ATIVADO no ESP', 'log-warn');
   if (m === 'modo_festa_desativado') addLog('🛡️ Modo Festa DESATIVADO no ESP', 'log-ok');
 }
@@ -754,7 +766,6 @@ function ativarAlertaMovimento(chipId, d) {
   document.getElementById('btnFesta').textContent = '🛡️ Modo Festa';
   modoFestaAtivo = false;
 
-  // Alerta visual
   setBadge('pStatus', '🚨 FURTO', 'badge-err');
   alert('🚨 ALERTA DE SEGURANÇA! O veículo se moveu mais de 50 metros!');
   map.setView(pos, 15);
@@ -895,12 +906,9 @@ function salvarMapa() {
       
       v.pingos.forEach((p, i) => {
         const ll = p.marker.getLatLng();
-        const tempoRealMs = Date.now() - v.paradaInicio;
-        const minutosReais = Math.max(p.mins, Math.round(tempoRealMs / 60000));
-
         resumo += `<tr>
           <td>${i+1}</td>
-          <td>${minutosReais} min</td>
+          <td>${p.mins} min</td>
           <td>${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}</td>
           <td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td>
         </tr>`;
