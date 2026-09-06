@@ -53,30 +53,25 @@
   /* MAPA */
   #map { flex: 1; }
 
-  /* PAINEL - VERSÃO COMPACTA (2 LINHAS) */
-  #panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.88); padding: 4px 8px; z-index: 1000; border-top: 1px solid #222; }
-  #panelNome { font-size: 10px; font-weight: 700; color: #90caf9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #pendenteBanner { background: #f9a825dd; border-radius: 6px; padding: 1px 8px; font-size: 9px; font-weight: 600; text-align: center; color: #fff; display: none; margin-bottom: 2px; }
+  /* PAINEL */
+  #panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.88); padding: 6px 10px; z-index: 1000; border-top: 1px solid #222; }
+  #panelNome { font-size: 11px; font-weight: 700; color: #90caf9; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .info-row { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 4px; }
+  .info-pill { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 2px 8px; font-size: 11px; color: #ccc; }
+  .btn-row { display: flex; gap: 4px; flex-wrap: wrap; }
+  .map-btn { flex: 1; padding: 9px 4px; border-radius: 10px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; min-width: 60px; }
+  .map-btn:active { transform: scale(0.97); }
+  .btn-block  { background: #c62828; color: #fff; }
+  .btn-unlock { background: #2e7d32; color: #fff; }
+  .btn-cancel { background: #f9a825; color: #fff; }
+  .btn-center { flex: 0 0 42px; background: #1565C0; color: #fff; border-radius: 10px; border: none; font-size: 16px; cursor: pointer; }
   
-  /* LINHA 1: Info compacta */
-  .info-row-compact { display: flex; align-items: center; gap: 3px; flex-wrap: nowrap; overflow-x: auto; margin-bottom: 2px; }
-  .info-row-compact .pill { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 1px 6px; font-size: 9px; color: #ccc; white-space: nowrap; }
-  .info-row-compact .badge-sm { font-size: 8px; padding: 1px 6px; border-radius: 10px; border: 1px solid; white-space: nowrap; }
-  .btn-sm { background: rgba(0,0,0,0.5); border: 1px solid #444; color: #fff; padding: 0px 8px; border-radius: 10px; font-size: 9px; cursor: pointer; white-space: nowrap; }
-
-  /* LINHA 2: Botões compactos */
-  .btn-row-compact { display: flex; align-items: center; gap: 3px; flex-wrap: nowrap; overflow-x: auto; }
-  .btn-row-compact button { padding: 3px 6px; font-size: 9px; border-radius: 6px; border: none; cursor: pointer; white-space: nowrap; flex: 1; min-width: 40px; }
-  .btn-row-compact .btn-block  { background: #c62828; color: #fff; display: none; }
-  .btn-row-compact .btn-cancel { background: #f9a825; color: #fff; display: none; }
-  .btn-row-compact .btn-unlock { background: #2e7d32; color: #fff; }
-  .btn-row-compact .btn-center { flex: 0 0 28px; background: #1565C0; color: #fff; font-size: 12px; }
-  .btn-row-compact .btn-festa  { background: #333; color: #fff; border: 1px solid #555; flex: 1; }
-  .btn-row-compact .btn-festa.ativo { background: #f9a825; color: #111; font-weight: 700; border-color: #f9a825; }
-  .btn-row-compact .btn-d8     { background: #c62828; color: #fff; flex: 1; }
-  .btn-row-compact .btn-aux    { background: #1565C0; color: #fff; flex: 1; }
-
-  #logBox { max-height: 20px; overflow-y: auto; margin-top: 2px; font-size: 8px; color: #666; }
+  /* Botão de teste D8 - DISCRETO */
+  .btn-test-hidden { flex: 0 0 auto; background: transparent; color: #555; font-size: 10px; padding: 4px; border: none; cursor: pointer; text-decoration: underline; margin-top: 2px; }
+  .btn-test-hidden:active { color: #888; }
+  
+  #logBox { max-height: 40px; overflow-y: auto; margin-top: 3px; }
+  #auxRow { display: flex; margin-top: 4px; }
 
   /* LED Pânico */
   #panicWidget { display:none; position:fixed; top:8px; right:80px; z-index:9998; align-items:center; gap:6px; background:rgba(0,0,0,0.7); border:1px solid #c62828; border-radius:20px; padding:4px 10px; cursor:pointer; }
@@ -87,14 +82,17 @@
 
   /* Botão salvar */
   #btnSalvar { position:absolute; top:60px; right:10px; z-index:999; background:rgba(0,0,0,0.7); border:1px solid #444; color:#fff; padding:6px 12px; border-radius:20px; font-size:12px; cursor:pointer; }
+  .btn-aux { flex: 1; padding: 9px; border-radius: 10px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; background: #1565C0; color: #fff; transition: all 0.2s; }
+  .btn-aux:active { transform: scale(0.97); background: #0d47a1; }
   .log-line { font-size: 11px; color: #666; }
   .log-ok   { color: #4caf50; }
   .log-err  { color: #ef5350; }
   .log-warn { color: #ffa726; }
 
+  /* BOTÃO TODOS */
   #btnTodos { position: absolute; top: 120px; right: 10px; z-index: 999; background: rgba(0,0,0,0.7); border: 1px solid #444; color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; display: none; }
 
-  /* Modais */
+  /* Modal confirmação AUX */
   #modalAux { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center; }
   #modalAux.show { display:flex; }
   #modalBox { background:#1a1a1a; border:1px solid #1565C0; border-radius:14px; padding:20px; width:80%; max-width:320px; text-align:center; }
@@ -105,12 +103,11 @@
   #modalConfirm { background:#1565C0; color:#fff; }
   #modalCancel  { background:#333; color:#aaa; }
 
-  #modalTesteD8 { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:99999; align-items:center; justify-content:center; }
-  #modalTesteD8 .box { background:#1a1a1a; border:1px solid #555; border-radius:14px; padding:20px; width:80%; max-width:320px; text-align:center; }
+  #pendenteBanner { background: #f9a825dd; border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 600; text-align: center; color: #fff; display: none; margin-bottom: 4px; }
 
-  #modalSeguranca { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:99999; align-items:center; justify-content:center; }
-  #modalSeguranca .box { background:#222; padding:20px; border-radius:10px; width:300px; text-align:center; }
-  #modalSeguranca input { width:100%; padding:8px; margin-bottom:10px; border-radius:5px; border:1px solid #444; background:#111; color:#fff; }
+  /* MODO FESTA */
+  #btnFesta { background: #333; color: #fff; font-size: 11px; padding: 6px; border: 1px solid #555; border-radius: 8px; cursor: pointer; flex: 1; }
+  #btnFesta.ativo { background: #f9a825; color: #111; font-weight: 700; border-color: #f9a825; }
 </style>
 </head>
 <body>
@@ -160,43 +157,44 @@
 <div id="map"></div>
 <button id="btnTodos" onclick="centralizarTodos()">⊕ Todos</button>
 
-<!-- ========== PAINEL COMPACTO ========== -->
+<!-- PAINEL -->
 <div id="panel" style="display:none">
   <div id="panelNome">Aguardando veículo...</div>
   <div id="pendenteBanner">🟡 Aguardando velocidade ≤ 8 km/h...</div>
   
   <!-- LINHA 1: INFO -->
-  <div class="info-row-compact">
-    <span class="pill" id="pSat">🛰️ 0</span>
-    <span class="pill" id="pVel">0.0 km/h</span>
-    <span class="badge-sm badge-off" id="pStatus" style="background:#333;color:#888;">Aguardando</span>
-    <span class="pill" id="pRssi">📶 —</span>
-    <span class="pill" id="pAlt">— m</span>
-    <button class="btn-sm" onclick="salvarMapa()">💾</button>
+  <div class="info-row">
+    <span class="info-pill" id="pVel">0.0 km/h</span>
+    <span class="info-pill" id="pSat">0 sat</span>
+    <span class="info-pill" id="pRssi">— dBm</span>
+    <span class="info-pill" id="pAlt">— m</span>
+    <span class="badge badge-off" id="pStatus">Aguardando</span>
   </div>
   
-<!-- LINHA 2: BOTÕES (NOVA ORDEM) -->
-<div class="btn-row-compact">
-  <!-- 1. CENTRALIZAR (fixo) -->
-  <button onclick="centralizarAtivo()" style="flex:0 0 32px; background:#1565C0; color:#fff; border:none; border-radius:6px; font-size:14px; cursor:pointer; height:32px;">◎</button>
+  <!-- LINHA 2: BOTÕES (NOVA ORDEM) -->
+  <div class="btn-row">
+    <!-- 1. CENTRALIZAR (fixo) -->
+    <button class="btn-center" onclick="centralizarAtivo()">◎</button>
+    
+    <!-- 2. BLOQUEAR/LIBERAR (flexível) -->
+    <button class="map-btn btn-block"  id="btnBlock"  onclick="cmdAtivo('BLOQUEAR')"         style="display:none">🔴 Bloqueado</button>
+    <button class="map-btn btn-cancel" id="btnCancel" onclick="cmdAtivo('CANCELAR_BLOQUEIO')" style="display:none">🟡 Aguardando...</button>
+    <button class="map-btn btn-unlock" id="btnUnlock" onclick="solicitarBloqueio()">🟢 Liberado</button>
+    
+    <!-- 3. AUX (flexível) -->
+    <button class="map-btn" onclick="acionarAux()" style="background:#1565C0; color:#fff; border:none; border-radius:10px; padding:9px 4px; font-size:13px; font-weight:700; cursor:pointer; flex:1; min-width:60px;">🔓 AUX</button>
+    
+    <!-- 4. MODO FESTA (flexível) -->
+    <button id="btnFesta" onclick="toggleModoFesta()" style="background:#333; color:#fff; font-size:11px; padding:6px; border:1px solid #555; border-radius:8px; cursor:pointer; flex:1;">🛡️ Festa</button>
+    
+    <!-- 5. D8 (fixo, pequeno) -->
+    <button onclick="confirmarTesteD8()" style="flex:0 0 42px; background:#c62828; color:#fff; font-size:14px; border:none; border-radius:10px; cursor:pointer; padding:0; line-height:42px; text-align:center;">🚨</button>
+  </div>
   
-  <!-- 2. BLOQUEAR/LIBERAR (flexível) -->
-  <button class="btn-block" id="btnBlock" onclick="cmdAtivo('BLOQUEAR')" style="display:none; background:#c62828; color:#fff; border:none; border-radius:6px; padding:3px 6px; font-size:9px; cursor:pointer; flex:1; white-space:nowrap; height:32px;">🔴 Bloqueado</button>
-  <button class="btn-cancel" id="btnCancel" onclick="cmdAtivo('CANCELAR_BLOQUEIO')" style="display:none; background:#f9a825; color:#fff; border:none; border-radius:6px; padding:3px 6px; font-size:9px; cursor:pointer; flex:1; white-space:nowrap; height:32px;">🟡 Aguardando...</button>
-  <button class="btn-unlock" id="btnUnlock" onclick="solicitarBloqueio()" style="background:#2e7d32; color:#fff; border:none; border-radius:6px; padding:3px 6px; font-size:9px; cursor:pointer; flex:1; white-space:nowrap; height:32px;">🟢 Liberado</button>
-  
-  <!-- 3. AUX (flexível) -->
-  <button class="btn-aux" onclick="acionarAux()" style="background:#1565C0; color:#fff; font-size:8px; padding:2px 6px; border:none; border-radius:6px; cursor:pointer; flex:1; white-space:nowrap; height:32px;">🔓 AUX</button>
-  
-  <!-- 4. MODO FESTA (flexível) -->
-  <button id="btnFesta" onclick="toggleModoFesta()" style="background:#333; color:#fff; font-size:8px; padding:2px 6px; border:1px solid #555; border-radius:6px; cursor:pointer; flex:1; white-space:nowrap; height:32px;">🛡️ Festa</button>
-  
-  <!-- 5. D8 (fixo, pequeno) -->
-  <button onclick="confirmarTesteD8()" style="flex:0 0 32px; background:#c62828; color:#fff; font-size:10px; border:none; border-radius:6px; cursor:pointer; height:32px; padding:0; text-align:center; line-height:32px;">🚨</button>
+  <div id="logBox"></div>
 </div>
 
-
- <!-- Modal AUX -->
+<!-- Modal AUX -->
 <div id="modalAux">
   <div id="modalBox">
     <strong>🔓 Destravar Portas</strong>
@@ -208,9 +206,9 @@
   </div>
 </div>
 
-<!-- Modal Teste D8 -->
-<div id="modalTesteD8" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:99999; align-items:center; justify-content:center;">
-  <div class="box">
+<!-- Modal de confirmação Teste D8 -->
+<div id="modalTesteD8" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#1a1a1a; border:1px solid #555; border-radius:14px; padding:20px; width:80%; max-width:320px; text-align:center;">
     <strong style="color:#fff; font-size:16px; display:block; margin-bottom:8px;">🔧 Teste Manual D8</strong>
     <p style="font-size:13px; color:#aaa; margin-bottom:16px;">Isso vai simular um pânico. Deseja realmente testar?</p>
     <div class="modal-btns">
@@ -221,12 +219,12 @@
 </div>
 
 <!-- 🔒 MODAL DE SEGURANÇA (BLOQUEIO) -->
-<div id="modalSeguranca" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:99999; align-items:center; justify-content:center;">
-  <div class="box">
+<div id="modalSeguranca" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:#222; padding:20px; border-radius:10px; width:300px; text-align:center;">
     <h3 style="color:#fff">🔒 Autenticação</h3>
     <p style="color:#aaa; font-size:12px; margin-bottom:15px;">Digite usuário e senha para bloquear:</p>
-    <input type="text" id="segUser" placeholder="Usuário">
-    <input type="password" id="segPass" placeholder="Senha">
+    <input type="text" id="segUser" placeholder="Usuário" style="width:100%; padding:8px; margin-bottom:10px; border-radius:5px; border:1px solid #444; background:#111; color:#fff;">
+    <input type="password" id="segPass" placeholder="Senha" style="width:100%; padding:8px; margin-bottom:15px; border-radius:5px; border:1px solid #444; background:#111; color:#fff;">
     <div style="display:flex; gap:10px;">
       <button onclick="confirmarBloqueio()" style="flex:1; background:#c62828; color:#fff; padding:10px; border:none; border-radius:5px; font-weight:700; cursor:pointer;">Confirmar</button>
       <button onclick="fecharModalSeguranca()" style="flex:1; background:#333; color:#aaa; padding:10px; border:none; border-radius:5px; font-weight:700; cursor:pointer;">Cancelar</button>
@@ -250,8 +248,8 @@ const USUARIOS = {
 };
 
 const TILES = {
-  map:       { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attr: '© OpenStreetMap', label: '🗺 Mapa' },
-  satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr: '© Esri', label: '🛰 Satélite' }
+  map:       { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attr: '© OpenStreetMap', label: '🛰 Satélite' },
+  satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr: '© Esri', label: '🗺 Mapa claro' }
 };
 
 // ═══════════════════════════════════════════════════
@@ -380,59 +378,24 @@ function confirmarAux() {
   addLog('→ AUX destravamento acionado (2s)', 'log-warn');
 }
 
-// ═══════════════════════════════════════════════════
-//  BLOQUEIO - CORRIGIDO
-// ═══════════════════════════════════════════════════
 function cmdAtivo(comando) {
   if (!ativoId) return;
-  
-  // Envia o comando MQTT
   cmd(ativoId, comando);
-  
   const v = veiculos[ativoId];
   if (!v) return;
-  
-  // ════════════════════════════════════════════════
-  //  FORÇA O ESTADO LOCAL IMEDIATAMENTE
-  // ════════════════════════════════════════════════
   if (comando === 'BLOQUEAR') {
-    v.pendente = false;
-    v.bloqueado = true;
-    addLog('🔒 VEÍCULO BLOQUEADO!', 'log-err');
+    v.pendente  = true;
+    v.bloqueado = false;
   } else if (comando === 'DESBLOQUEAR') {
-    v.pendente = false;
+    v.pendente  = false;
     v.bloqueado = false;
-    addLog('🔓 Veículo DESBLOQUEADO', 'log-ok');
   } else if (comando === 'CANCELAR_BLOQUEIO') {
-    v.pendente = false;
+    v.pendente  = false;
     v.bloqueado = false;
-    addLog('🟡 Bloqueio cancelado', 'log-warn');
   }
-  
-  // Atualiza a interface
   atualizarPainel(ativoId);
   atualizarBotaoLista(ativoId);
   if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
-}
-
-// 🔒 SEGURANÇA PARA BLOQUEIO
-function solicitarBloqueio() {
-  document.getElementById('modalSeguranca').style.display = 'flex';
-}
-
-function confirmarBloqueio() {
-  let user = document.getElementById('segUser').value;
-  let pass = document.getElementById('segPass').value;
-  if (user === usuarioId && pass === USUARIOS[usuarioId]) {
-    document.getElementById('modalSeguranca').style.display = 'none';
-    cmdAtivo('BLOQUEAR');
-  } else {
-    alert('Usuário ou senha incorretos!');
-  }
-}
-
-function fecharModalSeguranca() {
-  document.getElementById('modalSeguranca').style.display = 'none';
 }
 
 // ═══════════════════════════════════════════════════
@@ -536,6 +499,7 @@ function processarGPS(chipId, d) {
 
       const tempoParado = Date.now() - v.paradaInicio;
       if (tempoParado >= PARADA_MIN_MS) {
+        // CORREÇÃO DO MULTI-PINGO
         let pingoExistente = null;
         if (v.pingos.length > 0) {
             pingoExistente = v.pingos.find(p => map.distance(p.marker.getLatLng(), pos) < 50);
@@ -569,61 +533,27 @@ function processarGPS(chipId, d) {
 }
 
 // ═══════════════════════════════════════════════════
-//  STATUS - CORRIGIDO PARA RECEBER BLOQUEIO
+//  STATUS
 // ═══════════════════════════════════════════════════
 function processarStatus(chipId, d) {
   const v = obterVeiculo(chipId);
-  if (!v) return;
-  
-  // Atualiza o RSSI se veio no status
-  if (d.rssi !== undefined) {
-    v.rssi = d.rssi;
-    if (chipId === ativoId) {
-      document.getElementById('pRssi').textContent = v.rssi + ' dBm';
-    }
-  }
-  
   if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
   if (d.pendente  !== undefined) v.pendente  = d.pendente  === true;
-  
-  // ════════════════════════════════════════════════
-  //  PROCESSAR STATUS DE BLOQUEIO
-  // ════════════════════════════════════════════════
-  if (d.status !== undefined) {
-    if (d.status === "bloqueado") {
-      v.bloqueado = true;
-      v.pendente = false;
-      addLog('🔒 Veículo BLOQUEADO com sucesso!', 'log-err');
-    } else if (d.status === "desbloqueado") {
-      v.bloqueado = false;
-      v.pendente = false;
-      addLog('🔓 Veículo DESBLOQUEADO!', 'log-ok');
-    } else if (d.status === "aguardando_bloqueio") {
-      v.pendente = true;
-      v.bloqueado = false;
-      addLog('⏳ Aguardando veículo parar para bloquear...', 'log-warn');
-    } else if (d.status === "cancelado") {
-      v.pendente = false;
-      v.bloqueado = false;
-      addLog('🟡 Bloqueio cancelado!', 'log-warn');
-    }
-  }
-  
   if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
   atualizarBotaoLista(chipId);
   if (chipId === ativoId) atualizarPainel(chipId);
-  
   const m = d.motivo || '';
   if (v.bloqueado)               addLog('[' + chipId.slice(-4) + '] BLOQUEADO — ' + m, 'log-err');
   else if (v.pendente)           addLog('[' + chipId.slice(-4) + '] Aguardando vel...', 'log-warn');
   else if (m === 'desbloqueado') addLog('[' + chipId.slice(-4) + '] LIBERADO', 'log-ok');
   else if (m === 'online' || m === 'reconectado') addLog('[' + chipId.slice(-4) + '] Online ✓', 'log-ok');
+  // Adicionado Modo Festa
   if (m === 'modo_festa_ativado') addLog('🛡️ Modo Festa ATIVADO no ESP', 'log-warn');
   if (m === 'modo_festa_desativado') addLog('🛡️ Modo Festa DESATIVADO no ESP', 'log-ok');
 }
 
 // ═══════════════════════════════════════════════════
-//  PAINEL
+//  PAINEL + SEGURANÇA
 // ═══════════════════════════════════════════════════
 function atualizarPainel(chipId) {
   const v = veiculos[chipId]; if (!v) return;
@@ -641,20 +571,40 @@ function atualizarPainel(chipId) {
   bn.style.display = 'none';
 
   if (v.bloqueado) {
-    st.textContent = 'Bloqueado'; st.className = 'badge-sm badge-err';
+    st.textContent = 'Bloqueado'; st.className = 'badge badge-err';
     bB.style.display = '';
     bB.onclick = () => cmdAtivo('DESBLOQUEAR');
     bB.textContent = '🔴 Bloqueado';
   } else if (v.pendente) {
-    st.textContent = 'Aguardando'; st.className = 'badge-sm badge-warn';
+    st.textContent = 'Aguardando'; st.className = 'badge badge-warn';
     bC.style.display = '';
     bn.style.display = 'block';
   } else {
-    st.textContent = 'Liberado'; st.className = 'badge-sm badge-ok';
+    st.textContent = 'Liberado'; st.className = 'badge badge-ok';
     bU.style.display = '';
     bU.onclick = () => solicitarBloqueio();
     bU.textContent = '🟢 Liberado';
   }
+}
+
+// 🔒 SEGURANÇA PARA BLOQUEIO
+function solicitarBloqueio() {
+  document.getElementById('modalSeguranca').style.display = 'flex';
+}
+
+function confirmarBloqueio() {
+  let user = document.getElementById('segUser').value;
+  let pass = document.getElementById('segPass').value;
+  if (user === usuarioId && pass === USUARIOS[usuarioId]) {
+    document.getElementById('modalSeguranca').style.display = 'none';
+    cmdAtivo('BLOQUEAR');
+  } else {
+    alert('Usuário ou senha incorretos!');
+  }
+}
+
+function fecharModalSeguranca() {
+  document.getElementById('modalSeguranca').style.display = 'none';
 }
 
 // ═══════════════════════════════════════════════════
@@ -731,32 +681,26 @@ function addLog(msg, cls) {
 //  MODO FESTA
 // ═══════════════════════════════════════════════════
 function toggleModoFesta() {
-  if (!ativoId) {
-    addLog('❌ Nenhum veículo selecionado!', 'log-err');
-    alert('⚠️ Selecione um veículo primeiro!');
-    return;
-  }
+  if (!ativoId) return;
   
-  modoFestaAtivo = !modoFestaAtivo;
-  const v = veiculos[ativoId];
-  if (!v) return;
-  
-  if (modoFestaAtivo) {
+  if (!modoFestaAtivo) {
     cmd(ativoId, 'ATIVAR_MODO_FESTA');
-    if (v.ultimaPos) {
-      if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
+    const v = veiculos[ativoId];
+    if (v && v.ultimaPos) {
       circuloFesta = L.circle(v.ultimaPos, {
         color: '#f9a825', fillColor: '#f9a825', fillOpacity: 0.15, radius: 50
       }).addTo(map);
     }
     document.getElementById('btnFesta').classList.add('ativo');
     document.getElementById('btnFesta').textContent = '🛡️ Ativo';
+    modoFestaAtivo = true;
     addLog('🛡️ Modo Festa ATIVADO — Círculo de 50m', 'log-warn');
   } else {
     cmd(ativoId, 'DESATIVAR_MODO_FESTA');
     if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
     document.getElementById('btnFesta').classList.remove('ativo');
-    document.getElementById('btnFesta').textContent = '🛡️ Festa';
+    document.getElementById('btnFesta').textContent = '🛡️ Modo Festa';
+    modoFestaAtivo = false;
     addLog('🛡️ Modo Festa DESATIVADO', 'log-warn');
   }
 }
@@ -766,9 +710,10 @@ function ativarAlertaMovimento(chipId, d) {
   if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
   
   document.getElementById('btnFesta').classList.remove('ativo');
-  document.getElementById('btnFesta').textContent = '🛡️ Festa';
+  document.getElementById('btnFesta').textContent = '🛡️ Modo Festa';
   modoFestaAtivo = false;
 
+  // Alerta visual
   setBadge('pStatus', '🚨 FURTO', 'badge-err');
   alert('🚨 ALERTA DE SEGURANÇA! O veículo se moveu mais de 50 metros!');
   map.setView(pos, 15);
@@ -850,6 +795,7 @@ function executarTesteD8() {
   return true;
 }
 
+// Atalho para console
 function simularD0() {
     confirmarTesteD8();
 }
@@ -908,9 +854,12 @@ function salvarMapa() {
       
       v.pingos.forEach((p, i) => {
         const ll = p.marker.getLatLng();
+        const tempoRealMs = Date.now() - v.paradaInicio;
+        const minutosReais = Math.max(p.mins, Math.round(tempoRealMs / 60000));
+
         resumo += `<tr>
           <td>${i+1}</td>
-          <td>${p.mins} min</td>
+          <td>${minutosReais} min</td>
           <td>${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}</td>
           <td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td>
         </tr>`;
