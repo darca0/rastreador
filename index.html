@@ -793,6 +793,11 @@ function ativarAlertaMovimento(chipId, d) {
   document.getElementById('btnFesta').textContent = '🛡️ Modo Festa';
   modoFestaAtivo = false;
 
+  // ════════════════════════════════════════════════
+  //  ALARME SONORO + VIBRAÇÃO (PC + ANDROID + iOS)
+  // ════════════════════════════════════════════════
+  tocarAlarmeNavegador();
+
   // Alerta visual
   setBadge('pStatus', '🚨 FURTO', 'badge-err');
   alert('🚨 ALERTA DE SEGURANÇA! O veículo se moveu mais de 50 metros!');
@@ -992,6 +997,58 @@ function salvarMapa() {
   a.click();
   URL.revokeObjectURL(url);
   addLog('💾 Trajeto salvo com ' + Object.values(veiculos).reduce((s,v) => s + v.trail.getLatLngs().length, 0) + ' pontos!', 'log-ok');
+}
+ // ═══════════════════════════════════════════════════
+//  ALARME NO NAVEGADOR (PC + ANDROID)
+// ═══════════════════════════════════════════════════
+
+function tocarAlarmeNavegador() {
+    console.log('🔊 Tocando alarme no navegador...');
+    
+    // ── SOM (via Web Audio API) ──────────────────────
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        osc.frequency.value = 880;
+        osc.type = 'square';
+        gain.gain.value = 0.6;
+        
+        osc.start();
+        
+        // Alarme intermitente (varia a frequência)
+        setTimeout(() => { osc.frequency.value = 1200; }, 300);
+        setTimeout(() => { osc.frequency.value = 1600; }, 600);
+        setTimeout(() => { osc.frequency.value = 880; }, 900);
+        setTimeout(() => { osc.frequency.value = 1400; }, 1200);
+        setTimeout(() => { 
+            osc.stop(); 
+            ctx.close(); 
+        }, 1500);
+    } catch (e) {
+        console.warn('⚠️ Falha no som:', e);
+        // Fallback: tenta tocar um áudio externo
+        try {
+            const audio = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3');
+            audio.volume = 1.0;
+            audio.play();
+        } catch(e2) {
+            console.warn('⚠️ Falha no áudio fallback:', e2);
+        }
+    }
+    
+    // ── VIBRAÇÃO (Android/Chrome) ─────────────────────
+    if (navigator.vibrate) {
+        // Vibração forte: 500ms ligado, 200ms pausa, repete
+        navigator.vibrate([500, 200, 500, 200, 500, 200, 1000, 500, 500, 500, 500]);
+        console.log('📳 Vibração acionada!');
+    } else {
+        console.log('ℹ️ Vibração não suportada neste navegador');
+    }
 }
 </script>
 
