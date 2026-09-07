@@ -563,7 +563,6 @@ function processarGPS(chipId, d) {
   }
   v.trail.addLatLng(pos);
 
-  // ── Detecta parada prolongada ──────────────────────
  // ── Detecta parada prolongada ──────────────────────
 if (v.vel <= PARADA_VEL) {
     if (!v.paradaInicio) {
@@ -1075,20 +1074,20 @@ function tocarAlarmeNavegador() {
     }
 }
 
-
 // ═══════════════════════════════════════════════════
-//  SIRENE PERSONALIZADA - LOOP INFINITO
-//  (Transição suave 440Hz ↔ 880Hz)
+//  SIRENE FRANCESA - VERSÃO QUE FICOU LEGAL
+//  Com transição suave entre 440Hz e 880Hz
+//  Loop infinito + popup para desligar
 // ═══════════════════════════════════════════════════
 
 let alarmeAtivo = false;
 let alarmeTimeout = null;
-let alarmeInterval = null;
 let alarmeContexto = null;
 let alarmeOscilador = null;
+let alarmeGanho = null;
 
 function tocarAlarmeNavegador() {
-    console.log('🚨 Iniciando sirene personalizada (loop infinito)...');
+    console.log('🚨 Iniciando sirene francesa (transição suave)...');
     
     if (alarmeAtivo) {
         console.log('ℹ️ Sirene já está tocando');
@@ -1104,20 +1103,20 @@ function tocarAlarmeNavegador() {
         }
         
         alarmeOscilador = alarmeContexto.createOscillator();
-        const gain = alarmeContexto.createGain();
-        alarmeOscilador.connect(gain);
-        gain.connect(alarmeContexto.destination);
+        alarmeGanho = alarmeContexto.createGain();
+        alarmeOscilador.connect(alarmeGanho);
+        alarmeGanho.connect(alarmeContexto.destination);
         
-        alarmeOscilador.type = 'sawtooth';
-        gain.gain.value = 0.4;
+        alarmeOscilador.type = 'sawtooth'; // Som agressivo
+        alarmeGanho.gain.value = 0.4;
         alarmeOscilador.frequency.value = 440;
         alarmeOscilador.start();
         
         console.log('🔊 Sirene iniciada (loop infinito)!');
         
-        // ── LOOP DE ALTERNÂNCIA INFINITA ──────────────
-        let freqAtual = 440;
+        // ── LOOP DE ALTERNÂNCIA COM TRANSIÇÃO SUAVE ──
         let count = 0;
+        let freqAtual = 440;
         
         function alternar() {
             if (!alarmeAtivo || !alarmeOscilador) {
@@ -1128,8 +1127,8 @@ function tocarAlarmeNavegador() {
             const novaFreq = count % 2 === 0 ? 880 : 440;
             const inicio = freqAtual;
             const fim = novaFreq;
-            const duracao = 200; // ms
-            const steps = 15;
+            const duracao = 250; // ms
+            const steps = 20;
             const stepTime = duracao / steps;
             
             let step = 0;
@@ -1145,10 +1144,8 @@ function tocarAlarmeNavegador() {
                 
                 if (step >= steps) {
                     freqAtual = fim;
-                    // Agenda a próxima alternância
                     alarmeTimeout = setTimeout(alternar, 200);
                 } else {
-                    // Continua o step
                     requestAnimationFrame(executarStep);
                 }
             }
@@ -1156,8 +1153,8 @@ function tocarAlarmeNavegador() {
             executarStep();
         }
         
-        // Inicia a alternância
-        alternar();
+        // Inicia a alternância após 300ms
+        alarmeTimeout = setTimeout(alternar, 300);
         
     } catch (e) {
         console.warn('⚠️ Erro na sirene:', e);
@@ -1171,7 +1168,7 @@ function tocarAlarmeNavegador() {
     }
 }
 
-// ── FALLBACK (se o principal falhar) ────────────────
+// ── FALLBACK ─────────────────────────────────────────
 function tocarAlarmeFallback() {
     console.log('🔄 Usando fallback do alarme...');
     let count = 0;
@@ -1228,14 +1225,14 @@ function desligarAlarme() {
         alarmeContexto = null;
     }
     
+    alarmeGanho = null;
+    
     if (navigator.vibrate) {
         navigator.vibrate(0);
     }
     
     console.log('✅ Sirene desligada');
 }
- 
-
 </script>
 
 </body>
