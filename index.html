@@ -1053,46 +1053,85 @@ function tocarAlarmeNavegador() {
 
 
 // ═══════════════════════════════════════════════════
-//  SIRENE FRANCESA REAL (Áudio gerado em memória)
-//  Alterna 880Hz ↔ 440Hz a cada 300ms
+//  ALARME PERSONALIZADO (APROVADO)
+//  Com transição suave entre 440Hz e 880Hz
 // ═══════════════════════════════════════════════════
 
 let alarmeAtivo = false;
-let alarmeAudio = null;
+let alarmeTimeout = null;
+let alarmeContexto = null;
+let alarmeOscilador = null;
 
 function tocarAlarmeNavegador() {
-    console.log('🚨 Iniciando SIRENE FRANCESA REAL...');
+    console.log('🚨 Iniciando alarme personalizado...');
     
     if (alarmeAtivo) {
-        console.log('ℹ️ Sirene já está tocando');
+        console.log('ℹ️ Alarme já está tocando');
         return;
     }
     
     alarmeAtivo = true;
     
     try {
-        // Gera o áudio da sirene
-        const audioData = gerarSireneFrancesa(8000); // 8 segundos
+        alarmeContexto = new (window.AudioContext || window.webkitAudioContext)();
+        if (alarmeContexto.state === 'suspended') {
+            alarmeContexto.resume().catch(() => {});
+        }
         
-        // Converte para WAV e toca
-        const wavBlob = criarWav(audioData, 44100);
-        const url = URL.createObjectURL(wavBlob);
+        alarmeOscilador = alarmeContexto.createOscillator();
+        const gain = alarmeContexto.createGain();
+        alarmeOscilador.connect(gain);
+        gain.connect(alarmeContexto.destination);
         
-        alarmeAudio = new Audio(url);
-        alarmeAudio.loop = true;
-        alarmeAudio.volume = 1.0;
+        alarmeOscilador.type = 'sawtooth';
+        gain.gain.value = 0.4;
+        alarmeOscilador.frequency.value = 440;
+        alarmeOscilador.start();
         
-        alarmeAudio.play().then(() => {
-            console.log('🔊 SIRENE FRANCESA TOCANDO! (440Hz ↔ 880Hz)');
-        }).catch((e) => {
-            console.warn('⚠️ Falha ao tocar sirene:', e);
-            // Fallback: tentar com Web Audio API simples
-            tocarSireneFallback();
-        });
+        console.log('🔊 Alarme personalizado iniciado!');
+        
+        // Loop de alternância com transição suave
+        let count = 0;
+        let freqAtual = 440;
+        
+        function alternar() {
+            if (!alarmeAtivo || !alarmeOscilador) {
+                return;
+            }
+            
+            count++;
+            const novaFreq = count % 2 === 0 ? 880 : 440;
+            const inicio = freqAtual;
+            const fim = novaFreq;
+            const duracao = 200;
+            const steps = 15;
+            const stepTime = duracao / steps;
+            
+            let step = 0;
+            const intervalo = setInterval(() => {
+                if (!alarmeAtivo || !alarmeOscilador) {
+                    clearInterval(intervalo);
+                    return;
+                }
+                step++;
+                const progresso = step / steps;
+                const valorAtual = inicio + (fim - inicio) * progresso;
+                alarmeOscilador.frequency.value = valorAtual;
+                
+                if (step >= steps) {
+                    clearInterval(intervalo);
+                    freqAtual = fim;
+                    alarmeTimeout = setTimeout(alternar, 200);
+                }
+            }, stepTime);
+        }
+        
+        alarmeTimeout = setTimeout(alternar, 300);
         
     } catch (e) {
-        console.warn('⚠️ Erro na sirene:', e);
-        tocarSireneFallback();
+        console.warn('⚠️ Erro no alarme:', e);
+        // Fallback: tenta o método simples
+        tocarAlarmeFallback();
     }
     
     // ── VIBRAÇÃO ──────────────────────────────────────
@@ -1102,123 +1141,22 @@ function tocarAlarmeNavegador() {
     }
 }
 
-// ═══════════════════════════════════════════════════
-//  GERADOR DE SIRENE FRANCESA
-// ═══════════════════════════════════════════════════
-function gerarSireneFrancesa(duracaoMs) {
-    const sampleRate = 44100;
-    const numSamples = Math.floor((duracaoMs / 1000) * sampleRate);
-    const buffer = new Float32Array(numSamples);
-    
-    const freqAlta = 880;   // Agudo
-    const freqBaixa = 440;  // Grave
-    const tempoAlternancia = 0.3; // 300ms
-    
-    let samplesPorAlternancia = Math.floor(tempoAlternancia * sampleRate);
-    let usandoAlta = true;
-    let contador = 0;
-    
-    for (let i = 0; i < numSamples; i++) {
-        // Alterna a cada 300ms
-        if (i > 0 && i % samplesPorAlternancia === 0) {
-            usandoAlta = !usandoAlta;
-            contador++;
-        }
-        
-        const freq = usandoAlta ? freqAlta : freqBaixa;
-        
-        // Ondas senoidais para som mais limpo
-        let valor = Math.sin(2 * Math.PI * freq * (i / sampleRate));
-        
-        // Pequena pausa entre alternâncias (cria o efeito de "corte")
-        if (i % samplesPorAlternancia > samplesPorAlternancia - 50) {
-            valor *= 0.3; // Suaviza a transição
-        }
-        
-        buffer[i] = valor * 0.5;
-    }
-    
-    console.log(`🔊 Sirene gerada: ${contador} alternâncias entre ${freqAlta}Hz e ${freqBaixa}Hz`);
-    return buffer;
-}
-
-// ═══════════════════════════════════════════════════
-//  CRIAR ARQUIVO WAV
-// ═══════════════════════════════════════════════════
-function criarWav(audioData, sampleRate) {
-    const numSamples = audioData.length;
-    const buffer = new ArrayBuffer(44 + numSamples * 2);
-    const view = new DataView(buffer);
-    
-    // Função para escrever no buffer
-    function writeString(view, offset, string) {
-        for (let i = 0; i < string.length; i++) {
-            view.setUint8(offset + i, string.charCodeAt(i));
-        }
-    }
-    
-    // RIFF header
-    writeString(view, 0, 'RIFF');
-    view.setUint32(4, 36 + numSamples * 2, true);
-    writeString(view, 8, 'WAVE');
-    writeString(view, 12, 'fmt ');
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);
-    view.setUint16(22, 1, true);
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * 2, true);
-    view.setUint16(32, 2, true);
-    view.setUint16(34, 16, true);
-    writeString(view, 36, 'data');
-    view.setUint32(40, numSamples * 2, true);
-    
-    // Dados de áudio
-    let offset = 44;
-    for (let i = 0; i < numSamples; i++) {
-        const sample = Math.max(-1, Math.min(1, audioData[i]));
-        const intSample = Math.floor(sample * 32767);
-        view.setInt16(offset, intSample, true);
-        offset += 2;
-    }
-    
-    return new Blob([buffer], { type: 'audio/wav' });
-}
-
-// ═══════════════════════════════════════════════════
-//  FALLBACK: Web Audio API (se o WAV falhar)
-// ═══════════════════════════════════════════════════
-function tocarSireneFallback() {
-    console.log('🔄 Usando fallback da sirene...');
-    
+// ── FALLBACK (se o principal falhar) ────────────────
+function tocarAlarmeFallback() {
+    console.log('🔄 Usando fallback do alarme...');
     let count = 0;
-    let maxTentativas = 20;
-    let ctx = null;
-    let osc = null;
-    let gain = null;
+    let maxTentativas = 15;
     
     function tocarPulso() {
-        if (!alarmeAtivo || count >= maxTentativas) {
-            if (ctx) {
-                try { ctx.close(); } catch(e) {}
-            }
-            return;
-        }
+        if (!alarmeAtivo || count >= maxTentativas) return;
         count++;
         
         try {
-            if (!ctx) {
-                ctx = new (window.AudioContext || window.webkitAudioContext)();
-                if (ctx.state === 'suspended') {
-                    ctx.resume().catch(() => {});
-                }
-            }
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            if (ctx.state === 'suspended') ctx.resume().catch(() => {});
             
-            if (osc) {
-                try { osc.stop(); } catch(e) {}
-            }
-            
-            osc = ctx.createOscillator();
-            gain = ctx.createGain();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
             osc.connect(gain);
             gain.connect(ctx.destination);
             
@@ -1226,50 +1164,47 @@ function tocarSireneFallback() {
             osc.frequency.value = freq;
             osc.type = 'sawtooth';
             gain.gain.setValueAtTime(0.4, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
-            
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
             osc.start(ctx.currentTime);
-            osc.stop(ctx.currentTime + 0.25);
+            osc.stop(ctx.currentTime + 0.15);
             
-            console.log(`🔊 Pulso ${count}: ${freq}Hz`);
-            
-        } catch(e) {
-            console.warn('⚠️ Erro no fallback:', e);
-        }
+        } catch(e) {}
         
-        setTimeout(() => {
-            if (alarmeAtivo) {
-                tocarPulso();
-            }
+        alarmeTimeout = setTimeout(() => {
+            if (alarmeAtivo) tocarPulso();
         }, 300);
     }
     
     tocarPulso();
 }
 
-// ═══════════════════════════════════════════════════
-//  DESLIGAR ALARME
-// ═══════════════════════════════════════════════════
+// ── DESLIGAR ALARME ──────────────────────────────────
 function desligarAlarme() {
-    console.log('🔇 Desligando sirene...');
+    console.log('🔇 Desligando alarme...');
     
     alarmeAtivo = false;
     
-    if (alarmeAudio) {
-        try {
-            alarmeAudio.pause();
-            alarmeAudio.currentTime = 0;
-            alarmeAudio = null;
-        } catch(e) {}
+    if (alarmeTimeout) {
+        clearTimeout(alarmeTimeout);
+        alarmeTimeout = null;
+    }
+    
+    if (alarmeOscilador) {
+        try { alarmeOscilador.stop(); } catch(e) {}
+        alarmeOscilador = null;
+    }
+    
+    if (alarmeContexto) {
+        try { alarmeContexto.close(); } catch(e) {}
+        alarmeContexto = null;
     }
     
     if (navigator.vibrate) {
         navigator.vibrate(0);
     }
     
-    console.log('✅ Sirene desligada');
+    console.log('✅ Alarme desligado');
 }
- 
  
 
 </script>
