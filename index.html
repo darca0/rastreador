@@ -1051,15 +1051,14 @@ function tocarAlarmeNavegador() {
     }
 }
 
+
 // ═══════════════════════════════════════════════════
-//  SIRENE POLÍCIA FRANCESA (APENAS)
+//  SIRENE POLÍCIA FRANCESA (Web Audio API)
+//  CORRIGIDA: 440Hz ↔ 880Hz com pausas
 // ═══════════════════════════════════════════════════
 
-let alarmeContexto = null;
-let alarmeOscilador = null;
-let alarmeGanho = null;
 let alarmeAtivo = false;
-let alarmeInterval = null;
+let alarmeTimeout = null;
 
 function tocarAlarmeNavegador() {
     console.log('🚨 Iniciando sirene francesa...');
@@ -1069,23 +1068,10 @@ function tocarAlarmeNavegador() {
         return;
     }
     
-    try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        alarmeContexto = ctx;
-        
-        if (ctx.state === 'suspended') {
-            ctx.resume().then(() => {
-                console.log('🔊 Contexto de áudio retomado (iOS)');
-                iniciarSireneFrancesa(ctx);
-            }).catch(() => {
-                console.warn('⚠️ Não foi possível retomar o áudio');
-            });
-        } else {
-            iniciarSireneFrancesa(ctx);
-        }
-    } catch (e) {
-        console.warn('⚠️ Falha no som:', e);
-    }
+    alarmeAtivo = true;
+    
+    // ── INICIA A SIRENE ──────────────────────────────
+    tocarPulsoSirene();
     
     // ── VIBRAÇÃO ──────────────────────────────────────
     if (navigator.vibrate) {
@@ -1094,78 +1080,90 @@ function tocarAlarmeNavegador() {
     }
 }
 
-// ═══════════════════════════════════════════════════
-//  SIRENE FRANCESA: 440Hz ↔ 880Hz (loop infinito)
-// ═══════════════════════════════════════════════════
-function iniciarSireneFrancesa(ctx) {
+function tocarPulsoSirene() {
+    if (!alarmeAtivo) return;
+    
     try {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
         
-        osc.connect(gain);
-        gain.connect(ctx.destination);
+        if (ctx.state === 'suspended') {
+            ctx.resume().then(() => {
+                gerarPulso(ctx);
+            }).catch(() => {
+                console.warn('⚠️ Não foi possível retomar o áudio');
+                setTimeout(tocarPulsoSirene, 500);
+            });
+        } else {
+            gerarPulso(ctx);
+        }
+    } catch (e) {
+        console.warn('⚠️ Erro ao gerar sirene:', e);
+        setTimeout(tocarPulsoSirene, 500);
+    }
+}
+
+function gerarPulso(ctx) {
+    if (!alarmeAtivo) return;
+    
+    try {
+        // ── PULSO AGUDO (880Hz) ──────────────────────
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
         
-        osc.type = 'sawtooth';  // Som agressivo igual sirene real
-        gain.gain.value = 0.4;
+        osc1.frequency.value = 880;
+        osc1.type = 'sawtooth';
+        gain1.gain.setValueAtTime(0.5, ctx.currentTime);
+        gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
         
-        osc.start();
+        osc1.start(ctx.currentTime);
+        osc1.stop(ctx.currentTime + 0.2);
         
-        // ════════════════════════════════════════════════
-        //  LOOP INFINITO: 440Hz ↔ 880Hz
-        //  Alterna a cada 300ms (ritmo de sirene)
-        // ════════════════════════════════════════════════
-        function alternar() {
-            if (!alarmeAtivo) {
-                try {
-                    osc.stop();
-                    ctx.close();
-                } catch(e) {}
-                console.log('🔇 Sirene desligada');
-                return;
-            }
+        // ── PULSO GRAVE (440Hz) após 300ms ─────────────
+        setTimeout(() => {
+            if (!alarmeAtivo) return;
             
-            // Frequência aguda (880Hz)
-            osc.frequency.value = 880;
-            gain.gain.value = 0.5;
-            
-            setTimeout(() => {
-                if (!alarmeAtivo) {
-                    try {
-                        osc.stop();
-                        ctx.close();
-                    } catch(e) {}
-                    return;
+            try {
+                const ctx2 = new (window.AudioContext || window.webkitAudioContext)();
+                if (ctx2.state === 'suspended') {
+                    ctx2.resume().catch(() => {});
                 }
                 
-                // Frequência grave (440Hz)
-                osc.frequency.value = 440;
-                gain.gain.value = 0.3;
+                const osc2 = ctx2.createOscillator();
+                const gain2 = ctx2.createGain();
+                osc2.connect(gain2);
+                gain2.connect(ctx2.destination);
                 
+                osc2.frequency.value = 440;
+                osc2.type = 'sawtooth';
+                gain2.gain.setValueAtTime(0.4, ctx2.currentTime);
+                gain2.gain.exponentialRampToValueAtTime(0.01, ctx2.currentTime + 0.2);
+                
+                osc2.start(ctx2.currentTime);
+                osc2.stop(ctx2.currentTime + 0.2);
+                
+                // ── PRÓXIMO CICLO após 200ms ──────────────
                 setTimeout(() => {
-                    if (!alarmeAtivo) {
-                        try {
-                            osc.stop();
-                            ctx.close();
-                        } catch(e) {}
-                        return;
+                    if (alarmeAtivo) {
+                        tocarPulsoSirene();
                     }
-                    alternar();  // Próximo ciclo
-                }, 300);
-            }, 300);
-        }
-        
-        alarmeOscilador = osc;
-        alarmeGanho = gain;
-        alarmeAtivo = true;
-        alarmeContexto = ctx;
-        
-        // Inicia o primeiro ciclo
-        alternar();
-        
-        console.log('🚨 SIRENE FRANCESA INICIADA! (440Hz ↔ 880Hz)');
+                }, 200);
+                
+            } catch(e) {
+                console.warn('⚠️ Erro no pulso grave:', e);
+                if (alarmeAtivo) {
+                    setTimeout(tocarPulsoSirene, 500);
+                }
+            }
+            
+        }, 300);
         
     } catch (e) {
-        console.warn('⚠️ Erro ao iniciar sirene:', e);
+        console.warn('⚠️ Erro no pulso agudo:', e);
+        if (alarmeAtivo) {
+            setTimeout(tocarPulsoSirene, 500);
+        }
     }
 }
 
@@ -1177,26 +1175,11 @@ function desligarAlarme() {
     
     alarmeAtivo = false;
     
-    // Para o oscilador
-    if (alarmeOscilador) {
-        try {
-            alarmeOscilador.stop();
-            alarmeOscilador = null;
-        } catch(e) {}
+    if (alarmeTimeout) {
+        clearTimeout(alarmeTimeout);
+        alarmeTimeout = null;
     }
     
-    // Fecha o contexto de áudio
-    if (alarmeContexto) {
-        try {
-            alarmeContexto.close();
-            alarmeContexto = null;
-        } catch(e) {}
-    }
-    
-    alarmeGanho = null;
-    alarmeInterval = null;
-    
-    // Para a vibração
     if (navigator.vibrate) {
         navigator.vibrate(0);
     }
