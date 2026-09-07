@@ -1053,25 +1053,26 @@ function tocarAlarmeNavegador() {
 }
 
 // ═══════════════════════════════════════════════════
-//  SIRENE FRANCESA - SOM CONTÍNUO ALTERNADO
+//  SIRENE FRANCESA - SOM CONTÍNUO (1 oscilador)
 //  Alterna 880Hz ↔ 440Hz a cada 300ms
 // ═══════════════════════════════════════════════════
 
-function tocarAlarmeNavegador() {
+window.tocarAlarmeNavegador = function() {
     console.log('🚨 SIRENE FRANCESA (som contínuo)');
     
+    // Se já existe, não cria outro
     if (window.__sireneAtiva) {
         console.log('ℹ️ Sirene já está tocando');
         return;
     }
     
-    let ativo = true;
     let ctx = null;
     let osc = null;
     let gain = null;
     let interval = null;
     
     try {
+        // 1. CRIA UM ÚNICO CONTEXTO E OSCILADOR
         ctx = new (window.AudioContext || window.webkitAudioContext)();
         if (ctx.state === 'suspended') {
             ctx.resume().catch(() => {});
@@ -1085,14 +1086,15 @@ function tocarAlarmeNavegador() {
         osc.type = 'sawtooth';
         gain.gain.value = 0.4;
         osc.frequency.value = 880;
-        osc.start();
+        osc.start();  // ← INICIA UMA VEZ SÓ
         
-        console.log('🔊 Sirene iniciada!');
+        console.log('🔊 Sirene contínua iniciada!');
         
+        // 2. ALTERNA A FREQUÊNCIA (sem criar novos osciladores)
         let usandoAlta = true;
         
         interval = setInterval(() => {
-            if (!ativo || !osc) {
+            if (!osc) {
                 clearInterval(interval);
                 return;
             }
@@ -1109,8 +1111,9 @@ function tocarAlarmeNavegador() {
             
         }, 300);
         
+        // 3. SALVA REFERÊNCIAS
         window.__sireneAtiva = true;
-        window.__sirene = { ativo, ctx, osc, gain, interval };
+        window.__sirene = { ctx, osc, gain, interval };
         
     } catch(e) {
         console.warn('⚠️ Erro na sirene:', e);
@@ -1119,28 +1122,24 @@ function tocarAlarmeNavegador() {
     if (navigator.vibrate) {
         navigator.vibrate([500, 200, 500, 200, 500, 200, 1000, 500, 500, 500, 500]);
     }
-}
+};
 
-// ── DESLIGAR ALARME ──────────────────────────────────
-function desligarAlarme() {
+// ── DESLIGAR ──────────────────────────────────────────
+window.desligarAlarme = function() {
     console.log('🔇 Desligando sirene...');
     
     window.__sireneAtiva = false;
     
     if (window.__sirene) {
         const s = window.__sirene;
-        s.ativo = false;
         if (s.interval) {
             clearInterval(s.interval);
-            s.interval = null;
         }
         if (s.osc) {
             try { s.osc.stop(); } catch(e) {}
-            s.osc = null;
         }
         if (s.ctx) {
             try { s.ctx.close(); } catch(e) {}
-            s.ctx = null;
         }
         window.__sirene = null;
     }
@@ -1150,7 +1149,75 @@ function desligarAlarme() {
     }
     
     console.log('✅ Sirene desligada');
+};
+
+// ── SIMULAÇÃO ──────────────────────────────────────
+function simularModoFesta() {
+    console.log('🧪 SIMULAÇÃO: Iniciando Modo Festa...');
+    
+    if (!ativoId) {
+        alert('⚠️ Selecione um veículo primeiro!');
+        return;
+    }
+    
+    const v = veiculos[ativoId];
+    if (!v || !v.ultimaPos) {
+        alert('⚠️ Veículo sem posição!');
+        return;
+    }
+    
+    if (circuloFesta) {
+        circuloFesta.remove();
+        circuloFesta = null;
+    }
+    
+    circuloFesta = L.circle(v.ultimaPos, {
+        color: '#f9a825',
+        fillColor: '#f9a825',
+        fillOpacity: 0.15,
+        radius: 50
+    }).addTo(map);
+    
+    document.getElementById('btnFesta').classList.add('ativo');
+    document.getElementById('btnFesta').textContent = '🛡️ Ativo';
+    modoFestaAtivo = true;
+    addLog('🛡️ Modo Festa ATIVADO — Círculo de 50m', 'log-warn');
+    
+    setTimeout(() => {
+        const novaPos = L.latLng(
+            v.ultimaPos.lat + 0.0005,
+            v.ultimaPos.lng + 0.001
+        );
+        
+        window.tocarAlarmeNavegador();
+        setBadge('pStatus', '🚨 FURTO', 'badge-err');
+        
+        if (confirm('🚨 ALERTA!\n\nVeículo moveu mais de 50m!\n\nOK = desligar alarme')) {
+            window.desligarAlarme();
+        }
+        
+        if (circuloFesta) {
+            circuloFesta.remove();
+            circuloFesta = null;
+        }
+        document.getElementById('btnFesta').classList.remove('ativo');
+        document.getElementById('btnFesta').textContent = '🛡️ Modo Festa';
+        modoFestaAtivo = false;
+        
+        if (v.marker) {
+            v.marker.setLatLng(novaPos);
+        }
+        v.ultimaPos = novaPos;
+        v.trail.addLatLng(novaPos);
+        map.setView(novaPos, 16);
+        addLog('🚨 ALERTA DE FURTO DETECTADO!', 'log-err');
+        
+    }, 3000);
 }
+
+console.log('🎯 Teste da SIRENE FRANCESA (som contínuo)');
+console.log('🔊 880Hz ↔ 440Hz alternando a cada 300ms');
+simularModoFesta();
 </script>
 
 </body>
