@@ -445,25 +445,32 @@ function solicitarBloqueio() {
 }
 
 function confirmarBloqueio() {
-  var user = document.getElementById('segUser').value.trim();
-  var pass = document.getElementById('segPass').value.trim();
-  
-  if (!user || !pass) {
-    alert('⚠️ Digite usuário e senha!');
-    return;
-  }
-  
-  // Verifica se o usuário existe
-  if (USUARIOS[user] && USUARIOS[user] === pass) {
-    document.getElementById('modalSeguranca').style.display = 'none';
-    document.getElementById('segUser').value = '';
-    document.getElementById('segPass').value = '';
-    cmdAtivo('BLOQUEAR');
-  } else {
-    alert('❌ Usuário ou senha incorretos!');
-    document.getElementById('segPass').value = '';
-    document.getElementById('segPass').focus();
-  }
+    let user = document.getElementById('segUser').value.trim();
+    let pass = document.getElementById('segPass').value.trim();
+    
+    if (!user || !pass) {
+        alert('⚠️ Digite usuário e senha!');
+        return;
+    }
+    
+    if (user === usuarioId && pass === USUARIOS[usuarioId]) {
+        document.getElementById('modalSeguranca').style.display = 'none';
+        document.getElementById('segUser').value = '';
+        document.getElementById('segPass').value = '';
+        cmdAtivo('BLOQUEAR');
+        
+        // ════════════════════════════════════════════════
+        //  DESLIGA O ALARME AO CONFIRMAR O BLOQUEIO
+        // ════════════════════════════════════════════════
+        if (typeof desligarAlarme === 'function') {
+            desligarAlarme();
+        }
+        
+    } else {
+        alert('❌ Usuário ou senha incorretos!');
+        document.getElementById('segPass').value = '';
+        document.getElementById('segPass').focus();
+    }
 }
 
 function fecharModalSeguranca() {
@@ -797,7 +804,7 @@ function ativarAlertaMovimento(chipId, d) {
     modoFestaAtivo = false;
     
     // ════════════════════════════════════════════════
-    //  INICIA A SIRENE FRANCESA
+    //  INICIA O ALARME
     // ════════════════════════════════════════════════
     tocarAlarmeNavegador();
     
@@ -805,7 +812,7 @@ function ativarAlertaMovimento(chipId, d) {
     setBadge('pStatus', '🚨 FURTO', 'badge-err');
     
     // ════════════════════════════════════════════════
-    //  ALERTA COM CALLBACK PARA DESLIGAR O ALARME
+    //  POPUP COM DESLIGAMENTO DO ALARME
     // ════════════════════════════════════════════════
     if (confirm('🚨 ALERTA DE SEGURANÇA!\n\nO veículo se moveu mais de 50 metros!\n\nClique em OK para desligar o alarme.')) {
         desligarAlarme();
@@ -814,7 +821,6 @@ function ativarAlertaMovimento(chipId, d) {
     map.setView(pos, 15);
     addLog('🚨 ALERTA DE FURTO DETECTADO!', 'log-err');
 }
-
  // ═══════════════════════════════════════════════════
 //  PÂNICO
 // ═══════════════════════════════════════════════════
