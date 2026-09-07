@@ -804,18 +804,36 @@ function ativarAlertaMovimento(chipId, d) {
     modoFestaAtivo = false;
     
     // ════════════════════════════════════════════════
-    //  INICIA O ALARME
+    //  ALARME SONORO + VIBRAÇÃO
     // ════════════════════════════════════════════════
-    tocarAlarmeNavegador();
+    if (typeof tocarAlarmeNavegador === 'function') {
+        tocarAlarmeNavegador();
+    } else {
+        console.warn('⚠️ tocarAlarmeNavegador não definida');
+    }
     
-    // Alerta visual
+    // ════════════════════════════════════════════════
+    //  ALERTA VISUAL
+    // ════════════════════════════════════════════════
     setBadge('pStatus', '🚨 FURTO', 'badge-err');
     
     // ════════════════════════════════════════════════
-    //  POPUP COM DESLIGAMENTO DO ALARME
+    //  POPUP COM CALLBACK PARA DESLIGAR
     // ════════════════════════════════════════════════
-    if (confirm('🚨 ALERTA DE SEGURANÇA!\n\nO veículo se moveu mais de 50 metros!\n\nClique em OK para desligar o alarme.')) {
-        desligarAlarme();
+    try {
+        if (confirm('🚨 ALERTA DE SEGURANÇA!\n\nO veículo se moveu mais de 50 metros!\n\nClique em OK para desligar o alarme.')) {
+            if (typeof desligarAlarme === 'function') {
+                desligarAlarme();
+            }
+        }
+    } catch(e) {
+        console.warn('⚠️ Erro no popup:', e);
+        // Fallback: desliga após 10 segundos
+        setTimeout(() => {
+            if (typeof desligarAlarme === 'function') {
+                desligarAlarme();
+            }
+        }, 10000);
     }
     
     map.setView(pos, 15);
