@@ -128,6 +128,45 @@
   #modalSeguranca .modal-btns button { flex:1; padding:10px; border:none; border-radius:6px; font-size:14px; font-weight:700; cursor:pointer; }
   #modalSeguranca .modal-btns .btn-confirm { background:#c62828; color:#fff; }
   #modalSeguranca .modal-btns .btn-cancel { background:#333; color:#aaa; }
+
+  /* ════════════════════════════════════════════ */
+  /*  NOVO: RELÓGIO GPS NA TOPBAR               */
+  /* ════════════════════════════════════════════ */
+  #relogioGPS {
+    background: #0a0a0a;
+    border: 1px solid #00ff41;
+    border-radius: 20px;
+    padding: 2px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #00ff41;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
+    white-space: nowrap;
+    margin-left: auto;
+  }
+  #relogioGPS.sem-sinal {
+    border-color: #555;
+    color: #555;
+  }
+
+  /* ════════════════════════════════════════════ */
+  /*  NOVO: TEMPO DE PARADA NO PAINEL           */
+  /* ════════════════════════════════════════════ */
+  #pTempoParada {
+    background: #1a1a1a;
+    border: 1px solid #f9a825;
+    border-radius: 8px;
+    padding: 1px 6px;
+    font-size: 9px;
+    color: #f9a825;
+    white-space: nowrap;
+    display: none;
+  }
+  #pTempoParada.ativo {
+    display: inline-block;
+    animation: blink 1s infinite;
+  }
 </style>
 </head>
 <body>
@@ -155,6 +194,9 @@
   <button onclick="conectarMQTT()">🔌 Conectar</button>
   <button onclick="nextMapStyle()" id="mapStyleBtn">🛰 Satélite</button>
   <span class="badge badge-off" id="veiculosBadge" style="margin-left:auto">0 veículos</span>
+  
+  <!-- ⏰ RELÓGIO GPS NA TOPBAR -->
+  <span id="relogioGPS" class="sem-sinal">⏰ --:--:--</span>
 </div>
 
 <!-- LISTA DE VEÍCULOS -->
@@ -188,13 +230,15 @@
     <span class="info-pill" id="pSat">0 sat</span>
     <span class="info-pill" id="pRssi">— dBm</span>
     <span class="info-pill" id="pAlt">— m</span>
+    <!-- ⏱️ TEMPO DE PARADA -->
+    <span id="pTempoParada">⏱️ Parado: 00:00</span>
     <span class="badge-sm badge-off" id="pStatus">Aguardando</span>
   </div>
   
   <!-- LINHA 2: BOTÕES -->
 <div class="btn-row">
     <button class="btn-center" onclick="centralizarAtivo()">◎</button>
-    <button class="btn-block"  id="btnBlock"  onclick="cmdAtivo('BLOQUEAR')"         style="display:none">🔴 Bloqueado</button>
+    <button class="btn-block"  id="btnBlock"  onclick="cmdAtivo('DESBLOQUEAR')"         style="display:none">🔴 Desbloquear</button>
     <button class="btn-cancel" id="btnCancel" onclick="cmdAtivo('CANCELAR_BLOQUEIO')" style="display:none">🟡 Aguardando...</button>
     <button class="btn-unlock" id="btnUnlock" onclick="solicitarBloqueio()">🟢 Liberado</button>
     <button class="btn-aux" onclick="acionarAux()">🔓 AUX</button>
@@ -230,7 +274,7 @@
   </div>
 </div>
 
-<!-- 🔒 MODAL DE SEGURANÇA (BLOQUEIO) - CORRIGIDO -->
+<!-- 🔒 MODAL DE SEGURANÇA (BLOQUEIO) -->
 <div id="modalSeguranca" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:99999; align-items:center; justify-content:center;">
   <div class="box">
     <h3>🔒 Autenticação</h3>
@@ -284,6 +328,37 @@ let pinBuffer   = '';
 let currentStyle = 'map';
 let modoFestaAtivo = false;
 let circuloFesta = null;
+
+// ═══════════════════════════════════════════════════
+//  ⏰ RELÓGIO GPS - ATUALIZAÇÃO CONTÍNUA
+// ═══════════════════════════════════════════════════
+let horaGPS = '--:--:--';
+let dataGPS = '--/--/----';
+let ultimaHoraGPS = 0;
+let horaInicializada = false;
+
+function atualizarRelogioGPS() {
+    const el = document.getElementById('relogioGPS');
+    if (!el) return;
+    
+    // Verifica se temos dados de hora vindos do ESP
+    if (horaGPS !== '--:--:--' && horaGPS !== '00:00:00') {
+        el.textContent = '🕐 ' + dataGPS + ' ' + horaGPS;
+        el.className = '';
+        horaInicializada = true;
+        ultimaHoraGPS = Date.now();
+    } else if (horaInicializada && Date.now() - ultimaHoraGPS < 60000) {
+        // Mantém a última hora válida por até 60s
+        el.textContent = '🕐 ' + dataGPS + ' ' + horaGPS;
+        el.className = '';
+    } else {
+        el.textContent = '⏰ --:--:--';
+        el.className = 'sem-sinal';
+    }
+}
+
+// Atualiza o relógio a cada 1 segundo
+setInterval(atualizarRelogioGPS, 1000);
 
 // ═══════════════════════════════════════════════════
 //  LOGIN
@@ -363,6 +438,18 @@ function conectarMQTT() {
       const chipId = p[2];
       const tipo   = p[3];
       const d      = JSON.parse(payload.toString());
+      
+      // ════════════════════════════════════════════
+      //  ⏰ EXTRAI HORA E DATA DO GPS
+      // ════════════════════════════════════════════
+      if (d.hora && d.hora !== '00:00:00') {
+        horaGPS = d.hora;
+        if (d.data) {
+          dataGPS = d.data;
+        }
+        atualizarRelogioGPS();
+      }
+      
       if (tipo === 'gps')    processarGPS(chipId, d);
       if (tipo === 'status') processarStatus(chipId, d);
       if (tipo === 'status' && d.motivo === 'panico') ativarPanico(chipId);
@@ -391,20 +478,16 @@ function confirmarAux() {
 }
 
 // ═══════════════════════════════════════════════════
-//  BLOQUEIO - CORRIGIDO (FORÇA O VERMELHO IMEDIATAMENTE)
+//  BLOQUEIO
 // ═══════════════════════════════════════════════════
 function cmdAtivo(comando) {
   if (!ativoId) return;
   
-  // Envia o comando MQTT
   cmd(ativoId, comando);
   
   const v = veiculos[ativoId];
   if (!v) return;
   
-  // ════════════════════════════════════════════════
-  //  FORÇA O ESTADO LOCAL IMEDIATAMENTE
-  // ════════════════════════════════════════════════
   if (comando === 'BLOQUEAR') {
     v.pendente = false;
     v.bloqueado = true;
@@ -419,12 +502,11 @@ function cmdAtivo(comando) {
     addLog('🟡 Bloqueio cancelado', 'log-warn');
   }
   
-  // Atualiza a interface
   atualizarPainel(ativoId);
   atualizarBotaoLista(ativoId);
   if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
 }
-// 🔒 SEGURANÇA PARA BLOQUEIO - CORRIGIDO (funciona no celular)
+
 function solicitarBloqueio() {
   const modal = document.getElementById('modalSeguranca');
   if (!modal) {
@@ -434,12 +516,8 @@ function solicitarBloqueio() {
     return;
   }
   modal.style.display = 'flex';
-  
-  // Limpa campos anteriores
   document.getElementById('segUser').value = '';
   document.getElementById('segPass').value = '';
-  
-  // Foca no campo de usuário (funciona no celular)
   setTimeout(function() {
     document.getElementById('segUser').focus();
   }, 300);
@@ -460,9 +538,6 @@ function confirmarBloqueio() {
         document.getElementById('segPass').value = '';
         cmdAtivo('BLOQUEAR');
         
-        // ════════════════════════════════════════════════
-        //  DESLIGA O ALARME AO CONFIRMAR O BLOQUEIO
-        // ════════════════════════════════════════════════
         if (typeof desligarAlarme === 'function') {
             desligarAlarme();
         }
@@ -564,8 +639,8 @@ function processarGPS(chipId, d) {
   }
   v.trail.addLatLng(pos);
 
- // ── Detecta parada prolongada ──────────────────────
-if (v.vel <= PARADA_VEL) {
+  // ── Detecta parada prolongada ──────────────────────
+  if (v.vel <= PARADA_VEL) {
     if (!v.paradaInicio) {
         v.paradaInicio = Date.now();
         v.paradaPos    = pos;
@@ -585,22 +660,17 @@ if (v.vel <= PARADA_VEL) {
         const minutosTotais = Math.round(tempoParado / 60000);
         
         if (tempoParado >= PARADA_MIN_MS) {
-            // ════════════════════════════════════════════
-            //  VERIFICA SE JÁ EXISTE PINGO NA POSIÇÃO
-            // ════════════════════════════════════════════
             let pingoExistente = null;
             if (v.pingos.length > 0) {
                 pingoExistente = v.pingos.find(p => map.distance(p.marker.getLatLng(), pos) < 50);
             }
 
             if (pingoExistente) {
-                // ✅ ATUALIZA O PINGO EXISTENTE COM O TEMPO TOTAL
                 pingoExistente.mins = minutosTotais;
                 const novoIcone = criarIconePingo(pingoExistente.num, minutosTotais);
                 pingoExistente.marker.setIcon(novoIcone);
                 addLog('[' + chipId.slice(-4) + '] P' + pingoExistente.num + ' atualizado: ' + minutosTotais + ' min', 'log-warn');
             } else {
-                // ✅ CRIA UM NOVO PINGO
                 v.contador++;
                 const icone = criarIconePingo(v.contador, minutosTotais);
                 v.paradaCirculo = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
@@ -609,17 +679,51 @@ if (v.vel <= PARADA_VEL) {
             }
         }
     }
-} else {
-    // Veículo em movimento: NÃO remove o pingo!
+  } else {
     if (v.paradaCirculo) {
         v.paradaCirculo = null;
         addLog('[' + chipId.slice(-4) + '] Veículo moveu, pingos permanecem', 'log-warn');
     }
     v.paradaInicio = null;
     v.paradaPos    = null;
-}
+  }
+  
+  // ════════════════════════════════════════════════
+  //  ⏱️ ATUALIZA O TEMPO DE PARADA NO PAINEL
+  // ════════════════════════════════════════════════
+  atualizarTempoParada(chipId);
+  
   atualizarBotaoLista(chipId);
   if (chipId === ativoId) atualizarPainel(chipId);
+}
+
+// ═══════════════════════════════════════════════════
+//  ⏱️ FUNÇÃO DO TEMPO DE PARADA
+// ═══════════════════════════════════════════════════
+function atualizarTempoParada(chipId) {
+  const v = veiculos[chipId];
+  const el = document.getElementById('pTempoParada');
+  if (!v || !el) return;
+  
+  if (v.paradaInicio && v.vel <= PARADA_VEL) {
+    const tempoParado = Date.now() - v.paradaInicio;
+    const segundos = Math.floor(tempoParado / 1000);
+    const minutos = Math.floor(segundos / 60);
+    const horas = Math.floor(minutos / 60);
+    const segs = segundos % 60;
+    const mins = minutos % 60;
+    
+    let str = '';
+    if (horas > 0) str += String(horas).padStart(2, '0') + ':';
+    str += String(mins).padStart(2, '0') + ':' + String(segs).padStart(2, '0');
+    
+    el.textContent = '⏱️ Parado: ' + str;
+    el.className = 'ativo';
+  } else {
+    el.className = '';
+    el.style.display = 'none';
+    // Mostra só se estiver parado
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -637,22 +741,23 @@ function processarStatus(chipId, d) {
   else if (v.pendente)           addLog('[' + chipId.slice(-4) + '] Aguardando vel...', 'log-warn');
   else if (m === 'desbloqueado') addLog('[' + chipId.slice(-4) + '] LIBERADO', 'log-ok');
   else if (m === 'online' || m === 'reconectado') addLog('[' + chipId.slice(-4) + '] Online ✓', 'log-ok');
-  // Adicionado Modo Festa
   if (m === 'modo_festa_ativado') addLog('🛡️ Modo Festa ATIVADO no ESP', 'log-warn');
   if (m === 'modo_festa_desativado') addLog('🛡️ Modo Festa DESATIVADO no ESP', 'log-ok');
 }
 
 // ═══════════════════════════════════════════════════
-//  PAINEL + SEGURANÇA
+//  PAINEL
 // ═══════════════════════════════════════════════════
 function atualizarPainel(chipId) {
   const v = veiculos[chipId]; if (!v) return;
   
-  // Atualiza as informações
   document.getElementById('pVel').textContent  = v.vel.toFixed(1) + ' km/h';
   document.getElementById('pSat').textContent  = v.sat + ' sat';
   document.getElementById('pRssi').textContent = (v.rssi || '—') + ' dBm';
   document.getElementById('pAlt').textContent  = v.alt ? v.alt.toFixed(0) + ' m' : '— m';
+
+  // ⏱️ Atualiza tempo de parada
+  atualizarTempoParada(chipId);
 
   const st = document.getElementById('pStatus');
   const bB = document.getElementById('btnBlock');
@@ -660,16 +765,12 @@ function atualizarPainel(chipId) {
   const bU = document.getElementById('btnUnlock');
   const bn = document.getElementById('pendenteBanner');
   
-  // ════════════════════════════════════════════════
-  //  RESETA TODOS OS BOTÕES (garante que apareçam)
-  // ════════════════════════════════════════════════
   bB.style.display = 'none';
   bC.style.display = 'none';
   bU.style.display = 'none';
   bn.style.display = 'none';
 
   if (v.bloqueado) {
-    // 🔴 BLOQUEADO
     st.textContent = 'Bloqueado';
     st.className = 'badge-sm badge-err';
     bB.style.display = 'block';
@@ -677,14 +778,12 @@ function atualizarPainel(chipId) {
     bB.onclick = function() { cmdAtivo('DESBLOQUEAR'); };
     bB.textContent = '🔴 Desbloquear';
   } else if (v.pendente) {
-    // 🟡 AGUARDANDO
     st.textContent = 'Aguardando';
     st.className = 'badge-sm badge-warn';
     bC.style.display = 'block';
     bC.style.flex = '1';
     bn.style.display = 'block';
   } else {
-    // 🟢 LIBERADO
     st.textContent = 'Liberado';
     st.className = 'badge-sm badge-ok';
     bU.style.display = 'block';
@@ -803,17 +902,9 @@ function ativarAlertaMovimento(chipId, d) {
     document.getElementById('btnFesta').textContent = '🛡️ Modo Festa';
     modoFestaAtivo = false;
     
-    // ════════════════════════════════════════════════
-    //  INICIA A SIRENE (LOOP INFINITO)
-    // ════════════════════════════════════════════════
     tocarAlarmeNavegador();
-    
-    // Alerta visual
     setBadge('pStatus', '🚨 FURTO', 'badge-err');
     
-    // ════════════════════════════════════════════════
-    //  POPUP PARA DESLIGAR
-    // ════════════════════════════════════════════════
     if (confirm('🚨 ALERTA DE SEGURANÇA!\n\nO veículo se moveu mais de 50 metros!\n\nClique em OK para desligar o alarme.')) {
         desligarAlarme();
     }
@@ -897,7 +988,6 @@ function executarTesteD8() {
   return true;
 }
 
-// Atalho para console
 function simularD0() {
     confirmarTesteD8();
 }
@@ -1017,11 +1107,8 @@ function salvarMapa() {
 }
 
 // ═══════════════════════════════════════════════════
-//  SIRENE FRANCESA - VERSÃO DEFINITIVA
-//  Som contínuo alternando 880Hz ↔ 440Hz
-//  Loop infinito + popup para desligar
+//  SIRENE FRANCESA
 // ═══════════════════════════════════════════════════
-
 let alarmeAtivo = false;
 let alarmeCtx = null;
 let alarmeOsc = null;
@@ -1039,7 +1126,6 @@ function tocarAlarmeNavegador() {
     alarmeAtivo = true;
     
     try {
-        // ── CRIA O CONTEXTO E OSCILADOR ──────────────
         alarmeCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (alarmeCtx.state === 'suspended') {
             alarmeCtx.resume().catch(() => {});
@@ -1057,7 +1143,6 @@ function tocarAlarmeNavegador() {
         
         console.log('🔊 Sirene iniciada!');
         
-        // ── LOOP DE ALTERNÂNCIA ────────────────────────
         let usandoAlta = true;
         
         alarmeInterval = setInterval(() => {
@@ -1083,7 +1168,6 @@ function tocarAlarmeNavegador() {
         alarmeAtivo = false;
     }
     
-    // ── VIBRAÇÃO ──────────────────────────────────────
     if (navigator.vibrate) {
         navigator.vibrate([500, 200, 500, 200, 500, 200, 1000, 500, 500, 500, 500]);
         console.log('📳 Vibração acionada!');
@@ -1119,7 +1203,6 @@ function desligarAlarme() {
     console.log('✅ Sirene desligada');
 }
 
-// ── SIMULAÇÃO ──────────────────────────────────────
 function simularModoFesta() {
     console.log('🧪 SIMULAÇÃO: Iniciando Modo Festa...');
     
@@ -1185,7 +1268,6 @@ function simularModoFesta() {
 
 console.log('🎯 SIRENE FRANCESA (som contínuo)');
 console.log('🔊 880Hz ↔ 440Hz (alterna a cada 300ms)');
-simularModoFesta();
 </script>
 
 </body>
