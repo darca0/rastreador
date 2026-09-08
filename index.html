@@ -807,8 +807,12 @@ function ativarAlertaMovimento(chipId, d) {
     // ════════════════════════════════════════════════
     tocarAlarmeNavegador();
     
+    // Alerta visual
     setBadge('pStatus', '🚨 FURTO', 'badge-err');
     
+    // ════════════════════════════════════════════════
+    //  POPUP PARA DESLIGAR
+    // ════════════════════════════════════════════════
     if (confirm('🚨 ALERTA DE SEGURANÇA!\n\nO veículo se moveu mais de 50 metros!\n\nClique em OK para desligar o alarme.')) {
         desligarAlarme();
     }
