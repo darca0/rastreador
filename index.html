@@ -30,79 +30,80 @@
   #loginError { color: #f44336; font-size: 13px; min-height: 18px; }
 
   /* TOPBAR - MAIS COMPACTA */
-  #topbar { background: rgba(0,0,0,0.85); padding: 4px 8px; display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; z-index: 1000; border-bottom: 1px solid #222; overflow-x: auto; }
-  #topbar .badge { padding: 2px 6px; border-radius: 12px; font-size: 9px; font-weight: 600; border: 1px solid; white-space: nowrap; }
+  #topbar { background: rgba(0,0,0,0.85); padding: 3px 6px; display: flex; align-items: center; gap: 3px; flex-wrap: nowrap; z-index: 1000; border-bottom: 1px solid #222; overflow-x: auto; }
+  #topbar .badge { padding: 1px 5px; border-radius: 10px; font-size: 8px; font-weight: 600; border: 1px solid; white-space: nowrap; }
   .badge-ok   { background: #2e7d3288; color: #a5d6a7; border-color: #2e7d32; }
   .badge-err  { background: #c6282888; color: #ef9a9a; border-color: #c62828; }
   .badge-warn { background: #f9a82588; color: #fff8e1; border-color: #f9a825; animation: blink 1s infinite; }
   .badge-off  { background: #33333388; color: #888; border-color: #444; }
   @keyframes blink { 50% { opacity: 0.5; } }
-  #topbar button { background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 9px; cursor: pointer; white-space: nowrap; }
+  #topbar button { background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 1px 6px; border-radius: 10px; font-size: 8px; cursor: pointer; white-space: nowrap; }
   #topbar button:active { background: #1565C0; }
-  #nomeUsuario { font-size: 10px; color: #4caf50; font-weight: 700; white-space: nowrap; }
+  #nomeUsuario { font-size: 9px; color: #4caf50; font-weight: 700; white-space: nowrap; }
 
-  /* RELÓGIO LOCAL - MENOR */
+  /* RELÓGIO LOCAL - MENOR, NA MESMA LINHA */
   #relogioLocal {
     background: #0a0a0a;
     border: 1px solid #00ff41;
-    border-radius: 12px;
-    padding: 1px 6px;
-    font-size: 9px;
+    border-radius: 10px;
+    padding: 1px 5px;
+    font-size: 8px;
     font-weight: 700;
     color: #00ff41;
     font-family: 'Courier New', monospace;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
     white-space: nowrap;
     margin-left: auto;
+    flex-shrink: 0;
   }
 
   /* LISTA DE VEÍCULOS - MAIS COMPACTA */
-  #veiculosList { background: rgba(0,0,0,0.85); border-bottom: 1px solid #222; overflow-x: auto; display: flex; gap: 4px; padding: 4px 6px; z-index: 999; }
-  .veiculo-btn { flex-shrink: 0; padding: 4px 10px; border-radius: 16px; border: 2px solid #333; background: #1a1a1a; color: #fff; font-size: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+  #veiculosList { background: rgba(0,0,0,0.85); border-bottom: 1px solid #222; overflow-x: auto; display: flex; gap: 3px; padding: 3px 5px; z-index: 999; }
+  .veiculo-btn { flex-shrink: 0; padding: 3px 8px; border-radius: 14px; border: 2px solid #333; background: #1a1a1a; color: #fff; font-size: 9px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
   .veiculo-btn.ativo     { border-color: #1565C0; background: #1565C020; }
   .veiculo-btn.bloqueado { border-color: #c62828; }
   .veiculo-btn.pendente  { border-color: #f9a825; }
   .veiculo-btn.liberado  { border-color: #2e7d32; }
-  #semVeiculos { color: #555; font-size: 11px; padding: 4px 4px; }
+  #semVeiculos { color: #555; font-size: 10px; padding: 3px 4px; }
 
   /* MAPA */
   #map { flex: 1; }
 
   /* PAINEL - MAIS COMPACTO */
-  #panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.88); padding: 3px 6px; z-index: 1000; border-top: 1px solid #222; }
-  #panelNome { font-size: 9px; font-weight: 700; color: #90caf9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 1px; }
-  #pendenteBanner { background: #f9a825dd; border-radius: 4px; padding: 1px 6px; font-size: 8px; font-weight: 600; text-align: center; color: #fff; display: none; margin-bottom: 1px; }
+  #panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.88); padding: 2px 5px; z-index: 1000; border-top: 1px solid #222; }
+  #panelNome { font-size: 8px; font-weight: 700; color: #90caf9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 1px; }
+  #pendenteBanner { background: #f9a825dd; border-radius: 4px; padding: 1px 5px; font-size: 7px; font-weight: 600; text-align: center; color: #fff; display: none; margin-bottom: 1px; }
   
   .info-row { display: flex; align-items: center; gap: 2px; flex-wrap: nowrap; overflow-x: auto; margin-bottom: 1px; }
-  .info-pill { background: #1a1a1a; border: 1px solid #333; border-radius: 6px; padding: 1px 4px; font-size: 8px; color: #ccc; white-space: nowrap; }
-  .badge-sm { font-size: 7px; padding: 1px 4px; border-radius: 8px; border: 1px solid; white-space: nowrap; }
+  .info-pill { background: #1a1a1a; border: 1px solid #333; border-radius: 5px; padding: 1px 4px; font-size: 7px; color: #ccc; white-space: nowrap; }
+  .badge-sm { font-size: 6px; padding: 1px 4px; border-radius: 6px; border: 1px solid; white-space: nowrap; }
   .badge-sm.badge-ok   { background: #2e7d3288; color: #a5d6a7; border-color: #2e7d32; }
   .badge-sm.badge-err  { background: #c6282888; color: #ef9a9a; border-color: #c62828; }
   .badge-sm.badge-warn { background: #f9a82588; color: #fff8e1; border-color: #f9a825; animation: blink 1s infinite; }
   .badge-sm.badge-off  { background: #33333388; color: #888; border-color: #444; }
   
   /* BOTÕES - OTIMIZADOS PARA CELULAR */
-  .btn-row { display: flex; align-items: center; gap: 3px; flex-wrap: nowrap; overflow-x: auto; }
-  .btn-row button { padding: 3px 5px; font-size: 9px; border-radius: 6px; border: none; cursor: pointer; white-space: nowrap; flex: 1; min-width: 32px; height: 26px; font-weight: 700; }
+  .btn-row { display: flex; align-items: center; gap: 2px; flex-wrap: nowrap; overflow-x: auto; }
+  .btn-row button { padding: 2px 4px; font-size: 8px; border-radius: 5px; border: none; cursor: pointer; white-space: nowrap; flex: 1; min-width: 28px; height: 24px; font-weight: 700; }
   .btn-row .btn-block  { background: #c62828; color: #fff; display: none; }
   .btn-row .btn-cancel { background: #f9a825; color: #fff; display: none; }
-  .btn-row .btn-unlock { background: #2e7d32; color: #fff; flex: 2; font-size: 10px; }
-  .btn-row .btn-center { flex: 0 0 26px; background: #1565C0; color: #fff; font-size: 11px; }
-  .btn-row .btn-festa  { background: #333; color: #fff; border: 1px solid #555; flex: 1; font-size: 8px; }
+  .btn-row .btn-unlock { background: #2e7d32; color: #fff; flex: 2; font-size: 9px; }
+  .btn-row .btn-center { flex: 0 0 24px; background: #1565C0; color: #fff; font-size: 10px; }
+  .btn-row .btn-festa  { background: #333; color: #fff; border: 1px solid #555; flex: 1; font-size: 7px; }
   .btn-row .btn-festa.ativo { background: #f9a825; color: #111; font-weight: 700; border-color: #f9a825; }
-  .btn-row .btn-d8     { flex: 0 0 26px; background: #c62828; color: #fff; font-size: 10px; padding: 0; text-align: center; }
-  .btn-row .btn-aux    { background: #1565C0; color: #fff; flex: 1; font-size: 8px; }
-  .btn-row .btn-parar  { flex: 0 0 26px; background: #c62828; color: #fff; font-size: 11px; padding: 0; text-align: center; font-weight: 900; }
+  .btn-row .btn-d8     { flex: 0 0 24px; background: #c62828; color: #fff; font-size: 9px; padding: 0; text-align: center; }
+  .btn-row .btn-aux    { background: #1565C0; color: #fff; flex: 1; font-size: 7px; }
+  .btn-row .btn-parar  { flex: 0 0 24px; background: #c62828; color: #fff; font-size: 10px; padding: 0; text-align: center; font-weight: 900; }
 
-  #logBox { max-height: 16px; overflow-y: auto; margin-top: 1px; font-size: 7px; color: #666; }
+  #logBox { max-height: 14px; overflow-y: auto; margin-top: 1px; font-size: 6px; color: #666; }
 
   /* TEMPO DE PARADA */
   #pTempoParada {
     background: #1a1a1a;
     border: 1px solid #f9a825;
-    border-radius: 6px;
+    border-radius: 5px;
     padding: 1px 4px;
-    font-size: 8px;
+    font-size: 7px;
     color: #f9a825;
     white-space: nowrap;
     display: none;
@@ -113,15 +114,37 @@
   }
 
   /* LED Pânico - MENOR */
-  #panicWidget { display:none; position:fixed; top:4px; right:60px; z-index:9998; align-items:center; gap:4px; background:rgba(0,0,0,0.7); border:1px solid #c62828; border-radius:16px; padding:2px 8px; cursor:pointer; }
-  #panicDot { width:8px; height:8px; border-radius:50%; background:#ff0000; box-shadow:0 0 4px #ff0000; animation:panicoLed 0.4s infinite alternate; flex-shrink:0; }
-  #panicTxt { font-size:9px; font-weight:700; color:#ff6666; letter-spacing:0.5px; }
+  #panicWidget { display:none; position:fixed; top:3px; right:50px; z-index:9998; align-items:center; gap:3px; background:rgba(0,0,0,0.7); border:1px solid #c62828; border-radius:14px; padding:2px 6px; cursor:pointer; }
+  #panicDot { width:7px; height:7px; border-radius:50%; background:#ff0000; box-shadow:0 0 4px #ff0000; animation:panicoLed 0.4s infinite alternate; flex-shrink:0; }
+  #panicTxt { font-size:8px; font-weight:700; color:#ff6666; letter-spacing:0.5px; }
   @keyframes panicoLed { from{opacity:1;} to{opacity:0.2;} }
-  #panicBanner { display:none; position:fixed; top:0; left:0; right:0; z-index:9997; background:#b71c1c; color:#fff; text-align:center; padding:4px; font-weight:700; font-size:11px; }
+  #panicBanner { display:none; position:fixed; top:0; left:0; right:0; z-index:9997; background:#b71c1c; color:#fff; text-align:center; padding:3px; font-weight:700; font-size:10px; }
 
   /* Botão salvar - MENOR */
-  #btnSalvar { position:absolute; top:50px; right:6px; z-index:999; background:rgba(0,0,0,0.7); border:1px solid #444; color:#fff; padding:4px 8px; border-radius:16px; font-size:9px; cursor:pointer; }
-  #btnTodos { position: absolute; top:80px; right:6px; z-index: 999; background: rgba(0,0,0,0.7); border: 1px solid #444; color: #fff; padding:4px 8px; border-radius:16px; font-size:9px; cursor: pointer; display: none; }
+  #btnSalvar { position:absolute; top:45px; right:5px; z-index:999; background:rgba(0,0,0,0.7); border:1px solid #444; color:#fff; padding:3px 6px; border-radius:14px; font-size:8px; cursor:pointer; }
+  #btnTodos { position: absolute; top:70px; right:5px; z-index: 999; background: rgba(0,0,0,0.7); border: 1px solid #444; color: #fff; padding:3px 6px; border-radius:14px; font-size:8px; cursor: pointer; display: none; }
+
+  /* ════════════════════════════════════════════ */
+  /*  "by darca" - DISCRETO NO CANTO INFERIOR   */
+  /* ════════════════════════════════════════════ */
+  #creditos {
+    position: fixed;
+    bottom: 55px;
+    right: 6px;
+    z-index: 999;
+    font-size: 7px;
+    color: #333;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
+    opacity: 0.4;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    user-select: none;
+    text-shadow: 0 0 4px rgba(0,0,0,0.8);
+  }
+  #creditos:hover {
+    opacity: 0.8;
+  }
 
   /* MODAIS - MESMO TAMANHO */
   #modalAux { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center; }
@@ -150,7 +173,7 @@
   #modalSeguranca .modal-btns .btn-confirm { background:#c62828; color:#fff; }
   #modalSeguranca .modal-btns .btn-cancel { background:#333; color:#aaa; }
 
-  .log-line { font-size: 9px; color: #666; }
+  .log-line { font-size: 8px; color: #666; }
   .log-ok   { color: #4caf50; }
   .log-err  { color: #ef5350; }
   .log-warn { color: #ffa726; }
@@ -175,14 +198,14 @@
 
 <!-- TOPBAR - COMPACTA -->
 <div id="topbar" style="display:none">
-  <span style="font-size:11px;font-weight:700">🛡️</span>
+  <span style="font-size:10px;font-weight:700">🛡️</span>
   <span id="nomeUsuario"></span>
   <span class="badge badge-off" id="mqttBadge">Off</span>
   <button onclick="conectarMQTT()">🔌</button>
-  <button onclick="nextMapStyle()" id="mapStyleBtn" style="font-size:8px;">🛰</button>
-  <span class="badge badge-off" id="veiculosBadge" style="font-size:8px;">0</span>
+  <button onclick="nextMapStyle()" id="mapStyleBtn" style="font-size:7px;">🛰</button>
+  <span class="badge badge-off" id="veiculosBadge" style="font-size:7px;">0</span>
   
-  <!-- ⏰ RELÓGIO LOCAL (GMT-3) - MENOR -->
+  <!-- ⏰ RELÓGIO LOCAL (GMT-3) - NA MESMA LINHA -->
   <span id="relogioLocal">🕐 --:--:--</span>
 </div>
 
@@ -196,7 +219,7 @@
 <div id="panicWidget" title="Clique para cancelar (60s)" onclick="cancelarPanico()">
   <div id="panicDot"></div>
   <span id="panicTxt">PÂNICO</span>
-  <span id="panicTimer" style="font-size:8px;color:#aaa;"></span>
+  <span id="panicTimer" style="font-size:7px;color:#aaa;"></span>
 </div>
 
 <!-- BOTÃO SALVAR -->
@@ -205,6 +228,9 @@
 <!-- MAPA -->
 <div id="map"></div>
 <button id="btnTodos" onclick="centralizarTodos()">⊕</button>
+
+<!-- CRÉDITOS - DISCRETO -->
+<div id="creditos">by darca</div>
 
 <!-- PAINEL - COMPACTO -->
 <div id="panel" style="display:none">
@@ -217,7 +243,7 @@
     <span class="info-pill" id="pSat">0 sat</span>
     <span class="info-pill" id="pRssi">— dBm</span>
     <span class="info-pill" id="pAlt">— m</span>
-    <span id="pTempoParada">⏱️ Parado: 00:00</span>
+    <span id="pTempoParada">⏱️ 00:00</span>
     <span class="badge-sm badge-off" id="pStatus">Aguardando</span>
   </div>
   
@@ -314,24 +340,26 @@ let modoFestaAtivo = false;
 let circuloFesta = null;
 
 // ═══════════════════════════════════════════════════
-//  ⏰ RELÓGIO LOCAL (GMT-3) - SEMPRE ATUALIZADO
+//  ⏰ RELÓGIO LOCAL (GMT-3) - CORRIGIDO
+//  Subtrai 3 horas do horário UTC
 // ═══════════════════════════════════════════════════
 function atualizarRelogioLocal() {
     const el = document.getElementById('relogioLocal');
     if (!el) return;
     
     const agora = new Date();
-    // Ajusta para GMT-3 (Brasília)
-    const horaBrasilia = new Date(agora.getTime() - 0);
-    // O horário local do navegador já está no fuso do sistema
-    // Se o navegador estiver em GMT-3, não precisa ajustar
-    // Mas vamos forçar GMT-3 para garantir
-    const offset = horaBrasilia.getTimezoneOffset();
-    const horaAjustada = new Date(horaBrasilia.getTime() + (offset + 180) * 60000);
+    // Obtém o horário UTC e subtrai 3 horas (GMT-3)
+    const horaUTC = agora.getUTCHours();
+    const minutoUTC = agora.getUTCMinutes();
+    const segundoUTC = agora.getUTCSeconds();
     
-    const hora = String(horaAjustada.getHours()).padStart(2, '0');
-    const minuto = String(horaAjustada.getMinutes()).padStart(2, '0');
-    const segundo = String(horaAjustada.getSeconds()).padStart(2, '0');
+    // Aplica GMT-3 (subtrai 3 horas)
+    let horaBrasilia = horaUTC - 3;
+    if (horaBrasilia < 0) horaBrasilia += 24;
+    
+    const hora = String(horaBrasilia).padStart(2, '0');
+    const minuto = String(minutoUTC).padStart(2, '0');
+    const segundo = String(segundoUTC).padStart(2, '0');
     
     el.textContent = '🕐 ' + hora + ':' + minuto + ':' + segundo;
 }
@@ -1154,7 +1182,7 @@ function desligarAlarme() {
 //  INICIALIZAÇÃO
 // ═══════════════════════════════════════════════════
 console.log('🚀 Rastreador Veicular v2 (Mobile Optimized)');
-console.log('🕐 Horário local (GMT-3):', new Date().toLocaleTimeString());
+console.log('🕐 Horário GMT-3:', new Date().toLocaleTimeString('pt-BR', {timeZone: 'America/Sao_Paulo'}));
 </script>
 
 </body>
