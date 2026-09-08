@@ -1011,146 +1011,110 @@ function salvarMapa() {
 }
 
 // ═══════════════════════════════════════════════════
-//  ALARME NO NAVEGADOR (PC + ANDROID + iOS)
+//  SIRENE FRANCESA - VERSÃO QUE FUNCIONOU
+//  (Adaptada do seu teste)
 // ═══════════════════════════════════════════════════
+
+// ── VARIÁVEIS GLOBAIS DA SIRENE ──────────────────
+let alarmeAtivo = false;
+let alarmeCtx = null;
+let alarmeOsc = null;
+let alarmeGain = null;
+let alarmeInterval = null;
+
+// ── TOCAR SIRENE (LOOP INFINITO) ──────────────────
 function tocarAlarmeNavegador() {
-    console.log('🔊 Tocando alarme no navegador...');
+    console.log('🚨 INICIANDO SIRENE FRANCESA!');
     
-    // ── SOM (via Web Audio API) ──────────────────────
-    try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        
-        // Se o contexto estiver suspenso (iOS), tenta retomar
-        if (ctx.state === 'suspended') {
-            ctx.resume().then(() => {
-                console.log('🔊 Contexto de áudio retomado (iOS)');
-                tocarSom(ctx);
-            }).catch(() => {
-                console.warn('⚠️ Não foi possível retomar o áudio');
-            });
-        } else {
-            tocarSom(ctx);
-        }
-    } catch (e) {
-        console.warn('⚠️ Falha no som:', e);
-        // Fallback: tenta tocar um áudio externo
-        try {
-            const audio = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3');
-            audio.volume = 1.0;
-            audio.play().catch(() => {});
-        } catch(e2) {
-            console.warn('⚠️ Falha no áudio fallback:', e2);
-        }
-    }
-    
-    // ── VIBRAÇÃO (Android/Chrome/iOS) ─────────────────
-    if (navigator.vibrate) {
-        navigator.vibrate([500, 200, 500, 200, 500, 200, 1000, 500, 500, 500, 500]);
-        console.log('📳 Vibração acionada!');
-    } else {
-        console.log('ℹ️ Vibração não suportada neste navegador');
-    }
-}
-
-// ═══════════════════════════════════════════════════
-//  SIRENE FRANCESA SECA (sem transição)
-//  880Hz por 300ms → 440Hz por 300ms
-//  (alternância seca, sem suavização)
-// ═══════════════════════════════════════════════════
-
-window.tocarAlarmeNavegador = function() {
-    console.log('🚨 SIRENE FRANCESA (alternância seca)');
-    
-    if (window.__sireneAtiva) {
+    // Se já está tocando, não faz nada
+    if (alarmeAtivo) {
         console.log('ℹ️ Sirene já está tocando');
         return;
     }
     
-    let ctx = null;
-    let osc = null;
-    let gain = null;
-    let interval = null;
+    alarmeAtivo = true;
     
     try {
-        ctx = new (window.AudioContext || window.webkitAudioContext)();
-        if (ctx.state === 'suspended') {
-            ctx.resume().catch(() => {});
+        // ── CRIA O CONTEXTO E OSCILADOR ──────────────
+        alarmeCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (alarmeCtx.state === 'suspended') {
+            alarmeCtx.resume().catch(() => {});
         }
         
-        osc = ctx.createOscillator();
-        gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
+        alarmeOsc = alarmeCtx.createOscillator();
+        alarmeGain = alarmeCtx.createGain();
+        alarmeOsc.connect(alarmeGain);
+        alarmeGain.connect(alarmeCtx.destination);
         
-        osc.type = 'square';   // Som mais agressivo
-        gain.gain.value = 0.4;
-        osc.frequency.value = 880;
-        osc.start();
+        alarmeOsc.type = 'sawtooth';
+        alarmeGain.gain.value = 0.4;
+        alarmeOsc.frequency.value = 880;
+        alarmeOsc.start();
         
-        console.log('🔊 Sirene seca iniciada!');
+        console.log('🔊 Sirene iniciada! (880Hz ↔ 440Hz)');
         
-        // ── ALTERNÂNCIA SECA (SEM TRANSIÇÃO) ────────
+        // ── LOOP DE ALTERNÂNCIA ────────────────────────
         let usandoAlta = true;
         
-        interval = setInterval(() => {
-            if (!osc) {
-                clearInterval(interval);
+        alarmeInterval = setInterval(() => {
+            if (!alarmeAtivo || !alarmeOsc) {
+                clearInterval(alarmeInterval);
                 return;
             }
             
             usandoAlta = !usandoAlta;
             
             if (usandoAlta) {
-                osc.frequency.value = 880;  // AGUDO (corte seco)
-                gain.gain.value = 0.5;
-                console.log('🔊 880Hz');
+                alarmeOsc.frequency.value = 880;
+                alarmeGain.gain.value = 0.5;
             } else {
-                osc.frequency.value = 440;  // GRAVE (corte seco)
-                gain.gain.value = 0.3;
-                console.log('🔊 440Hz');
+                alarmeOsc.frequency.value = 440;
+                alarmeGain.gain.value = 0.3;
             }
             
         }, 300);
         
-        window.__sireneAtiva = true;
-        window.__sirene = { ctx, osc, gain, interval };
-        
     } catch(e) {
         console.warn('⚠️ Erro na sirene:', e);
+        alarmeAtivo = false;
     }
     
+    // ── VIBRAÇÃO ──────────────────────────────────────
     if (navigator.vibrate) {
         navigator.vibrate([500, 200, 500, 200, 500, 200, 1000, 500, 500, 500, 500]);
+        console.log('📳 Vibração acionada!');
     }
-};
+}
 
-// ── DESLIGAR ──────────────────────────────────────────
-window.desligarAlarme = function() {
+// ── DESLIGAR SIRENE ──────────────────────────────────
+function desligarAlarme() {
     console.log('🔇 Desligando sirene...');
     
-    window.__sireneAtiva = false;
+    alarmeAtivo = false;
     
-    if (window.__sirene) {
-        const s = window.__sirene;
-        if (s.interval) {
-            clearInterval(s.interval);
-        }
-        if (s.osc) {
-            try { s.osc.stop(); } catch(e) {}
-        }
-        if (s.ctx) {
-            try { s.ctx.close(); } catch(e) {}
-        }
-        window.__sirene = null;
+    if (alarmeInterval) {
+        clearInterval(alarmeInterval);
+        alarmeInterval = null;
     }
+    
+    if (alarmeOsc) {
+        try { alarmeOsc.stop(); } catch(e) {}
+        alarmeOsc = null;
+    }
+    
+    if (alarmeCtx) {
+        try { alarmeCtx.close(); } catch(e) {}
+        alarmeCtx = null;
+    }
+    
+    alarmeGain = null;
     
     if (navigator.vibrate) {
         navigator.vibrate(0);
     }
     
     console.log('✅ Sirene desligada');
-};
-
+}
 // ── SIMULAÇÃO ──────────────────────────────────────
 function simularModoFesta() {
     console.log('🧪 SIMULAÇÃO: Iniciando Modo Festa...');
