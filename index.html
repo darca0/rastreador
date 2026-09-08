@@ -803,7 +803,7 @@ function ativarAlertaMovimento(chipId, d) {
     modoFestaAtivo = false;
     
     // ════════════════════════════════════════════════
-    //  INICIA A SIRENE
+    //  INICIA A SIRENE (LOOP INFINITO)
     // ════════════════════════════════════════════════
     tocarAlarmeNavegador();
     
@@ -820,6 +820,7 @@ function ativarAlertaMovimento(chipId, d) {
     map.setView(pos, 15);
     addLog('🚨 ALERTA DE FURTO DETECTADO!', 'log-err');
 }
+
  // ═══════════════════════════════════════════════════
 //  PÂNICO
 // ═══════════════════════════════════════════════════
@@ -1015,8 +1016,9 @@ function salvarMapa() {
 }
 
 // ═══════════════════════════════════════════════════
-//  SIRENE FRANCESA - VERSÃO QUE FUNCIONOU NO TESTE
-//  (Som contínuo alternando 880Hz ↔ 440Hz)
+//  SIRENE FRANCESA - VERSÃO DEFINITIVA
+//  Som contínuo alternando 880Hz ↔ 440Hz
+//  Loop infinito + popup para desligar
 // ═══════════════════════════════════════════════════
 
 let alarmeAtivo = false;
@@ -1026,7 +1028,7 @@ let alarmeGain = null;
 let alarmeInterval = null;
 
 function tocarAlarmeNavegador() {
-    console.log('🚨 INICIANDO SIRENE!');
+    console.log('🚨 SIRENE FRANCESA (som contínuo)');
     
     if (alarmeAtivo) {
         console.log('ℹ️ Sirene já está tocando');
@@ -1036,13 +1038,12 @@ function tocarAlarmeNavegador() {
     alarmeAtivo = true;
     
     try {
-        // ── CRIA UM ÚNICO CONTEXTO ──────────────────
+        // ── CRIA O CONTEXTO E OSCILADOR ──────────────
         alarmeCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (alarmeCtx.state === 'suspended') {
             alarmeCtx.resume().catch(() => {});
         }
         
-        // ── OSCILADOR ÚNICO ─────────────────────────
         alarmeOsc = alarmeCtx.createOscillator();
         alarmeGain = alarmeCtx.createGain();
         alarmeOsc.connect(alarmeGain);
@@ -1055,7 +1056,7 @@ function tocarAlarmeNavegador() {
         
         console.log('🔊 Sirene iniciada!');
         
-        // ── ALTERNÂNCIA SECA ─────────────────────────
+        // ── LOOP DE ALTERNÂNCIA ────────────────────────
         let usandoAlta = true;
         
         alarmeInterval = setInterval(() => {
@@ -1081,8 +1082,10 @@ function tocarAlarmeNavegador() {
         alarmeAtivo = false;
     }
     
+    // ── VIBRAÇÃO ──────────────────────────────────────
     if (navigator.vibrate) {
         navigator.vibrate([500, 200, 500, 200, 500, 200, 1000, 500, 500, 500, 500]);
+        console.log('📳 Vibração acionada!');
     }
 }
 
@@ -1114,7 +1117,6 @@ function desligarAlarme() {
     
     console.log('✅ Sirene desligada');
 }
-
 // ── SIMULAÇÃO ──────────────────────────────────────
 function simularModoFesta() {
     console.log('🧪 SIMULAÇÃO: Iniciando Modo Festa...');
