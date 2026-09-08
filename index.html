@@ -192,7 +192,7 @@
   </div>
   
   <!-- LINHA 2: BOTÕES -->
-  <div class="btn-row">
+<div class="btn-row">
     <button class="btn-center" onclick="centralizarAtivo()">◎</button>
     <button class="btn-block"  id="btnBlock"  onclick="cmdAtivo('BLOQUEAR')"         style="display:none">🔴 Bloqueado</button>
     <button class="btn-cancel" id="btnCancel" onclick="cmdAtivo('CANCELAR_BLOQUEIO')" style="display:none">🟡 Aguardando...</button>
@@ -200,7 +200,8 @@
     <button class="btn-aux" onclick="acionarAux()">🔓 AUX</button>
     <button class="btn-festa" id="btnFesta" onclick="toggleModoFesta()">🛡️ Festa</button>
     <button class="btn-d8" onclick="confirmarTesteD8()">🚨</button>
-  </div>
+    <button onclick="desligarAlarme()" style="background:#c62828; color:#fff; font-size:10px; padding:2px 6px; border:none; border-radius:6px; cursor:pointer; flex:0 0 auto; white-space:nowrap;">🛑 Parar</button>
+</div>
   
   <div id="logBox"></div>
 </div>
