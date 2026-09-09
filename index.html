@@ -573,78 +573,84 @@ window.processarGPS = function(chipId, d) {
     }
     v.trail.addLatLng(pos);
 
-    // ══════════════════════════════════════════════════════════
-    //  NOVA LÓGICA DE PARADA (PINGO COMO GATILHO + RAIO 50m)
-    // ══════════════════════════════════════════════════════════
+   // ════════════════════════════════════════════════════════════════
+//  DETECÇÃO DE PARADA - COM LOGS DE DEBUG
+// ════════════════════════════════════════════════════════════════
+
+if (v.vel <= PARADA_VEL) {
+    // ── VEÍCULO PARADO ──────────────────────────────────
     
-    const elTempo = document.getElementById('pTempoParada');
-    
-    if (v.vel <= PARADA_VEL) {
-        // ── VEÍCULO PARADO ──────────────────────────────────
+    if (!v.paradaInicio) {
+        v.paradaInicio = Date.now();
+        v.paradaPos = pos;
+        addLog('[' + chipId.slice(-4) + '] Parada detectada (vel=' + v.vel.toFixed(1) + ' km/h)', 'log-warn');
+        console.log('🔍 [DEBUG] Início da parada:', new Date().toLocaleTimeString());
+    } else {
+        const tempoParado = Date.now() - v.paradaInicio;
+        const minutosTotais = Math.round(tempoParado / 60000);
         
-        if (!v.paradaInicio) {
-            // INÍCIO DA PARADA
-            v.paradaInicio = Date.now();
-            v.paradaPos = pos;
-            addLog('[' + chipId.slice(-4) + '] Parada detectada (vel=' + v.vel.toFixed(1) + ' km/h)', 'log-warn');
-        } else {
-            // ── JÁ ESTÁ PARADO ──────────────────────────────
-            const tempoParado = Date.now() - v.paradaInicio;
-            const minutosTotais = Math.round(tempoParado / 60000);
+        console.log('🔍 [DEBUG] Tempo parado:', minutosTotais, 'min');
+        
+        // ── VERIFICA SE JÁ PASSOU 6 MINUTOS ────────────
+        if (tempoParado >= PARADA_MIN_MS) {
+            console.log('🔍 [DEBUG] Passou dos 6min!');
             
-            // ── VERIFICA SE JÁ PASSOU 6 MINUTOS ────────────
-            if (tempoParado >= PARADA_MIN_MS) {
-                
-                // ── PROCURA UM PINGO PRÓXIMO (RAIO 50m) ─────
-                let pingoProximo = null;
-                for (let p of v.pingos) {
-                    if (p.marker) {
-                        const dist = map.distance(p.marker.getLatLng(), pos);
-                        if (dist < 50) {
-                            pingoProximo = p;
-                            break;
-                        }
+            // ── PROCURA UM PINGO PRÓXIMO (RAIO 50m) ─────
+            let pingoProximo = null;
+            for (let p of v.pingos) {
+                if (p.marker) {
+                    const dist = map.distance(p.marker.getLatLng(), pos);
+                    console.log('🔍 [DEBUG] Distância do pingo:', dist, 'm');
+                    if (dist < 50) {
+                        pingoProximo = p;
+                        console.log('🔍 [DEBUG] Pingo encontrado!');
+                        break;
                     }
-                }
-                
-                if (pingoProximo) {
-                    // ── PINGO EXISTE DENTRO DO RAIO ──────────
-                    // ATUALIZA O TEMPO DO PINGO EXISTENTE
-                    pingoProximo.mins = minutosTotais;
-                    const novoIcone = criarIconePingo(pingoProximo.num, minutosTotais);
-                    pingoProximo.marker.setIcon(novoIcone);
-                    
-                    // Atualiza o contador de tempo parado
-                    if (elTempo) {
-                        elTempo.textContent = '⏱️ ' + minutosTotais + ' min';
-                        elTempo.className = 'ativo';
-                        elTempo.style.display = 'inline-block';
-                    }
-                    
-                    addLog('[' + chipId.slice(-4) + '] P' + pingoProximo.num + ' atualizado: ' + minutosTotais + ' min', 'log-warn');
-                    
-                } else {
-                    // ── NENHUM PINGO PRÓXIMO ──────────────────
-                    // CRIA UM NOVO PINGO
-                    v.contador = (v.contador || 0) + 1;
-                    const icone = criarIconePingo(v.contador, minutosTotais);
-                    const marker = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
-                    v.pingos.push({ marker: marker, num: v.contador, mins: minutosTotais });
-                    v.paradaCirculo = marker;
-                    
-                    // Atualiza o contador
-                    if (elTempo) {
-                        elTempo.textContent = '⏱️ ' + minutosTotais + ' min';
-                        elTempo.className = 'ativo';
-                        elTempo.style.display = 'inline-block';
-                    }
-                    
-                    addLog('[' + chipId.slice(-4) + '] 🅿️ NOVO PINGO P' + v.contador + ': ' + minutosTotais + ' min', 'log-warn');
                 }
             }
+            
+            if (pingoProximo) {
+                // ── ATUALIZA O PINGO EXISTENTE ──────────────
+                console.log('🔍 [DEBUG] Atualizando P' + pingoProximo.num + ' para ' + minutosTotais + 'min');
+                pingoProximo.mins = minutosTotais;
+                const novoIcone = criarIconePingo(pingoProximo.num, minutosTotais);
+                pingoProximo.marker.setIcon(novoIcone);
+                
+                // Atualiza o contador de tempo parado
+                const elTempo = document.getElementById('pTempoParada');
+                if (elTempo) {
+                    elTempo.textContent = '⏱️ ' + minutosTotais + ' min';
+                    elTempo.className = 'ativo';
+                    elTempo.style.display = 'inline-block';
+                }
+                
+                addLog('[' + chipId.slice(-4) + '] P' + pingoProximo.num + ' atualizado: ' + minutosTotais + ' min', 'log-warn');
+                
+            } else {
+                // ── CRIA UM NOVO PINGO ──────────────────────
+                console.log('🔍 [DEBUG] Criando novo pingo P' + (v.contador + 1));
+                v.contador = (v.contador || 0) + 1;
+                const icone = criarIconePingo(v.contador, minutosTotais);
+                const marker = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
+                v.pingos.push({ marker: marker, num: v.contador, mins: minutosTotais });
+                v.paradaCirculo = marker;
+                
+                if (elTempo) {
+                    elTempo.textContent = '⏱️ ' + minutosTotais + ' min';
+                    elTempo.className = 'ativo';
+                    elTempo.style.display = 'inline-block';
+                }
+                
+                addLog('[' + chipId.slice(-4) + '] 🅿️ NOVO PINGO P' + v.contador + ': ' + minutosTotais + ' min', 'log-warn');
+            }
         }
-        
-    } else {
+    }
+    
+} else {
+    // ── VEÍCULO EM MOVIMENTO ──────────────────────────────
+    console.log('🔍 [DEBUG] Veículo em movimento. Velocidade:', v.vel);
+    // ... resto do código ...
+}
         // ── VEÍCULO EM MOVIMENTO ──────────────────────────────
         
         if (v.paradaCirculo) {
