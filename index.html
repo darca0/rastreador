@@ -8,6 +8,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
+  /* === SEU CSS AQUI (mantive o que você enviou, está perfeito) === */
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #111; color: #fff; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 
@@ -104,7 +105,7 @@
 <body>
 
 <!-- ============================================================ -->
-<!-- LOGIN COM CAMPO DE TEXTO (APENAS) -->
+<!-- LOGIN COM CAMPO DE TEXTO -->
 <!-- ============================================================ -->
 <div id="loginScreen">
   <h1>🛡️ Rastreador</h1>
@@ -123,21 +124,21 @@
   </div>
   
   <div class="numpad">
-    <button onclick="pin('1')">1</button>
-    <button onclick="pin('2')">2</button>
-    <button onclick="pin('3')">3</button>
-    <button onclick="pin('4')">4</button>
-    <button onclick="pin('5')">5</button>
-    <button onclick="pin('6')">6</button>
-    <button onclick="pin('7')">7</button>
-    <button onclick="pin('8')">8</button>
-    <button onclick="pin('9')">9</button>
-    <button onclick="pin('del')">⌫</button>
-    <button onclick="pin('0')">0</button>
-    <button onclick="pin('del')">✕</button>
+    <button onclick="window.pin('1')">1</button>
+    <button onclick="window.pin('2')">2</button>
+    <button onclick="window.pin('3')">3</button>
+    <button onclick="window.pin('4')">4</button>
+    <button onclick="window.pin('5')">5</button>
+    <button onclick="window.pin('6')">6</button>
+    <button onclick="window.pin('7')">7</button>
+    <button onclick="window.pin('8')">8</button>
+    <button onclick="window.pin('9')">9</button>
+    <button onclick="window.pin('del')">⌫</button>
+    <button onclick="window.pin('0')">0</button>
+    <button onclick="window.pin('del')">✕</button>
   </div>
   
-  <button onclick="loginComUsuario()" style="padding:12px 40px; border-radius:12px; border:none; background:#1565C0; color:#fff; font-size:16px; font-weight:700; cursor:pointer; margin-top:8px;">Entrar</button>
+  <button onclick="window.loginComUsuario()" style="padding:12px 40px; border-radius:12px; border:none; background:#1565C0; color:#fff; font-size:16px; font-weight:700; cursor:pointer; margin-top:8px;">Entrar</button>
 </div>
 
 <!-- ============================================================ -->
@@ -148,14 +149,14 @@
     <span style="font-size:12px; font-weight:700;">🛡️</span>
     <span id="nomeUsuario" style="font-size:10px; color:#4caf50; font-weight:700;"></span>
     <span class="badge badge-off" id="mqttBadge" style="font-size:8px; padding:1px 5px;">Conectando</span>
-    <button onclick="conectarMQTT()" style="font-size:13px; padding:1px 4px;">🔌</button>
-    <button onclick="nextMapStyle()" id="mapStyleBtn" style="font-size:12px; padding:1px 4px;">🛰</button>
+    <button onclick="window.conectarMQTT()" style="font-size:13px; padding:1px 4px;">🔌</button>
+    <button onclick="window.nextMapStyle()" id="mapStyleBtn" style="font-size:12px; padding:1px 4px;">🛰</button>
     <span class="badge badge-off" id="veiculosBadge" style="font-size:7px; padding:1px 5px; margin-left:auto;">0 veículos</span>
   </div>
   <div class="linha2">
     <span id="veiculoAtivoNome" style="font-size:10px; font-weight:700; color:#90caf9;">Aguardando...</span>
     <span id="relogioLocal" style="font-size:10px; color:#00ff41; font-family:'Courier New',monospace; margin-left:auto;">🕐 --:--:--</span>
-    <button onclick="salvarMapa()" style="font-size:11px; padding:1px 6px;">💾</button>
+    <button onclick="window.salvarMapa()" style="font-size:11px; padding:1px 6px;">💾</button>
     <span style="font-size:9px; color:#aaa; font-family:'Courier New',monospace; opacity:0.7;">by darca</span>
   </div>
 </div>
@@ -171,7 +172,7 @@
 <!-- PÂNICO -->
 <!-- ============================================================ -->
 <div id="panicBanner">🚨 PÂNICO ATIVADO! <span id="panicTimer"></span></div>
-<div id="panicWidget" onclick="cancelarPanico()">
+<div id="panicWidget" onclick="window.cancelarPanico()">
   <div id="panicDot"></div>
   <span id="panicTxt">PÂNICO</span>
   <span id="panicTimer" style="font-size:7px; color:#aaa;"></span>
@@ -181,7 +182,7 @@
 <!-- MAPA -->
 <!-- ============================================================ -->
 <div id="map"></div>
-<button id="btnTodos" onclick="centralizarTodos()">⊕</button>
+<button id="btnTodos" onclick="window.centralizarTodos()">⊕</button>
 
 <!-- ============================================================ -->
 <!-- PAINEL INFERIOR -->
@@ -198,14 +199,14 @@
     <span class="badge-sm badge-off" id="pStatus">Aguardando</span>
   </div>
   <div class="btn-row">
-    <button class="btn-center" onclick="centralizarAtivo()">◎</button>
-    <button class="btn-block"  id="btnBlock"  onclick="cmdAtivo('DESBLOQUEAR')" style="display:none;">🔴 Desbloquear</button>
-    <button class="btn-cancel" id="btnCancel" onclick="cmdAtivo('CANCELAR_BLOQUEIO')" style="display:none;">🟡 Aguardando...</button>
-    <button class="btn-unlock" id="btnUnlock" onclick="solicitarBloqueio()">🟢 Liberado</button>
-    <button class="btn-aux" onclick="acionarAux()">🔓AUX</button>
-    <button class="btn-festa" id="btnFesta" onclick="toggleModoFesta()">🛡️Festa</button>
-    <button class="btn-d8" onclick="confirmarTesteD8()">🚨</button>
-    <button class="btn-parar" onclick="desligarAlarme()" title="Parar Alarme">⏹</button>
+    <button class="btn-center" onclick="window.centralizarAtivo()">◎</button>
+    <button class="btn-block"  id="btnBlock"  onclick="window.cmdAtivo('DESBLOQUEAR')" style="display:none;">🔴 Desbloquear</button>
+    <button class="btn-cancel" id="btnCancel" onclick="window.cmdAtivo('CANCELAR_BLOQUEIO')" style="display:none;">🟡 Aguardando...</button>
+    <button class="btn-unlock" id="btnUnlock" onclick="window.solicitarBloqueio()">🟢 Liberado</button>
+    <button class="btn-aux" onclick="window.acionarAux()">🔓AUX</button>
+    <button class="btn-festa" id="btnFesta" onclick="window.toggleModoFesta()">🛡️Festa</button>
+    <button class="btn-d8" onclick="window.confirmarTesteD8()">🚨</button>
+    <button class="btn-parar" onclick="window.desligarAlarme()" title="Parar Alarme">⏹</button>
   </div>
   <div id="logBox"></div>
 </div>
@@ -218,8 +219,8 @@
     <strong>🔓 Destravar Portas</strong>
     <p>Enviar pulso de 2 segundos para destravamento de emergência?</p>
     <div class="modal-btns">
-      <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
-      <button class="btn-confirm" onclick="confirmarAux()">Confirmar</button>
+      <button class="btn-cancel" onclick="window.fecharModal()">Cancelar</button>
+      <button class="btn-confirm" onclick="window.confirmarAux()">Confirmar</button>
     </div>
   </div>
 </div>
@@ -229,8 +230,8 @@
     <strong>🔧 Teste D8</strong>
     <p>Simular pânico manualmente?</p>
     <div class="modal-btns">
-      <button class="btn-confirm" onclick="executarTesteD8()">Sim</button>
-      <button class="btn-cancel" onclick="fecharModalTesteD8()">Cancelar</button>
+      <button class="btn-confirm" onclick="window.executarTesteD8()">Sim</button>
+      <button class="btn-cancel" onclick="window.fecharModalTesteD8()">Cancelar</button>
     </div>
   </div>
 </div>
@@ -242,66 +243,46 @@
     <input type="text" id="segUser" placeholder="Usuário" autofocus>
     <input type="password" id="segPass" placeholder="Senha">
     <div class="modal-btns">
-      <button class="btn-confirm" onclick="confirmarBloqueio()">Confirmar</button>
-      <button class="btn-cancel" onclick="fecharModalSeguranca()">Cancelar</button>
+      <button class="btn-confirm" onclick="window.confirmarBloqueio()">Confirmar</button>
+      <button class="btn-cancel" onclick="window.fecharModalSeguranca()">Cancelar</button>
     </div>
   </div>
 </div>
 
 <script>
-// ============================================================
-// USUÁRIOS E PINs
-// ============================================================
+// ================================================================
+//  🔒 SISTEMA DE LOGIN (CORRIGIDO)
+// ================================================================
 const USUARIOS = {
   'admin': '8912',
   'cicrano': '0123',
   'zerruela': '3412'
 };
 
-// ============================================================
-// LOGIN COM CAMPO DE TEXTO
-// ============================================================
 let pinBuffer = '';
 let usuarioId = '';
 
-function pin(v) {
+window.pin = function(v) {
   console.log('🔢 Tecla:', v);
-  
   if (v === 'del') {
     pinBuffer = pinBuffer.slice(0, -1);
   } else if (pinBuffer.length < 4) {
     pinBuffer += v;
   }
-  
-  // Atualiza os pontinhos
   for (let i = 0; i < 4; i++) {
     const dot = document.getElementById('dot' + i);
     if (dot) dot.className = 'pin-dot' + (i < pinBuffer.length ? ' filled' : '');
   }
-  
   if (pinBuffer.length === 4) {
-    loginComUsuario();
+    window.loginComUsuario();
   }
-}
+};
 
-function loginComUsuario() {
+window.loginComUsuario = function() {
   const inputUser = document.getElementById('inputUsuario');
   const usuario = inputUser.value.trim().toLowerCase();
-  
-  console.log('🔍 Login:', usuario, 'PIN:', pinBuffer);
-  
-  if (!usuario) {
-    document.getElementById('loginError').textContent = '⚠️ Digite um usuário!';
-    resetPin();
-    return;
-  }
-  
-  if (!USUARIOS[usuario]) {
-    document.getElementById('loginError').textContent = '❌ Usuário inválido! Use: admin, cicrano ou zerruela';
-    resetPin();
-    return;
-  }
-  
+  if (!usuario) { document.getElementById('loginError').textContent = '⚠️ Digite um usuário!'; resetPin(); return; }
+  if (!USUARIOS[usuario]) { document.getElementById('loginError').textContent = '❌ Usuário inválido!'; resetPin(); return; }
   if (pinBuffer === USUARIOS[usuario]) {
     usuarioId = usuario;
     document.getElementById('loginScreen').style.display = 'none';
@@ -309,12 +290,12 @@ function loginComUsuario() {
     document.getElementById('veiculosList').style.display = 'flex';
     document.getElementById('panel').style.display = 'block';
     document.getElementById('nomeUsuario').textContent = '👤 ' + usuarioId;
-    iniciarApp();
+    window.iniciarApp();
   } else {
     document.getElementById('loginError').textContent = '❌ PIN incorreto para ' + usuario;
     resetPin();
   }
-}
+};
 
 function resetPin() {
   pinBuffer = '';
@@ -322,14 +303,12 @@ function resetPin() {
     const dot = document.getElementById('dot' + i);
     if (dot) dot.className = 'pin-dot';
   }
-  setTimeout(() => {
-    document.getElementById('loginError').textContent = '';
-  }, 2000);
+  setTimeout(() => { document.getElementById('loginError').textContent = ''; }, 2000);
 }
 
-// ============================================================
-// RELÓGIO GMT-3
-// ============================================================
+// ================================================================
+//  ⏰ RELÓGIO GMT-3
+// ================================================================
 function atualizarRelogioLocal() {
   const el = document.getElementById('relogioLocal');
   if (!el) return;
@@ -343,9 +322,9 @@ function atualizarRelogioLocal() {
 setInterval(atualizarRelogioLocal, 1000);
 atualizarRelogioLocal();
 
-// ============================================================
-// MAPA E MQTT
-// ============================================================
+// ================================================================
+//  🗺️ MAPA, MQTT E FUNÇÕES GLOBAIS
+// ================================================================
 const BROKER_WSS = 'wss://5e7c95681b9f45068546a87087ed9e2c.s1.eu.hivemq.cloud/mqtt';
 const BROKER_PORT = 8884;
 
@@ -362,20 +341,27 @@ let panicoChipId = null;
 const PARADA_MIN_MS = 360000;
 const PARADA_VEL = 2.0;
 
-function iniciarApp() {
+// -- SIRENE --
+let alarmeAtivo = false;
+let alarmeCtx = null;
+let alarmeOsc = null;
+let alarmeGain = null;
+let alarmeInterval = null;
+
+window.iniciarApp = function() {
   map = L.map('map', { zoomControl: false }).setView([-22.7078, -47.6659], 13);
   L.control.zoom({ position: 'topleft' }).addTo(map);
   tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-  conectarMQTT();
-}
+  window.conectarMQTT();
+};
 
-function nextMapStyle() {
+window.nextMapStyle = function() {
   currentStyle = currentStyle === 'map' ? 'satellite' : 'map';
   const url = currentStyle === 'map' ? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' : 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
   tileLayer.setUrl(url);
-}
+};
 
-function conectarMQTT() {
+window.conectarMQTT = function() {
   if (mqttClient) { mqttClient.end(true); }
   setBadge('mqttBadge', 'Conectando...', 'badge-warn');
   mqttClient = mqtt.connect(BROKER_WSS, {
@@ -400,14 +386,14 @@ function conectarMQTT() {
       const chipId = parts[2];
       const tipo = parts[3];
       const data = JSON.parse(payload.toString());
-      if (tipo === 'gps') processarGPS(chipId, data);
-      if (tipo === 'status') processarStatus(chipId, data);
-      if (tipo === 'status' && data.motivo === 'panico') ativarPanico(chipId);
-      if (tipo === 'status' && data.motivo === 'panico_cancelado') cancelarPanico();
-      if (tipo === 'status' && data.motivo === 'alerta_movimento') ativarAlertaMovimento(chipId, data);
+      if (tipo === 'gps') window.processarGPS(chipId, data);
+      if (tipo === 'status') window.processarStatus(chipId, data);
+      if (tipo === 'status' && data.motivo === 'panico') window.ativarPanico(chipId);
+      if (tipo === 'status' && data.motivo === 'panico_cancelado') window.cancelarPanico();
+      if (tipo === 'status' && data.motivo === 'alerta_movimento') window.ativarAlertaMovimento(chipId, data);
     } catch(e) {}
   });
-}
+};
 
 function setBadge(id, txt, cls) {
   const el = document.getElementById(id);
@@ -416,15 +402,16 @@ function setBadge(id, txt, cls) {
   el.className = 'badge ' + cls;
 }
 
-function cmd(chipId, comando) {
+window.cmd = function(chipId, comando) {
   if (!mqttClient || !mqttClient.connected) { addLog('Sem conexão!', 'log-err'); return; }
   mqttClient.publish('rastreador/' + usuarioId + '/' + chipId + '/cmd', comando);
   addLog('→ ' + comando + ' [' + chipId.slice(-4) + ']', 'log-warn');
-}
+};
 
-function cmdAtivo(comando) {
+// -- BLOQUEIO --
+window.cmdAtivo = function(comando) {
   if (!ativoId) return;
-  cmd(ativoId, comando);
+  window.cmd(ativoId, comando);
   const v = veiculos[ativoId];
   if (!v) return;
   if (comando === 'BLOQUEAR') {
@@ -444,38 +431,17 @@ function cmdAtivo(comando) {
   atualizarBotaoLista(ativoId);
   atualizarVeiculoTopbar(ativoId);
   if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
-}
-// ============================================================
-// AUX - DESTRAVAR PORTAS (com modal bonito)
-// ============================================================
-function acionarAux() {
-  if (!ativoId) { 
-    addLog('Nenhum veículo selecionado', 'log-err'); 
-    alert('⚠️ Selecione um veículo primeiro!');
-    return; 
-  }
-  document.getElementById('modalAux').classList.add('show');
-}
+};
 
-function confirmarAux() {
-  document.getElementById('modalAux').classList.remove('show');
-  cmd(ativoId, 'AUX_DESTRAVAR');
-  addLog('→ AUX destravamento acionado (2s)', 'log-warn');
-}
-
-function fecharModal() {
-  document.getElementById('modalAux').classList.remove('show');
-  addLog('→ AUX cancelado', 'log-ok');
-}
-function solicitarBloqueio() {
+window.solicitarBloqueio = function() {
   const modal = document.getElementById('modalSeguranca');
   modal.style.display = 'flex';
   document.getElementById('segUser').value = '';
   document.getElementById('segPass').value = '';
   setTimeout(() => { document.getElementById('segUser').focus(); }, 300);
-}
+};
 
-function confirmarBloqueio() {
+window.confirmarBloqueio = function() {
   let user = document.getElementById('segUser').value.trim();
   let pass = document.getElementById('segPass').value.trim();
   if (!user || !pass) { alert('⚠️ Digite usuário e senha!'); return; }
@@ -483,24 +449,39 @@ function confirmarBloqueio() {
     document.getElementById('modalSeguranca').style.display = 'none';
     document.getElementById('segUser').value = '';
     document.getElementById('segPass').value = '';
-    cmdAtivo('BLOQUEAR');
-    if (typeof desligarAlarme === 'function') { desligarAlarme(); }
+    window.cmdAtivo('BLOQUEAR');
+    window.desligarAlarme();
   } else {
     alert('❌ Usuário ou senha incorretos!');
     document.getElementById('segPass').value = '';
     document.getElementById('segPass').focus();
   }
-}
+};
 
-function fecharModalSeguranca() {
+window.fecharModalSeguranca = function() {
   document.getElementById('modalSeguranca').style.display = 'none';
   document.getElementById('segUser').value = '';
   document.getElementById('segPass').value = '';
-}
+};
 
-// ============================================================
-// VEÍCULOS
-// ============================================================
+// -- AUX --
+window.acionarAux = function() {
+  if (!ativoId) { addLog('Nenhum veículo selecionado', 'log-err'); alert('⚠️ Selecione um veículo primeiro!'); return; }
+  document.getElementById('modalAux').classList.add('show');
+};
+
+window.confirmarAux = function() {
+  document.getElementById('modalAux').classList.remove('show');
+  window.cmd(ativoId, 'AUX_DESTRAVAR');
+  addLog('→ AUX destravamento acionado (2s)', 'log-warn');
+};
+
+window.fecharModal = function() {
+  document.getElementById('modalAux').classList.remove('show');
+  addLog('→ AUX cancelado', 'log-ok');
+};
+
+// -- VEÍCULOS --
 function obterVeiculo(chipId) {
   if (!veiculos[chipId]) {
     veiculos[chipId] = {
@@ -556,7 +537,8 @@ function atualizarVeiculoTopbar(chipId) {
   document.getElementById('veiculoAtivoNome').textContent = emoji + ' ' + chipId.slice(-4).toUpperCase() + ' ' + Math.round(v.vel) + 'km/h';
 }
 
-function processarGPS(chipId, d) {
+// -- PROCESSAR GPS --
+window.processarGPS = function(chipId, d) {
   const v = obterVeiculo(chipId);
   if (d.rssi !== undefined) v.rssi = d.rssi;
   if (d.sat !== undefined) v.sat = d.sat;
@@ -564,16 +546,10 @@ function processarGPS(chipId, d) {
   if (d.alt !== undefined) v.alt = d.alt;
   if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
   if (d.pendente !== undefined) v.pendente = d.pendente === true;
-
-  if (!d.lat || !d.lng) {
-    if (chipId === ativoId) { atualizarPainel(chipId); atualizarVeiculoTopbar(chipId); }
-    return;
-  }
-
+  if (!d.lat || !d.lng) { if (chipId === ativoId) { atualizarPainel(chipId); atualizarVeiculoTopbar(chipId); } return; }
   const pos = L.latLng(parseFloat(d.lat), parseFloat(d.lng));
   v.ultimaPos = pos;
   const cor = corMarcador(v);
-
   if (!v.marker) {
     v.marker = L.marker(pos, { icon: mkIcon(cor) }).addTo(map);
     v.marker.bindTooltip(v.nome);
@@ -584,6 +560,7 @@ function processarGPS(chipId, d) {
   }
   v.trail.addLatLng(pos);
 
+  // LÓGICA DE PARADA (PINGOS)
   if (v.vel <= PARADA_VEL) {
     if (!v.paradaInicio) {
       v.paradaInicio = Date.now();
@@ -599,9 +576,7 @@ function processarGPS(chipId, d) {
       const minutosTotais = Math.round(tempoParado / 60000);
       if (tempoParado >= PARADA_MIN_MS) {
         let pingoExistente = null;
-        if (v.pingos.length > 0) {
-          pingoExistente = v.pingos.find(p => map.distance(p.marker.getLatLng(), pos) < 50);
-        }
+        if (v.pingos.length > 0) { pingoExistente = v.pingos.find(p => map.distance(p.marker.getLatLng(), pos) < 50); }
         if (pingoExistente) {
           pingoExistente.mins = minutosTotais;
           const novoIcone = criarIconePingo(pingoExistente.num, minutosTotais);
@@ -619,33 +594,10 @@ function processarGPS(chipId, d) {
     v.paradaInicio = null;
     v.paradaPos = null;
   }
-
   atualizarTempoParada(chipId);
   atualizarBotaoLista(chipId);
-  if (chipId === ativoId) {
-    atualizarPainel(chipId);
-    atualizarVeiculoTopbar(chipId);
-  }
-}
-
-function processarStatus(chipId, d) {
-  const v = obterVeiculo(chipId);
-  if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
-  if (d.pendente !== undefined) v.pendente = d.pendente === true;
-  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
-  atualizarBotaoLista(chipId);
-  if (chipId === ativoId) {
-    atualizarPainel(chipId);
-    atualizarVeiculoTopbar(chipId);
-  }
-  const m = d.motivo || '';
-  if (v.bloqueado) addLog('[' + chipId.slice(-4) + '] BLOQUEADO — ' + m, 'log-err');
-  else if (v.pendente) addLog('[' + chipId.slice(-4) + '] Aguardando vel...', 'log-warn');
-  else if (m === 'desbloqueado') addLog('[' + chipId.slice(-4) + '] LIBERADO', 'log-ok');
-  else if (m === 'online' || m === 'reconectado') addLog('[' + chipId.slice(-4) + '] Online ✓', 'log-ok');
-  if (m === 'modo_festa_ativado') addLog('🛡️ Modo Festa ATIVADO no ESP', 'log-warn');
-  if (m === 'modo_festa_desativado') addLog('🛡️ Modo Festa DESATIVADO no ESP', 'log-ok');
-}
+  if (chipId === ativoId) { atualizarPainel(chipId); atualizarVeiculoTopbar(chipId); }
+};
 
 function atualizarTempoParada(chipId) {
   const v = veiculos[chipId];
@@ -669,6 +621,22 @@ function atualizarTempoParada(chipId) {
   }
 }
 
+window.processarStatus = function(chipId, d) {
+  const v = obterVeiculo(chipId);
+  if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
+  if (d.pendente !== undefined) v.pendente = d.pendente === true;
+  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
+  atualizarBotaoLista(chipId);
+  if (chipId === ativoId) { atualizarPainel(chipId); atualizarVeiculoTopbar(chipId); }
+  const m = d.motivo || '';
+  if (v.bloqueado) addLog('[' + chipId.slice(-4) + '] BLOQUEADO — ' + m, 'log-err');
+  else if (v.pendente) addLog('[' + chipId.slice(-4) + '] Aguardando vel...', 'log-warn');
+  else if (m === 'desbloqueado') addLog('[' + chipId.slice(-4) + '] LIBERADO', 'log-ok');
+  else if (m === 'online' || m === 'reconectado') addLog('[' + chipId.slice(-4) + '] Online ✓', 'log-ok');
+  if (m === 'modo_festa_ativado') addLog('🛡️ Modo Festa ATIVADO no ESP', 'log-warn');
+  if (m === 'modo_festa_desativado') addLog('🛡️ Modo Festa DESATIVADO no ESP', 'log-ok');
+};
+
 function atualizarBotaoLista(chipId) {
   const v = veiculos[chipId];
   const btn = document.getElementById('vbtn_' + chipId);
@@ -688,37 +656,28 @@ function atualizarPainel(chipId) {
   document.getElementById('pRssi').textContent = (v.rssi || '—') + ' dBm';
   document.getElementById('pAlt').textContent = v.alt ? v.alt.toFixed(0) + ' m' : '— m';
   atualizarTempoParada(chipId);
-
   const st = document.getElementById('pStatus');
   const bB = document.getElementById('btnBlock');
   const bC = document.getElementById('btnCancel');
   const bU = document.getElementById('btnUnlock');
   const bn = document.getElementById('pendenteBanner');
-  
   bB.style.display = 'none';
   bC.style.display = 'none';
   bU.style.display = 'none';
   bn.style.display = 'none';
-
   if (v.bloqueado) {
-    st.textContent = 'Bloqueado';
-    st.className = 'badge-sm badge-err';
-    bB.style.display = 'block';
-    bB.style.flex = '1';
-    bB.onclick = function() { cmdAtivo('DESBLOQUEAR'); };
+    st.textContent = 'Bloqueado'; st.className = 'badge-sm badge-err';
+    bB.style.display = 'block'; bB.style.flex = '1';
+    bB.onclick = function() { window.cmdAtivo('DESBLOQUEAR'); };
     bB.textContent = '🔴 Desbloquear';
   } else if (v.pendente) {
-    st.textContent = 'Aguardando';
-    st.className = 'badge-sm badge-warn';
-    bC.style.display = 'block';
-    bC.style.flex = '1';
+    st.textContent = 'Aguardando'; st.className = 'badge-sm badge-warn';
+    bC.style.display = 'block'; bC.style.flex = '1';
     bn.style.display = 'block';
   } else {
-    st.textContent = 'Liberado';
-    st.className = 'badge-sm badge-ok';
-    bU.style.display = 'block';
-    bU.style.flex = '2';
-    bU.onclick = function() { solicitarBloqueio(); };
+    st.textContent = 'Liberado'; st.className = 'badge-sm badge-ok';
+    bU.style.display = 'block'; bU.style.flex = '2';
+    bU.onclick = function() { window.solicitarBloqueio(); };
     bU.textContent = '🟢 Liberado';
   }
 }
@@ -752,18 +711,6 @@ function atualizarContagem() {
   setBadge('veiculosBadge', n + ' veículo' + (n !== 1 ? 's' : ''), n > 0 ? 'badge-ok' : 'badge-off');
 }
 
-function centralizarAtivo() {
-  if (!ativoId || !veiculos[ativoId]?.ultimaPos) return;
-  map.setView(veiculos[ativoId].ultimaPos, 16);
-}
-
-function centralizarTodos() {
-  const pts = Object.values(veiculos).filter(v => v.ultimaPos).map(v => v.ultimaPos);
-  if (!pts.length) return;
-  if (pts.length === 1) { map.setView(pts[0], 15); return; }
-  map.fitBounds(L.latLngBounds(pts), { padding: [40, 40] });
-}
-
 function addLog(msg, cls) {
   const box = document.getElementById('logBox');
   const t = new Date().toTimeString().slice(0, 8);
@@ -774,50 +721,58 @@ function addLog(msg, cls) {
   while (box.children.length > 10) box.removeChild(box.lastChild);
 }
 
-// ============================================================
-// MODO FESTA
-// ============================================================
-function toggleModoFesta() {
+window.centralizarAtivo = function() {
+  if (!ativoId || !veiculos[ativoId]?.ultimaPos) return;
+  map.setView(veiculos[ativoId].ultimaPos, 16);
+};
+
+window.centralizarTodos = function() {
+  const pts = Object.values(veiculos).filter(v => v.ultimaPos).map(v => v.ultimaPos);
+  if (!pts.length) return;
+  if (pts.length === 1) { map.setView(pts[0], 15); return; }
+  map.fitBounds(L.latLngBounds(pts), { padding: [40, 40] });
+};
+
+// ================================================================
+//  🛡️ MODO FESTA E ALARME
+// ================================================================
+window.toggleModoFesta = function() {
   if (!ativoId) return;
   if (!modoFestaAtivo) {
-    cmd(ativoId, 'ATIVAR_MODO_FESTA');
+    window.cmd(ativoId, 'ATIVAR_MODO_FESTA');
     const v = veiculos[ativoId];
-    if (v && v.ultimaPos) {
-      circuloFesta = L.circle(v.ultimaPos, { color: '#f9a825', fillColor: '#f9a825', fillOpacity: 0.15, radius: 50 }).addTo(map);
-    }
+    if (v && v.ultimaPos) { circuloFesta = L.circle(v.ultimaPos, { color: '#f9a825', fillColor: '#f9a825', fillOpacity: 0.15, radius: 50 }).addTo(map); }
     document.getElementById('btnFesta').classList.add('ativo');
     document.getElementById('btnFesta').textContent = '🛡️Ativo';
     modoFestaAtivo = true;
     addLog('🛡️ Modo Festa ATIVADO — Círculo de 50m', 'log-warn');
   } else {
-    cmd(ativoId, 'DESATIVAR_MODO_FESTA');
+    window.cmd(ativoId, 'DESATIVAR_MODO_FESTA');
     if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
     document.getElementById('btnFesta').classList.remove('ativo');
     document.getElementById('btnFesta').textContent = '🛡️Festa';
     modoFestaAtivo = false;
     addLog('🛡️ Modo Festa DESATIVADO', 'log-warn');
   }
-}
+};
 
-function ativarAlertaMovimento(chipId, d) {
+window.ativarAlertaMovimento = function(chipId, d) {
   const pos = L.latLng(d.lat, d.lng);
   if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
   document.getElementById('btnFesta').classList.remove('ativo');
   document.getElementById('btnFesta').textContent = '🛡️Festa';
   modoFestaAtivo = false;
-  tocarAlarmeNavegador();
+  window.tocarAlarmeNavegador();
   setBadge('pStatus', '🚨 FURTO', 'badge-err');
-  if (confirm('🚨 ALERTA DE SEGURANÇA!\n\nO veículo se moveu mais de 50 metros!\n\nClique em OK para desligar o alarme.')) {
-    desligarAlarme();
-  }
+  if (confirm('🚨 ALERTA DE SEGURANÇA!\n\nO veículo se moveu mais de 50 metros!\n\nClique em OK para desligar o alarme.')) { window.desligarAlarme(); }
   map.setView(pos, 15);
   addLog('🚨 ALERTA DE FURTO DETECTADO!', 'log-err');
-}
+};
 
-// ============================================================
-// PÂNICO
-// ============================================================
-function ativarPanico(chipId, origem = 'mqtt') {
+// ================================================================
+//  🚨 PÂNICO E SIRENE (FUNÇÕES GLOBAIS)
+// ================================================================
+window.ativarPanico = function(chipId, origem = 'mqtt') {
   if (panicoAtivo) return;
   panicoAtivo = true;
   panicoCancelavel = true;
@@ -829,64 +784,44 @@ function ativarPanico(chipId, origem = 'mqtt') {
   timer.textContent = '(' + segsRestantes + 's)';
   panicoTimer = setInterval(() => {
     segsRestantes--;
-    if (segsRestantes > 0) {
-      timer.textContent = '(' + segsRestantes + 's)';
-    } else {
-      clearInterval(panicoTimer);
-      panicoCancelavel = false;
-      timer.textContent = '(Confirmado)';
-      addLog('🚨 PÂNICO CONFIRMADO [' + chipId.slice(-4) + ']', 'log-err');
-    }
+    if (segsRestantes > 0) { timer.textContent = '(' + segsRestantes + 's)'; } 
+    else { clearInterval(panicoTimer); panicoCancelavel = false; timer.textContent = '(Confirmado)'; addLog('🚨 PÂNICO CONFIRMADO [' + chipId.slice(-4) + ']', 'log-err'); }
   }, 1000);
   addLog('🚨 PÂNICO ativado [' + chipId.slice(-4) + '] — 60s para cancelar', 'log-err');
-}
+};
 
-function cancelarPanico() {
+window.cancelarPanico = function() {
   if (!panicoAtivo || !panicoCancelavel) return;
   clearInterval(panicoTimer);
   panicoAtivo = false;
   document.getElementById('panicWidget').style.display = 'none';
   document.getElementById('panicBanner').style.display = 'none';
-  if (panicoChipId) cmd(panicoChipId, 'PANICO_CANCELADO');
+  if (panicoChipId) window.cmd(panicoChipId, 'PANICO_CANCELADO');
   addLog('✅ Pânico cancelado', 'log-ok');
-}
+};
 
-function confirmarTesteD8() {
+// -- TESTE D8 --
+window.confirmarTesteD8 = function() {
   document.getElementById('modalTesteD8').style.display = 'flex';
-}
+};
 
-function fecharModalTesteD8() {
+window.fecharModalTesteD8 = function() {
   document.getElementById('modalTesteD8').style.display = 'none';
-}
+};
 
-function executarTesteD8() {
-  fecharModalTesteD8();
-  if (!ativoId) {
-    addLog('❌ Nenhum veículo selecionado para teste D8!', 'log-err');
-    alert('⚠️ Selecione um veículo primeiro!');
-    return false;
-  }
-  if (panicoAtivo) {
-    addLog('⚠️ Pânico já está ativo!', 'log-warn');
-    return false;
-  }
+window.executarTesteD8 = function() {
+  window.fecharModalTesteD8();
+  if (!ativoId) { addLog('❌ Nenhum veículo selecionado para teste D8!', 'log-err'); alert('⚠️ Selecione um veículo primeiro!'); return false; }
+  if (panicoAtivo) { addLog('⚠️ Pânico já está ativo!', 'log-warn'); return false; }
   const v = veiculos[ativoId];
   addLog('🚨 TESTE D8: Enviando pânico para ' + v.nome, 'log-warn');
-  cmd(ativoId, 'PANICO_ATIVAR');
-  ativarPanico(ativoId, 'manual');
+  window.cmd(ativoId, 'PANICO_ATIVAR');
+  window.ativarPanico(ativoId, 'manual');
   return true;
-}
+};
 
-// ============================================================
-// SIRENE
-// ============================================================
-let alarmeAtivo = false;
-let alarmeCtx = null;
-let alarmeOsc = null;
-let alarmeGain = null;
-let alarmeInterval = null;
-
-function tocarAlarmeNavegador() {
+// -- SIRENE (VERSÃO QUE FUNCIONOU) --
+window.tocarAlarmeNavegador = function() {
   if (alarmeAtivo) return;
   alarmeAtivo = true;
   try {
@@ -909,21 +844,21 @@ function tocarAlarmeNavegador() {
     }, 350);
   } catch(e) { alarmeAtivo = false; }
   if (navigator.vibrate) { navigator.vibrate([500, 200, 500, 200, 500, 200, 1000]); }
-}
+};
 
-function desligarAlarme() {
+window.desligarAlarme = function() {
   alarmeAtivo = false;
   if (alarmeInterval) { clearInterval(alarmeInterval); alarmeInterval = null; }
   if (alarmeOsc) { try { alarmeOsc.stop(); } catch(e) {} alarmeOsc = null; }
   if (alarmeCtx) { try { alarmeCtx.close(); } catch(e) {} alarmeCtx = null; }
   alarmeGain = null;
   if (navigator.vibrate) { navigator.vibrate(0); }
-}
+};
 
-// ============================================================
-// SALVAR MAPA
-// ============================================================
-function salvarMapa() {
+// ================================================================
+//  💾 SALVAR MAPA
+// ================================================================
+window.salvarMapa = function() {
   const data = new Date().toLocaleString('pt-BR');
   const dataArq = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
   let resumo = `<html><head><meta charset="UTF-8"><title>Trajeto ${dataArq}</title>
@@ -937,7 +872,6 @@ function salvarMapa() {
   tr:nth-child(even){background:#1a1a1a;}
   .verde{color:#4caf50;font-weight:700;}.verm{color:#ef5350;font-weight:700;}a{color:#90caf9;}
   </style></head><body><div id="mapaExport"></div><div class="info"><h2>🛡️ Rastreador — Trajeto salvo em ${data}</h2>`;
-  
   Object.values(veiculos).forEach(v => {
     const pontos = v.trail.getLatLngs();
     const status = v.bloqueado ? '<span class="verm">BLOQUEADO</span>' : '<span class="verde">LIBERADO</span>';
@@ -952,24 +886,14 @@ function salvarMapa() {
       resumo += '</table>';
     }
   });
-  
-  const trailData = Object.values(veiculos).map(v => ({
-    nome: v.nome, chipId: v.chipId,
-    pontos: v.trail.getLatLngs().map(p => [p.lat, p.lng]),
-    pingos: v.pingos.map(p => ({ ll: p.marker.getLatLng(), mins: p.mins })),
-    bloqueado: v.bloqueado
-  }));
-
+  const trailData = Object.values(veiculos).map(v => ({ nome: v.nome, chipId: v.chipId, pontos: v.trail.getLatLngs().map(p => [p.lat, p.lng]), pingos: v.pingos.map(p => ({ ll: p.marker.getLatLng(), mins: p.mins })), bloqueado: v.bloqueado }));
   resumo += `</div><script>
   const dados = ${JSON.stringify(trailData)};
   const m = L.map('mapaExport');
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(m);
   const bounds = [];
   dados.forEach(v => {
-    if (v.pontos.length > 0) {
-      L.polyline(v.pontos, {color:'#1565C0',weight:3,opacity:0.8}).addTo(m);
-      v.pontos.forEach(p => bounds.push(p));
-    }
+    if (v.pontos.length > 0) { L.polyline(v.pontos, {color:'#1565C0',weight:3,opacity:0.8}).addTo(m); v.pontos.forEach(p => bounds.push(p)); }
     v.pingos.forEach(p => {
       const svg = \`<svg xmlns="http://www.w3.org/2000/svg" width="44" height="58" viewBox="0 0 60 80">
         <path d="M30 0 C13 0 0 13 0 30 C0 47 30 80 30 80 C30 80 60 47 60 30 C60 13 47 0 30 0Z" fill="#FF6B00" stroke="#CC5500" stroke-width="1.5"/>
@@ -983,7 +907,6 @@ function salvarMapa() {
   });
   if (bounds.length > 0) m.fitBounds(bounds, {padding:[30,30]});
   <\/script></body></html>`;
-  
   const blob = new Blob([resumo], {type:'text/html'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -992,98 +915,48 @@ function salvarMapa() {
   a.click();
   URL.revokeObjectURL(url);
   addLog('💾 Trajeto salvo!', 'log-ok');
-}
+};
 
-// ============================================================
-// SIMULAR MODO FESTA PELO CONSOLE
-// ============================================================
-function simularModoFesta() {
+// ================================================================
+//  🧪 SIMULAR MODO FESTA PELO CONSOLE
+// ================================================================
+window.simularModoFesta = function() {
     console.log('🧪 SIMULAÇÃO: Iniciando Modo Festa...');
-    
-    if (!window.ativoId) {
-        console.error('❌ Nenhum veículo selecionado!');
-        alert('⚠️ Selecione um veículo no mapa primeiro!');
-        return;
-    }
-    
+    if (!window.ativoId) { console.error('❌ Nenhum veículo selecionado!'); alert('⚠️ Selecione um veículo no mapa primeiro!'); return; }
     const v = window.veiculos[window.ativoId];
-    if (!v || !v.ultimaPos) {
-        console.error('❌ Veículo sem posição GPS!');
-        alert('⚠️ Veículo sem posição!');
-        return;
-    }
-    
+    if (!v || !v.ultimaPos) { console.error('❌ Veículo sem posição GPS!'); alert('⚠️ Veículo sem posição!'); return; }
     console.log('📍 Veículo:', v.nome, 'Posição:', v.ultimaPos);
-    
-    if (window.circuloFesta) {
-        window.circuloFesta.remove();
-        window.circuloFesta = null;
-    }
-    
-    window.circuloFesta = L.circle(v.ultimaPos, {
-        color: '#f9a825',
-        fillColor: '#f9a825',
-        fillOpacity: 0.15,
-        radius: 50
-    }).addTo(window.map);
-    
+    if (window.circuloFesta) { window.circuloFesta.remove(); window.circuloFesta = null; }
+    window.circuloFesta = L.circle(v.ultimaPos, { color: '#f9a825', fillColor: '#f9a825', fillOpacity: 0.15, radius: 50 }).addTo(window.map);
     const btnFesta = document.getElementById('btnFesta');
-    if (btnFesta) {
-        btnFesta.classList.add('ativo');
-        btnFesta.textContent = '🛡️ Ativo';
-    }
+    if (btnFesta) { btnFesta.classList.add('ativo'); btnFesta.textContent = '🛡️ Ativo'; }
     window.modoFestaAtivo = true;
-    
     console.log('✅ Círculo de 50m criado!');
-    
-    if (typeof window.cmd === 'function') {
-        window.cmd(window.ativoId, 'ATIVAR_MODO_FESTA');
-    }
-    
+    if (typeof window.cmd === 'function') { window.cmd(window.ativoId, 'ATIVAR_MODO_FESTA'); }
     setTimeout(() => {
         console.log('🚨 Simulando movimento do veículo...');
-        
-        const novaPos = L.latLng(
-            v.ultimaPos.lat + 0.0005,
-            v.ultimaPos.lng + 0.001
-        );
-        
-        if (typeof window.tocarAlarmeNavegador === 'function') {
-            window.tocarAlarmeNavegador();
-        }
-        
-        if (window.circuloFesta) {
-            window.circuloFesta.remove();
-            window.circuloFesta = null;
-        }
-        
+        const novaPos = L.latLng( v.ultimaPos.lat + 0.0005, v.ultimaPos.lng + 0.001 );
+        if (typeof window.tocarAlarmeNavegador === 'function') { window.tocarAlarmeNavegador(); }
+        if (window.circuloFesta) { window.circuloFesta.remove(); window.circuloFesta = null; }
         const btnFesta2 = document.getElementById('btnFesta');
-        if (btnFesta2) {
-            btnFesta2.classList.remove('ativo');
-            btnFesta2.textContent = '🛡️Festa';
-        }
+        if (btnFesta2) { btnFesta2.classList.remove('ativo'); btnFesta2.textContent = '🛡️Festa'; }
         window.modoFestaAtivo = false;
-        
-        if (v.marker) {
-            v.marker.setLatLng(novaPos);
-        }
+        if (v.marker) { v.marker.setLatLng(novaPos); }
         v.ultimaPos = novaPos;
         v.trail.addLatLng(novaPos);
         window.map.setView(novaPos, 16);
-        
         console.log('✅ Veículo movido para:', novaPos);
         console.log('🔊 ALARME ATIVADO! Use o botão ⏹ no painel para parar.');
-        
     }, 3000);
-}
+};
 
-window.testarFesta = simularModoFesta;
-window.modoFesta = simularModoFesta;
+window.testarFesta = window.simularModoFesta;
+window.modoFesta = window.simularModoFesta;
 
-console.log('🚀 Rastreador Veicular v2');
+console.log('🚀 Rastreador Veicular v2 - CORRIGIDO!');
+console.log('✅ Botão Pânico e Sirene funcionando.');
 console.log('🕐 GMT-3:', new Date().toLocaleTimeString('pt-BR', {timeZone: 'America/Sao_Paulo'}));
-console.log('✅ Comandos disponíveis: modoFesta() ou testarFesta()');
+console.log('✅ Comandos: modoFesta() ou testarFesta()');
 </script>
-
 </body>
 </html>
