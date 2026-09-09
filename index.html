@@ -29,7 +29,7 @@
   .numpad button:active { background: #1565C0; transform: scale(0.95); }
   #loginError { color: #f44336; font-size: 13px; min-height: 18px; }
 
-  /* TOPBAR - MAIS COMPACTA */
+  /* TOPBAR - COMPACTA */
   #topbar { background: rgba(0,0,0,0.85); padding: 3px 6px; display: flex; align-items: center; gap: 3px; flex-wrap: nowrap; z-index: 1000; border-bottom: 1px solid #222; overflow-x: auto; }
   #topbar .badge { padding: 1px 5px; border-radius: 10px; font-size: 8px; font-weight: 600; border: 1px solid; white-space: nowrap; }
   .badge-ok   { background: #2e7d3288; color: #a5d6a7; border-color: #2e7d32; }
@@ -41,23 +41,21 @@
   #topbar button:active { background: #1565C0; }
   #nomeUsuario { font-size: 9px; color: #4caf50; font-weight: 700; white-space: nowrap; }
 
-  /* RELÓGIO LOCAL - MENOR, NA MESMA LINHA */
+  /* RELÓGIO LOCAL */
   #relogioLocal {
     background: #0a0a0a;
     border: 1px solid #00ff41;
     border-radius: 10px;
     padding: 1px 5px;
-    font-size: 8px;
+    font-size: 9px;
     font-weight: 700;
     color: #00ff41;
     font-family: 'Courier New', monospace;
     letter-spacing: 0.3px;
     white-space: nowrap;
-    margin-left: auto;
-    flex-shrink: 0;
   }
 
-  /* LISTA DE VEÍCULOS - MAIS COMPACTA */
+  /* LISTA DE VEÍCULOS */
   #veiculosList { background: rgba(0,0,0,0.85); border-bottom: 1px solid #222; overflow-x: auto; display: flex; gap: 3px; padding: 3px 5px; z-index: 999; }
   .veiculo-btn { flex-shrink: 0; padding: 3px 8px; border-radius: 14px; border: 2px solid #333; background: #1a1a1a; color: #fff; font-size: 9px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
   .veiculo-btn.ativo     { border-color: #1565C0; background: #1565C020; }
@@ -69,7 +67,7 @@
   /* MAPA */
   #map { flex: 1; }
 
-  /* PAINEL - MAIS COMPACTO */
+  /* PAINEL */
   #panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.88); padding: 2px 5px; z-index: 1000; border-top: 1px solid #222; }
   #panelNome { font-size: 8px; font-weight: 700; color: #90caf9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 1px; }
   #pendenteBanner { background: #f9a825dd; border-radius: 4px; padding: 1px 5px; font-size: 7px; font-weight: 600; text-align: center; color: #fff; display: none; margin-bottom: 1px; }
@@ -82,7 +80,6 @@
   .badge-sm.badge-warn { background: #f9a82588; color: #fff8e1; border-color: #f9a825; animation: blink 1s infinite; }
   .badge-sm.badge-off  { background: #33333388; color: #888; border-color: #444; }
   
-  /* BOTÕES - OTIMIZADOS PARA CELULAR */
   .btn-row { display: flex; align-items: center; gap: 2px; flex-wrap: nowrap; overflow-x: auto; }
   .btn-row button { padding: 2px 4px; font-size: 8px; border-radius: 5px; border: none; cursor: pointer; white-space: nowrap; flex: 1; min-width: 28px; height: 24px; font-weight: 700; }
   .btn-row .btn-block  { background: #c62828; color: #fff; display: none; }
@@ -113,20 +110,18 @@
     animation: blink 1s infinite;
   }
 
-  /* LED Pânico - MENOR */
+  /* PÂNICO */
   #panicWidget { display:none; position:fixed; top:3px; right:50px; z-index:9998; align-items:center; gap:3px; background:rgba(0,0,0,0.7); border:1px solid #c62828; border-radius:14px; padding:2px 6px; cursor:pointer; }
   #panicDot { width:7px; height:7px; border-radius:50%; background:#ff0000; box-shadow:0 0 4px #ff0000; animation:panicoLed 0.4s infinite alternate; flex-shrink:0; }
   #panicTxt { font-size:8px; font-weight:700; color:#ff6666; letter-spacing:0.5px; }
   @keyframes panicoLed { from{opacity:1;} to{opacity:0.2;} }
   #panicBanner { display:none; position:fixed; top:0; left:0; right:0; z-index:9997; background:#b71c1c; color:#fff; text-align:center; padding:3px; font-weight:700; font-size:10px; }
 
-  /* Botão salvar - MENOR */
+  /* BOTÕES */
   #btnSalvar { position:absolute; top:45px; right:5px; z-index:999; background:rgba(0,0,0,0.7); border:1px solid #444; color:#fff; padding:3px 6px; border-radius:14px; font-size:8px; cursor:pointer; }
   #btnTodos { position: absolute; top:70px; right:5px; z-index: 999; background: rgba(0,0,0,0.7); border: 1px solid #444; color: #fff; padding:3px 6px; border-radius:14px; font-size:8px; cursor: pointer; display: none; }
 
- 
-
-  /* MODAIS - MESMO TAMANHO */
+  /* MODAIS */
   #modalAux { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center; }
   #modalAux.show { display:flex; }
   #modalBox { background:#1a1a1a; border:1px solid #1565C0; border-radius:14px; padding:16px; width:80%; max-width:320px; text-align:center; }
@@ -137,11 +132,9 @@
   #modalConfirm { background:#1565C0; color:#fff; }
   #modalCancel  { background:#333; color:#aaa; }
 
-  /* Modal Teste D8 */
   #modalTesteD8 { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:99999; align-items:center; justify-content:center; }
   #modalTesteD8 .box { background:#1a1a1a; border:1px solid #555; border-radius:14px; padding:16px; width:80%; max-width:320px; text-align:center; }
 
-  /* Modal Segurança */
   #modalSeguranca { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:99999; align-items:center; justify-content:center; }
   #modalSeguranca .box { background:#1a1a1a; border:1px solid #1565C0; border-radius:14px; padding:20px; width:90%; max-width:320px; text-align:center; }
   #modalSeguranca h3 { color:#fff; font-size:16px; margin-bottom:6px; }
@@ -176,13 +169,13 @@
   </div>
 </div>
 
-<!-- TOPBAR - COMPACTA -->
+<!-- TOPBAR -->
 <div id="topbar" style="display:none">
   <span style="font-size:10px;font-weight:700">🛡️</span>
   <span id="nomeUsuario"></span>
   
   <!-- INDICADOR DE CONEXÃO - ANTENA PARABÓLICA -->
-  <span id="mqttBadge" style="font-size:16px;margin:0 2px;">📡</span>
+  <span id="mqttBadge" style="font-size:14px;margin:0 2px;">📡</span>
   
   <button onclick="conectarMQTT()" style="font-size:16px;padding:2px 10px;">🔌</button>
   <button onclick="nextMapStyle()" id="mapStyleBtn" style="font-size:14px;padding:2px 8px;">🛰</button>
@@ -193,6 +186,11 @@
     <span id="relogioLocal" style="font-size:9px;">🕐 --:--:--</span>
     <span style="font-size:9px;color:#fff;font-family:'Courier New',monospace;letter-spacing:0.5px;opacity:0.5;">by darca</span>
   </div>
+</div>
+
+<!-- LISTA DE VEÍCULOS -->
+<div id="veiculosList" style="display:none">
+  <span id="semVeiculos">Aguardando veículos...</span>
 </div>
 
 <!-- PÂNICO -->
@@ -210,12 +208,11 @@
 <div id="map"></div>
 <button id="btnTodos" onclick="centralizarTodos()">⊕</button>
 
-<!-- PAINEL - COMPACTO -->
+<!-- PAINEL -->
 <div id="panel" style="display:none">
   <div id="panelNome">Aguardando veículo...</div>
   <div id="pendenteBanner">🟡 Aguardando velocidade ≤ 8 km/h...</div>
   
-  <!-- LINHA 1: INFORMAÇÕES -->
   <div class="info-row">
     <span class="info-pill" id="pVel">0.0 km/h</span>
     <span class="info-pill" id="pSat">0 sat</span>
@@ -225,7 +222,6 @@
     <span class="badge-sm badge-off" id="pStatus">Aguardando</span>
   </div>
   
-  <!-- LINHA 2: BOTÕES -->
   <div class="btn-row">
     <button class="btn-center" onclick="centralizarAtivo()">◎</button>
     <button class="btn-block"  id="btnBlock"  onclick="cmdAtivo('DESBLOQUEAR')" style="display:none">🔴 Desbloquear</button>
@@ -318,20 +314,17 @@ let modoFestaAtivo = false;
 let circuloFesta = null;
 
 // ═══════════════════════════════════════════════════
-//  ⏰ RELÓGIO LOCAL (GMT-3) - CORRIGIDO
-//  Subtrai 3 horas do horário UTC
+//  ⏰ RELÓGIO LOCAL (GMT-3)
 // ═══════════════════════════════════════════════════
 function atualizarRelogioLocal() {
     const el = document.getElementById('relogioLocal');
     if (!el) return;
     
     const agora = new Date();
-    // Obtém o horário UTC e subtrai 3 horas (GMT-3)
     const horaUTC = agora.getUTCHours();
     const minutoUTC = agora.getUTCMinutes();
     const segundoUTC = agora.getUTCSeconds();
     
-    // Aplica GMT-3 (subtrai 3 horas)
     let horaBrasilia = horaUTC - 3;
     if (horaBrasilia < 0) horaBrasilia += 24;
     
@@ -342,7 +335,6 @@ function atualizarRelogioLocal() {
     el.textContent = '🕐 ' + hora + ':' + minuto + ':' + segundo;
 }
 
-// Atualiza o relógio a cada 1 segundo
 setInterval(atualizarRelogioLocal, 1000);
 atualizarRelogioLocal();
 
@@ -404,18 +396,18 @@ function nextMapStyle() {
 // ═══════════════════════════════════════════════════
 function conectarMQTT() {
   if (mqttClient) { mqttClient.end(true); }
-  setBadge('mqttBadge', 'Conectando...', 'badge-warn');
+  setBadge('mqttBadge', '📡', 'badge-warn');
   const clientId = 'Web_' + usuarioId + '_' + Math.random().toString(36).slice(2, 6);
   mqttClient = mqtt.connect(BROKER_WSS, { port: BROKER_PORT, clientId, username: 'ESP8266Dario', password: '3SP8266d4r10', reconnectPeriod: 5000 });
 
   mqttClient.on('connect', () => {
-    setBadge('mqttBadge', 'Conectado', 'badge-ok');
+    setBadge('mqttBadge', '📡', 'badge-ok');
     mqttClient.subscribe('rastreador/' + usuarioId + '/+/gps');
     mqttClient.subscribe('rastreador/' + usuarioId + '/+/status');
     addLog('Conectado como ' + usuarioId, 'log-ok');
   });
-  mqttClient.on('disconnect', () => setBadge('mqttBadge', 'Desconectado', 'badge-off'));
-  mqttClient.on('offline',    () => setBadge('mqttBadge', 'Offline', 'badge-err'));
+  mqttClient.on('disconnect', () => setBadge('mqttBadge', '📡', 'badge-off'));
+  mqttClient.on('offline',    () => setBadge('mqttBadge', '📡', 'badge-err'));
   mqttClient.on('error', (e)  => addLog('Erro broker: ' + e.message, 'log-err'));
 
   mqttClient.on('message', (topic, payload) => {
