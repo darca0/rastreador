@@ -29,32 +29,25 @@
   .numpad button:active { background: #1565C0; transform: scale(0.95); }
   #loginError { color: #f44336; font-size: 13px; min-height: 18px; }
 
-  /* TOPBAR - MAIS COMPACTA */
-  #topbar { background: rgba(0,0,0,0.85); padding: 4px 8px; display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; z-index: 1000; border-bottom: 1px solid #222; overflow-x: auto; }
-  #topbar .badge { padding: 2px 6px; border-radius: 12px; font-size: 9px; font-weight: 600; border: 1px solid; white-space: nowrap; }
+  /* TOPBAR - DUAS LINHAS */
+  #topbar { background: rgba(0,0,0,0.85); display: none; flex-direction: column; z-index: 1000; border-bottom: 1px solid #222; }
+  #topbar .linha1 { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; overflow-x: auto; padding: 2px 6px; border-bottom: 1px solid #222; }
+  #topbar .linha2 { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; overflow-x: auto; padding: 2px 6px; }
+  
+  .badge { padding: 2px 6px; border-radius: 12px; font-size: 8px; font-weight: 600; border: 1px solid; white-space: nowrap; }
   .badge-ok   { background: #2e7d3288; color: #a5d6a7; border-color: #2e7d32; }
   .badge-err  { background: #c6282888; color: #ef9a9a; border-color: #c62828; }
   .badge-warn { background: #f9a82588; color: #fff8e1; border-color: #f9a825; animation: blink 1s infinite; }
   .badge-off  { background: #33333388; color: #888; border-color: #444; }
   @keyframes blink { 50% { opacity: 0.5; } }
-  #topbar button { background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 2px 8px; border-radius: 12px; font-size: 9px; cursor: pointer; white-space: nowrap; }
+  
+  #topbar button { background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 1px 6px; border-radius: 10px; font-size: 10px; cursor: pointer; white-space: nowrap; }
   #topbar button:active { background: #1565C0; }
-  #nomeUsuario { font-size: 10px; color: #4caf50; font-weight: 700; white-space: nowrap; }
-
-  /* RELÓGIO LOCAL */
-  #relogioLocal {
-    background: #0a0a0a;
-    border: 1px solid #00ff41;
-    border-radius: 12px;
-    padding: 1px 6px;
-    font-size: 9px;
-    font-weight: 700;
-    color: #00ff41;
-    font-family: 'Courier New', monospace;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
-    margin-left: auto;
-  }
+  
+  #nomeUsuario { font-size: 9px; color: #4caf50; font-weight: 700; white-space: nowrap; }
+  #veiculoAtivoNome { font-size: 9px; font-weight: 700; color: #90caf9; white-space: nowrap; }
+  #relogioLocal { font-size: 9px; color: #00ff41; font-family: 'Courier New', monospace; white-space: nowrap; margin-left: auto; }
+  #creditosTop { font-size: 6px; color: #555; font-family: 'Courier New', monospace; white-space: nowrap; opacity: 0.4; }
 
   /* LISTA DE VEÍCULOS */
   #veiculosList { background: rgba(0,0,0,0.85); border-bottom: 1px solid #222; overflow-x: auto; display: flex; gap: 4px; padding: 4px 6px; z-index: 999; }
@@ -68,7 +61,7 @@
   /* MAPA */
   #map { flex: 1; }
 
-  /* PAINEL - MAIS COMPACTO */
+  /* PAINEL */
   #panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.88); padding: 3px 6px; z-index: 1000; border-top: 1px solid #222; }
   #panelNome { font-size: 9px; font-weight: 700; color: #90caf9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 1px; }
   #pendenteBanner { background: #f9a825dd; border-radius: 4px; padding: 1px 6px; font-size: 8px; font-weight: 600; text-align: center; color: #fff; display: none; margin-bottom: 1px; }
@@ -166,28 +159,29 @@
 <!-- TOPBAR - DUAS LINHAS -->
 <div id="topbar" style="display:none">
   
-  <!-- LINHA 1: USUÁRIO, STATUS, BOTÕES -->
-  <div style="display:flex;align-items:center;gap:4px;flex-wrap:nowrap;overflow-x:auto;padding:2px 4px;border-bottom:1px solid #222;">
+  <!-- LINHA 1 -->
+  <div class="linha1">
     <span style="font-size:10px;font-weight:700">🛡️</span>
     <span id="nomeUsuario" style="font-size:9px;color:#4caf50;font-weight:700;white-space:nowrap;"></span>
     <span class="badge badge-off" id="mqttBadge" style="font-size:8px;padding:1px 6px;">Conectando</span>
-    <button onclick="conectarMQTT()" style="font-size:12px;padding:1px 6px;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:10px;cursor:pointer;">🔌</button>
-    <button onclick="nextMapStyle()" id="mapStyleBtn" style="font-size:11px;padding:1px 6px;background:#1a1a1a;border:1px solid #333;color:#fff;border-radius:10px;cursor:pointer;">🛰</button>
+    <button onclick="conectarMQTT()" style="font-size:12px;padding:1px 6px;">🔌</button>
+    <button onclick="nextMapStyle()" id="mapStyleBtn" style="font-size:11px;padding:1px 6px;">🛰</button>
     <span class="badge badge-off" id="veiculosBadge" style="font-size:7px;padding:1px 6px;margin-left:auto;">0 veículos</span>
   </div>
   
-  <!-- LINHA 2: VEÍCULO, RELÓGIO, SALVAR, CRÉDITOS -->
-  <div style="display:flex;align-items:center;gap:4px;flex-wrap:nowrap;overflow-x:auto;padding:2px 4px;">
-    <span id="veiculoAtivoNome" style="font-size:9px;font-weight:700;color:#90caf9;white-space:nowrap;">🟢 D315 0km/h</span>
+  <!-- LINHA 2 -->
+  <div class="linha2">
+    <span id="veiculoAtivoNome" style="font-size:9px;font-weight:700;color:#90caf9;white-space:nowrap;">Aguardando...</span>
     <span id="relogioLocal" style="font-size:9px;color:#00ff41;font-family:'Courier New',monospace;margin-left:auto;white-space:nowrap;">🕐 --:--:--</span>
     <button onclick="salvarMapa()" style="background:#1a1a1a;border:1px solid #444;color:#fff;padding:1px 6px;border-radius:10px;font-size:9px;cursor:pointer;">💾</button>
     <span style="font-size:6px;color:#555;font-family:'Courier New',monospace;white-space:nowrap;opacity:0.4;">by darca</span>
   </div>
   
 </div>
+
 <!-- LISTA DE VEÍCULOS -->
 <div id="veiculosList" style="display:none">
-  <span id="semVeiculos">Aguardando veículos...</span>
+  <span id="semVeiculos" style="color:#555;font-size:11px;">Aguardando veículos...</span>
 </div>
 
 <!-- PÂNICO -->
@@ -198,12 +192,9 @@
   <span id="panicTimer" style="font-size:7px;color:#aaa;"></span>
 </div>
 
-<!-- BOTÃO SALVAR -->
-<button id="btnSalvar" onclick="salvarMapa()">💾</button>
-
 <!-- MAPA -->
 <div id="map"></div>
-<button id="btnTodos" onclick="centralizarTodos()">⊕</button>
+<button id="btnTodos" onclick="centralizarTodos()" style="position:absolute;top:70px;right:5px;z-index:999;background:rgba(0,0,0,0.7);border:1px solid #444;color:#fff;padding:3px 6px;border-radius:14px;font-size:8px;cursor:pointer;display:none;">⊕</button>
 
 <!-- PAINEL -->
 <div id="panel" style="display:none">
@@ -337,7 +328,7 @@ function pin(v) {
   if (pinBuffer.length === 4) {
     if (pinBuffer === USUARIOS[usuarioId]) {
       document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('topbar').style.display = '';
+      document.getElementById('topbar').style.display = 'flex';
       document.getElementById('veiculosList').style.display = '';
       document.getElementById('panel').style.display = 'block';
       document.getElementById('nomeUsuario').textContent = '👤 ' + usuarioId.toUpperCase();
@@ -460,6 +451,7 @@ function cmdAtivo(comando) {
   }
   atualizarPainel(ativoId);
   atualizarBotaoLista(ativoId);
+  atualizarVeiculoTopbar(ativoId);
   if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
 }
 
@@ -546,12 +538,17 @@ function selecionarVeiculo(chipId) {
   const v = veiculos[chipId];
   if (v) {
     document.getElementById('panelNome').textContent = '🚗 ' + v.nome + ' (' + chipId + ')';
-    // Atualiza o nome do veículo na TOPBAR (LINHA 2)
-    const emoji = v.bloqueado ? '🔴' : v.pendente ? '🟡' : '🟢';
-    document.getElementById('veiculoAtivoNome').textContent = emoji + ' ' + chipId.slice(-4).toUpperCase() + ' ' + Math.round(v.vel) + 'km/h';
     atualizarPainel(chipId);
+    atualizarVeiculoTopbar(chipId);
     if (v.ultimaPos) map.setView(v.ultimaPos, 16);
   }
+}
+
+function atualizarVeiculoTopbar(chipId) {
+  const v = veiculos[chipId];
+  if (!v) return;
+  const emoji = v.bloqueado ? '🔴' : v.pendente ? '🟡' : '🟢';
+  document.getElementById('veiculoAtivoNome').textContent = emoji + ' ' + chipId.slice(-4).toUpperCase() + ' ' + Math.round(v.vel) + 'km/h';
 }
 
 // ═══════════════════════════════════════════════════
@@ -633,10 +630,10 @@ function processarGPS(chipId, d) {
   
   atualizarTempoParada(chipId);
   atualizarBotaoLista(chipId);
- // Dentro de processarGPS, depois de atualizar v.vel
-if (chipId === ativoId) {
-  const emoji = v.bloqueado ? '🔴' : v.pendente ? '🟡' : '🟢';
-  document.getElementById('veiculoAtivoNome').textContent = emoji + ' ' + chipId.slice(-4).toUpperCase() + ' ' + Math.round(v.vel) + 'km/h';
+  if (chipId === ativoId) {
+    atualizarPainel(chipId);
+    atualizarVeiculoTopbar(chipId);
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -673,7 +670,10 @@ function processarStatus(chipId, d) {
   if (d.pendente !== undefined) v.pendente = d.pendente === true;
   if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
   atualizarBotaoLista(chipId);
-  if (chipId === ativoId) atualizarPainel(chipId);
+  if (chipId === ativoId) {
+    atualizarPainel(chipId);
+    atualizarVeiculoTopbar(chipId);
+  }
   const m = d.motivo || '';
   if (v.bloqueado) addLog('[' + chipId.slice(-4) + '] BLOQUEADO — ' + m, 'log-err');
   else if (v.pendente) addLog('[' + chipId.slice(-4) + '] Aguardando vel...', 'log-warn');
@@ -907,17 +907,6 @@ function executarTesteD8() {
   return true;
 }
 
-function simularD0() { confirmarTesteD8(); }
-
-function verEstado() {
-  console.log('📊 ESTADO ATUAL:');
-  console.log('  Pânico ativo:', panicoAtivo);
-  console.log('  Cancelável:', panicoCancelavel);
-  console.log('  Veículo ativo:', ativoId);
-  console.log('  Veículos:', Object.keys(veiculos).length);
-  console.log('  MQTT conectado:', mqttClient ? mqttClient.connected : false);
-}
-
 // ═══════════════════════════════════════════════════
 //  SALVAR MAPA
 // ═══════════════════════════════════════════════════
@@ -1052,37 +1041,8 @@ function desligarAlarme() {
   console.log('✅ Sirene desligada');
 }
 
-function simularModoFesta() {
-  console.log('🧪 SIMULAÇÃO: Iniciando Modo Festa...');
-  if (!ativoId) { alert('⚠️ Selecione um veículo primeiro!'); return; }
-  const v = veiculos[ativoId];
-  if (!v || !v.ultimaPos) { alert('⚠️ Veículo sem posição!'); return; }
-  if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
-  circuloFesta = L.circle(v.ultimaPos, { color: '#f9a825', fillColor: '#f9a825', fillOpacity: 0.15, radius: 50 }).addTo(map);
-  document.getElementById('btnFesta').classList.add('ativo');
-  document.getElementById('btnFesta').textContent = '🛡️ Ativo';
-  modoFestaAtivo = true;
-  addLog('🛡️ Modo Festa ATIVADO — Círculo de 50m', 'log-warn');
-  setTimeout(() => {
-    const novaPos = L.latLng(v.ultimaPos.lat + 0.0005, v.ultimaPos.lng + 0.001);
-    tocarAlarmeNavegador();
-    setBadge('pStatus', '🚨 FURTO', 'badge-err');
-    if (confirm('🚨 ALERTA!\n\nVeículo moveu mais de 50m!\n\nOK = desligar alarme')) { desligarAlarme(); }
-    if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
-    document.getElementById('btnFesta').classList.remove('ativo');
-    document.getElementById('btnFesta').textContent = '🛡️ Modo Festa';
-    modoFestaAtivo = false;
-    if (v.marker) { v.marker.setLatLng(novaPos); }
-    v.ultimaPos = novaPos;
-    v.trail.addLatLng(novaPos);
-    map.setView(novaPos, 16);
-    addLog('🚨 ALERTA DE FURTO DETECTADO!', 'log-err');
-  }, 3000);
-}
-
 console.log('🎯 SIRENE FRANCESA (som contínuo)');
 console.log('🔊 880Hz ↔ 440Hz (alterna a cada 300ms)');
-// simularModoFesta();
 </script>
 
 </body>
