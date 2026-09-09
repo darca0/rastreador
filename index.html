@@ -8,7 +8,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
-  /* === SEU CSS AQUI (mantive o que você enviou, está perfeito) === */
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #111; color: #fff; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 
@@ -251,7 +250,7 @@
 
 <script>
 // ================================================================
-//  🔒 SISTEMA DE LOGIN (CORRIGIDO)
+//  🔒 SISTEMA DE LOGIN
 // ================================================================
 const USUARIOS = {
   'admin': '8912',
@@ -263,7 +262,6 @@ let pinBuffer = '';
 let usuarioId = '';
 
 window.pin = function(v) {
-  console.log('🔢 Tecla:', v);
   if (v === 'del') {
     pinBuffer = pinBuffer.slice(0, -1);
   } else if (pinBuffer.length < 4) {
@@ -537,6 +535,9 @@ function atualizarVeiculoTopbar(chipId) {
   document.getElementById('veiculoAtivoNome').textContent = emoji + ' ' + chipId.slice(-4).toUpperCase() + ' ' + Math.round(v.vel) + 'km/h';
 }
 
+// ================================================================
+//  🗺️ PROCESSAR GPS - CORRIGIDO
+// ================================================================
 window.processarGPS = function(chipId, d) {
     const v = obterVeiculo(chipId);
     if (!v) return;
@@ -573,84 +574,78 @@ window.processarGPS = function(chipId, d) {
     }
     v.trail.addLatLng(pos);
 
-   // ════════════════════════════════════════════════════════════════
-//  DETECÇÃO DE PARADA - COM LOGS DE DEBUG
-// ════════════════════════════════════════════════════════════════
-
-if (v.vel <= PARADA_VEL) {
-    // ── VEÍCULO PARADO ──────────────────────────────────
+    // ══════════════════════════════════════════════════════════
+    //  NOVA LÓGICA DE PARADA (PINGO COMO GATILHO + RAIO 50m)
+    // ══════════════════════════════════════════════════════════
     
-    if (!v.paradaInicio) {
-        v.paradaInicio = Date.now();
-        v.paradaPos = pos;
-        addLog('[' + chipId.slice(-4) + '] Parada detectada (vel=' + v.vel.toFixed(1) + ' km/h)', 'log-warn');
-        console.log('🔍 [DEBUG] Início da parada:', new Date().toLocaleTimeString());
-    } else {
-        const tempoParado = Date.now() - v.paradaInicio;
-        const minutosTotais = Math.round(tempoParado / 60000);
+    const elTempo = document.getElementById('pTempoParada');
+    
+    if (v.vel <= PARADA_VEL) {
+        // ── VEÍCULO PARADO ──────────────────────────────────
         
-        console.log('🔍 [DEBUG] Tempo parado:', minutosTotais, 'min');
-        
-        // ── VERIFICA SE JÁ PASSOU 6 MINUTOS ────────────
-        if (tempoParado >= PARADA_MIN_MS) {
-            console.log('🔍 [DEBUG] Passou dos 6min!');
+        if (!v.paradaInicio) {
+            // INÍCIO DA PARADA
+            v.paradaInicio = Date.now();
+            v.paradaPos = pos;
+            addLog('[' + chipId.slice(-4) + '] Parada detectada (vel=' + v.vel.toFixed(1) + ' km/h)', 'log-warn');
+        } else {
+            // ── JÁ ESTÁ PARADO ──────────────────────────────
+            const tempoParado = Date.now() - v.paradaInicio;
+            const minutosTotais = Math.round(tempoParado / 60000);
             
-            // ── PROCURA UM PINGO PRÓXIMO (RAIO 50m) ─────
-            let pingoProximo = null;
-            for (let p of v.pingos) {
-                if (p.marker) {
-                    const dist = map.distance(p.marker.getLatLng(), pos);
-                    console.log('🔍 [DEBUG] Distância do pingo:', dist, 'm');
-                    if (dist < 50) {
-                        pingoProximo = p;
-                        console.log('🔍 [DEBUG] Pingo encontrado!');
-                        break;
+            // ── VERIFICA SE JÁ PASSOU 6 MINUTOS ────────────
+            if (tempoParado >= PARADA_MIN_MS) {
+                
+                // ── PROCURA UM PINGO PRÓXIMO (RAIO 50m) ─────
+                let pingoProximo = null;
+                for (let p of v.pingos) {
+                    if (p.marker) {
+                        const dist = map.distance(p.marker.getLatLng(), pos);
+                        if (dist < 50) {
+                            pingoProximo = p;
+                            break;
+                        }
                     }
                 }
-            }
-            
-            if (pingoProximo) {
-                // ── ATUALIZA O PINGO EXISTENTE ──────────────
-                console.log('🔍 [DEBUG] Atualizando P' + pingoProximo.num + ' para ' + minutosTotais + 'min');
-                pingoProximo.mins = minutosTotais;
-                const novoIcone = criarIconePingo(pingoProximo.num, minutosTotais);
-                pingoProximo.marker.setIcon(novoIcone);
                 
-                // Atualiza o contador de tempo parado
-                const elTempo = document.getElementById('pTempoParada');
-                if (elTempo) {
-                    elTempo.textContent = '⏱️ ' + minutosTotais + ' min';
-                    elTempo.className = 'ativo';
-                    elTempo.style.display = 'inline-block';
+                if (pingoProximo) {
+                    // ── PINGO EXISTE DENTRO DO RAIO ──────────
+                    // ATUALIZA O TEMPO DO PINGO EXISTENTE
+                    pingoProximo.mins = minutosTotais;
+                    const novoIcone = criarIconePingo(pingoProximo.num, minutosTotais);
+                    pingoProximo.marker.setIcon(novoIcone);
+                    
+                    // Atualiza o contador de tempo parado
+                    if (elTempo) {
+                        elTempo.textContent = '⏱️ ' + minutosTotais + ' min';
+                        elTempo.className = 'ativo';
+                        elTempo.style.display = 'inline-block';
+                    }
+                    
+                    addLog('[' + chipId.slice(-4) + '] P' + pingoProximo.num + ' atualizado: ' + minutosTotais + ' min', 'log-warn');
+                    
+                } else {
+                    // ── NENHUM PINGO PRÓXIMO ──────────────────
+                    // CRIA UM NOVO PINGO
+                    v.contador = (v.contador || 0) + 1;
+                    const icone = criarIconePingo(v.contador, minutosTotais);
+                    const marker = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
+                    v.pingos.push({ marker: marker, num: v.contador, mins: minutosTotais });
+                    v.paradaCirculo = marker;
+                    
+                    // Atualiza o contador
+                    if (elTempo) {
+                        elTempo.textContent = '⏱️ ' + minutosTotais + ' min';
+                        elTempo.className = 'ativo';
+                        elTempo.style.display = 'inline-block';
+                    }
+                    
+                    addLog('[' + chipId.slice(-4) + '] 🅿️ NOVO PINGO P' + v.contador + ': ' + minutosTotais + ' min', 'log-warn');
                 }
-                
-                addLog('[' + chipId.slice(-4) + '] P' + pingoProximo.num + ' atualizado: ' + minutosTotais + ' min', 'log-warn');
-                
-            } else {
-                // ── CRIA UM NOVO PINGO ──────────────────────
-                console.log('🔍 [DEBUG] Criando novo pingo P' + (v.contador + 1));
-                v.contador = (v.contador || 0) + 1;
-                const icone = criarIconePingo(v.contador, minutosTotais);
-                const marker = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
-                v.pingos.push({ marker: marker, num: v.contador, mins: minutosTotais });
-                v.paradaCirculo = marker;
-                
-                if (elTempo) {
-                    elTempo.textContent = '⏱️ ' + minutosTotais + ' min';
-                    elTempo.className = 'ativo';
-                    elTempo.style.display = 'inline-block';
-                }
-                
-                addLog('[' + chipId.slice(-4) + '] 🅿️ NOVO PINGO P' + v.contador + ': ' + minutosTotais + ' min', 'log-warn');
             }
         }
-    }
-    
-} else {
-    // ── VEÍCULO EM MOVIMENTO ──────────────────────────────
-    console.log('🔍 [DEBUG] Veículo em movimento. Velocidade:', v.vel);
-    // ... resto do código ...
-}
+        
+    } else {
         // ── VEÍCULO EM MOVIMENTO ──────────────────────────────
         
         if (v.paradaCirculo) {
@@ -683,6 +678,31 @@ if (v.vel <= PARADA_VEL) {
     }
 };
 
+// ================================================================
+//  🛡️ PROCESSAR STATUS
+// ================================================================
+window.processarStatus = function(chipId, d) {
+  const v = obterVeiculo(chipId);
+  if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
+  if (d.pendente !== undefined) v.pendente = d.pendente === true;
+  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
+  atualizarBotaoLista(chipId);
+  if (chipId === ativoId) {
+    atualizarPainel(chipId);
+    atualizarVeiculoTopbar(chipId);
+  }
+  const m = d.motivo || '';
+  if (v.bloqueado) addLog('[' + chipId.slice(-4) + '] BLOQUEADO — ' + m, 'log-err');
+  else if (v.pendente) addLog('[' + chipId.slice(-4) + '] Aguardando vel...', 'log-warn');
+  else if (m === 'desbloqueado') addLog('[' + chipId.slice(-4) + '] LIBERADO', 'log-ok');
+  else if (m === 'online' || m === 'reconectado') addLog('[' + chipId.slice(-4) + '] Online ✓', 'log-ok');
+  if (m === 'modo_festa_ativado') addLog('🛡️ Modo Festa ATIVADO no ESP', 'log-warn');
+  if (m === 'modo_festa_desativado') addLog('🛡️ Modo Festa DESATIVADO no ESP', 'log-ok');
+};
+
+// ================================================================
+//  🕐 ATUALIZAR TEMPO PARADA
+// ================================================================
 function atualizarTempoParada(chipId) {
   const v = veiculos[chipId];
   const el = document.getElementById('pTempoParada');
@@ -699,27 +719,12 @@ function atualizarTempoParada(chipId) {
     str += String(mins).padStart(2, '0') + ':' + String(segs).padStart(2, '0');
     el.textContent = '⏱️ ' + str;
     el.className = 'ativo';
+    el.style.display = 'inline-block';
   } else {
     el.className = '';
     el.style.display = 'none';
   }
 }
-
-window.processarStatus = function(chipId, d) {
-  const v = obterVeiculo(chipId);
-  if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
-  if (d.pendente !== undefined) v.pendente = d.pendente === true;
-  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
-  atualizarBotaoLista(chipId);
-  if (chipId === ativoId) { atualizarPainel(chipId); atualizarVeiculoTopbar(chipId); }
-  const m = d.motivo || '';
-  if (v.bloqueado) addLog('[' + chipId.slice(-4) + '] BLOQUEADO — ' + m, 'log-err');
-  else if (v.pendente) addLog('[' + chipId.slice(-4) + '] Aguardando vel...', 'log-warn');
-  else if (m === 'desbloqueado') addLog('[' + chipId.slice(-4) + '] LIBERADO', 'log-ok');
-  else if (m === 'online' || m === 'reconectado') addLog('[' + chipId.slice(-4) + '] Online ✓', 'log-ok');
-  if (m === 'modo_festa_ativado') addLog('🛡️ Modo Festa ATIVADO no ESP', 'log-warn');
-  if (m === 'modo_festa_desativado') addLog('🛡️ Modo Festa DESATIVADO no ESP', 'log-ok');
-};
 
 function atualizarBotaoLista(chipId) {
   const v = veiculos[chipId];
@@ -854,7 +859,7 @@ window.ativarAlertaMovimento = function(chipId, d) {
 };
 
 // ================================================================
-//  🚨 PÂNICO E SIRENE (FUNÇÕES GLOBAIS)
+//  🚨 PÂNICO E SIRENE
 // ================================================================
 window.ativarPanico = function(chipId, origem = 'mqtt') {
   if (panicoAtivo) return;
@@ -884,7 +889,6 @@ window.cancelarPanico = function() {
   addLog('✅ Pânico cancelado', 'log-ok');
 };
 
-// -- TESTE D8 --
 window.confirmarTesteD8 = function() {
   document.getElementById('modalTesteD8').style.display = 'flex';
 };
@@ -904,7 +908,7 @@ window.executarTesteD8 = function() {
   return true;
 };
 
-// -- SIRENE (VERSÃO QUE FUNCIONOU) --
+// -- SIRENE --
 window.tocarAlarmeNavegador = function() {
   if (alarmeAtivo) return;
   alarmeAtivo = true;
