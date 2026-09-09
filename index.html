@@ -29,127 +29,105 @@
   .numpad button:active { background: #1565C0; transform: scale(0.95); }
   #loginError { color: #f44336; font-size: 13px; min-height: 18px; }
 
-  /* TOPBAR - COMPACTA */
-  #topbar { background: rgba(0,0,0,0.85); padding: 3px 6px; display: flex; align-items: center; gap: 3px; flex-wrap: nowrap; z-index: 1000; border-bottom: 1px solid #222; overflow-x: auto; }
-  #topbar .badge { padding: 1px 5px; border-radius: 10px; font-size: 8px; font-weight: 600; border: 1px solid; white-space: nowrap; }
+  /* TOPBAR */
+  #topbar { background: rgba(0,0,0,0.85); padding: 8px 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; z-index: 1000; border-bottom: 1px solid #222; }
+  .badge { padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid; }
   .badge-ok   { background: #2e7d3288; color: #a5d6a7; border-color: #2e7d32; }
   .badge-err  { background: #c6282888; color: #ef9a9a; border-color: #c62828; }
   .badge-warn { background: #f9a82588; color: #fff8e1; border-color: #f9a825; animation: blink 1s infinite; }
   .badge-off  { background: #33333388; color: #888; border-color: #444; }
   @keyframes blink { 50% { opacity: 0.5; } }
-  #topbar button { background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 1px 6px; border-radius: 10px; font-size: 8px; cursor: pointer; white-space: nowrap; }
+  #nomeUsuario { font-size: 12px; color: #4caf50; font-weight: 700; }
+  #topbar button { background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 4px 12px; border-radius: 16px; font-size: 12px; cursor: pointer; }
   #topbar button:active { background: #1565C0; }
-  #nomeUsuario { font-size: 9px; color: #4caf50; font-weight: 700; white-space: nowrap; }
-
-  /* RELÓGIO LOCAL */
-  #relogioLocal {
-    background: #0a0a0a;
-    border: 1px solid #00ff41;
-    border-radius: 10px;
-    padding: 1px 5px;
-    font-size: 9px;
-    font-weight: 700;
-    color: #00ff41;
-    font-family: 'Courier New', monospace;
-    letter-spacing: 0.3px;
-    white-space: nowrap;
-  }
 
   /* LISTA DE VEÍCULOS */
-  #veiculosList { background: rgba(0,0,0,0.85); border-bottom: 1px solid #222; overflow-x: auto; display: flex; gap: 3px; padding: 3px 5px; z-index: 999; }
-  .veiculo-btn { flex-shrink: 0; padding: 3px 8px; border-radius: 14px; border: 2px solid #333; background: #1a1a1a; color: #fff; font-size: 9px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+  #veiculosList { background: rgba(0,0,0,0.85); border-bottom: 1px solid #222; overflow-x: auto; display: flex; gap: 6px; padding: 6px 10px; z-index: 999; }
+  .veiculo-btn { flex-shrink: 0; padding: 6px 14px; border-radius: 20px; border: 2px solid #333; background: #1a1a1a; color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
   .veiculo-btn.ativo     { border-color: #1565C0; background: #1565C020; }
   .veiculo-btn.bloqueado { border-color: #c62828; }
   .veiculo-btn.pendente  { border-color: #f9a825; }
   .veiculo-btn.liberado  { border-color: #2e7d32; }
-  #semVeiculos { color: #555; font-size: 10px; padding: 3px 4px; }
+  #semVeiculos { color: #555; font-size: 13px; padding: 6px 4px; }
 
   /* MAPA */
   #map { flex: 1; }
 
-  /* PAINEL */
-  #panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.88); padding: 2px 5px; z-index: 1000; border-top: 1px solid #222; }
-  #panelNome { font-size: 8px; font-weight: 700; color: #90caf9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 1px; }
-  #pendenteBanner { background: #f9a825dd; border-radius: 4px; padding: 1px 5px; font-size: 7px; font-weight: 600; text-align: center; color: #fff; display: none; margin-bottom: 1px; }
+  /* PAINEL COMPACTO - 2 LINHAS */
+  #panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.88); padding: 4px 8px; z-index: 1000; border-top: 1px solid #222; }
+  #panelNome { font-size: 10px; font-weight: 700; color: #90caf9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+  #pendenteBanner { background: #f9a825dd; border-radius: 6px; padding: 1px 8px; font-size: 9px; font-weight: 600; text-align: center; color: #fff; display: none; margin-bottom: 2px; }
   
-  .info-row { display: flex; align-items: center; gap: 2px; flex-wrap: nowrap; overflow-x: auto; margin-bottom: 1px; }
-  .info-pill { background: #1a1a1a; border: 1px solid #333; border-radius: 5px; padding: 1px 4px; font-size: 7px; color: #ccc; white-space: nowrap; }
-  .badge-sm { font-size: 6px; padding: 1px 4px; border-radius: 6px; border: 1px solid; white-space: nowrap; }
+  .info-row { display: flex; align-items: center; gap: 3px; flex-wrap: nowrap; overflow-x: auto; margin-bottom: 2px; }
+  .info-pill { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 1px 6px; font-size: 9px; color: #ccc; white-space: nowrap; }
+  .badge-sm { font-size: 8px; padding: 1px 6px; border-radius: 10px; border: 1px solid; white-space: nowrap; }
   .badge-sm.badge-ok   { background: #2e7d3288; color: #a5d6a7; border-color: #2e7d32; }
   .badge-sm.badge-err  { background: #c6282888; color: #ef9a9a; border-color: #c62828; }
   .badge-sm.badge-warn { background: #f9a82588; color: #fff8e1; border-color: #f9a825; animation: blink 1s infinite; }
   .badge-sm.badge-off  { background: #33333388; color: #888; border-color: #444; }
   
-  .btn-row { display: flex; align-items: center; gap: 2px; flex-wrap: nowrap; overflow-x: auto; }
-  .btn-row button { padding: 2px 4px; font-size: 8px; border-radius: 5px; border: none; cursor: pointer; white-space: nowrap; flex: 1; min-width: 28px; height: 24px; font-weight: 700; }
+  .btn-row { display: flex; align-items: center; gap: 3px; flex-wrap: nowrap; overflow-x: auto; }
+  .btn-row button { padding: 3px 6px; font-size: 9px; border-radius: 6px; border: none; cursor: pointer; white-space: nowrap; flex: 1; min-width: 40px; height: 28px; }
   .btn-row .btn-block  { background: #c62828; color: #fff; display: none; }
   .btn-row .btn-cancel { background: #f9a825; color: #fff; display: none; }
-  .btn-row .btn-unlock { background: #2e7d32; color: #fff; flex: 2; font-size: 9px; }
-  .btn-row .btn-center { flex: 0 0 24px; background: #1565C0; color: #fff; font-size: 10px; }
-  .btn-row .btn-festa  { background: #333; color: #fff; border: 1px solid #555; flex: 1; font-size: 7px; }
+  .btn-row .btn-unlock { background: #2e7d32; color: #fff; }
+  .btn-row .btn-center { flex: 0 0 28px; background: #1565C0; color: #fff; font-size: 12px; }
+  .btn-row .btn-festa  { background: #333; color: #fff; border: 1px solid #555; flex: 1; }
   .btn-row .btn-festa.ativo { background: #f9a825; color: #111; font-weight: 700; border-color: #f9a825; }
-  .btn-row .btn-d8     { flex: 0 0 24px; background: #c62828; color: #fff; font-size: 9px; padding: 0; text-align: center; }
-  .btn-row .btn-aux    { background: #1565C0; color: #fff; flex: 1; font-size: 7px; }
-  .btn-row .btn-parar  { flex: 0 0 24px; background: #c62828; color: #fff; font-size: 10px; padding: 0; text-align: center; font-weight: 900; }
+  .btn-row .btn-d8     { flex: 0 0 28px; background: #c62828; color: #fff; font-size: 10px; padding: 0; text-align: center; }
+  .btn-row .btn-aux    { background: #1565C0; color: #fff; flex: 1; }
 
-  #logBox { max-height: 14px; overflow-y: auto; margin-top: 1px; font-size: 6px; color: #666; }
+  #logBox { max-height: 20px; overflow-y: auto; margin-top: 2px; font-size: 8px; color: #666; }
 
-  /* TEMPO DE PARADA */
-  #pTempoParada {
-    background: #1a1a1a;
-    border: 1px solid #f9a825;
-    border-radius: 5px;
-    padding: 1px 4px;
-    font-size: 7px;
-    color: #f9a825;
-    white-space: nowrap;
-    display: none;
-  }
-  #pTempoParada.ativo {
-    display: inline-block;
-    animation: blink 1s infinite;
-  }
-
-  /* PÂNICO */
-  #panicWidget { display:none; position:fixed; top:3px; right:50px; z-index:9998; align-items:center; gap:3px; background:rgba(0,0,0,0.7); border:1px solid #c62828; border-radius:14px; padding:2px 6px; cursor:pointer; }
-  #panicDot { width:7px; height:7px; border-radius:50%; background:#ff0000; box-shadow:0 0 4px #ff0000; animation:panicoLed 0.4s infinite alternate; flex-shrink:0; }
-  #panicTxt { font-size:8px; font-weight:700; color:#ff6666; letter-spacing:0.5px; }
+  /* LED Pânico */
+  #panicWidget { display:none; position:fixed; top:8px; right:80px; z-index:9998; align-items:center; gap:6px; background:rgba(0,0,0,0.7); border:1px solid #c62828; border-radius:20px; padding:4px 10px; cursor:pointer; }
+  #panicDot { width:12px; height:12px; border-radius:50%; background:#ff0000; box-shadow:0 0 6px #ff0000; animation:panicoLed 0.4s infinite alternate; flex-shrink:0; }
+  #panicTxt { font-size:11px; font-weight:700; color:#ff6666; letter-spacing:1px; }
   @keyframes panicoLed { from{opacity:1;} to{opacity:0.2;} }
-  #panicBanner { display:none; position:fixed; top:0; left:0; right:0; z-index:9997; background:#b71c1c; color:#fff; text-align:center; padding:3px; font-weight:700; font-size:10px; }
+  #panicBanner { display:none; position:fixed; top:0; left:0; right:0; z-index:9997; background:#b71c1c; color:#fff; text-align:center; padding:8px; font-weight:700; font-size:13px; }
 
-  /* BOTÕES */
-  #btnSalvar { position:absolute; top:45px; right:5px; z-index:999; background:rgba(0,0,0,0.7); border:1px solid #444; color:#fff; padding:3px 6px; border-radius:14px; font-size:8px; cursor:pointer; }
-  #btnTodos { position: absolute; top:70px; right:5px; z-index: 999; background: rgba(0,0,0,0.7); border: 1px solid #444; color: #fff; padding:3px 6px; border-radius:14px; font-size:8px; cursor: pointer; display: none; }
-
-  /* MODAIS */
-  #modalAux { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center; }
-  #modalAux.show { display:flex; }
-  #modalBox { background:#1a1a1a; border:1px solid #1565C0; border-radius:14px; padding:16px; width:80%; max-width:320px; text-align:center; }
-  #modalBox p { font-size:13px; color:#ccc; margin-bottom:12px; line-height:1.5; }
-  #modalBox strong { color:#fff; font-size:15px; display:block; margin-bottom:6px; }
-  .modal-btns { display:flex; gap:8px; }
-  .modal-btns button { flex:1; padding:8px; border-radius:8px; border:none; font-size:13px; font-weight:700; cursor:pointer; }
-  #modalConfirm { background:#1565C0; color:#fff; }
-  #modalCancel  { background:#333; color:#aaa; }
-
-  #modalTesteD8 { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:99999; align-items:center; justify-content:center; }
-  #modalTesteD8 .box { background:#1a1a1a; border:1px solid #555; border-radius:14px; padding:16px; width:80%; max-width:320px; text-align:center; }
-
-  #modalSeguranca { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:99999; align-items:center; justify-content:center; }
-  #modalSeguranca .box { background:#1a1a1a; border:1px solid #1565C0; border-radius:14px; padding:20px; width:90%; max-width:320px; text-align:center; }
-  #modalSeguranca h3 { color:#fff; font-size:16px; margin-bottom:6px; }
-  #modalSeguranca p { color:#aaa; font-size:11px; margin-bottom:12px; }
-  #modalSeguranca input { width:100%; padding:8px; margin-bottom:8px; border-radius:6px; border:1px solid #444; background:#111; color:#fff; font-size:13px; }
-  #modalSeguranca input:focus { outline:1px solid #1565C0; border-color:#1565C0; }
-  #modalSeguranca .modal-btns { display:flex; gap:8px; }
-  #modalSeguranca .modal-btns button { flex:1; padding:8px; border:none; border-radius:6px; font-size:13px; font-weight:700; cursor:pointer; }
-  #modalSeguranca .modal-btns .btn-confirm { background:#c62828; color:#fff; }
-  #modalSeguranca .modal-btns .btn-cancel { background:#333; color:#aaa; }
-
-  .log-line { font-size: 8px; color: #666; }
+  /* Botão salvar */
+  #btnSalvar { position:absolute; top:60px; right:10px; z-index:999; background:rgba(0,0,0,0.7); border:1px solid #444; color:#fff; padding:6px 12px; border-radius:20px; font-size:12px; cursor:pointer; }
+  .btn-aux { flex: 1; padding: 9px; border-radius: 10px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; background: #1565C0; color: #fff; transition: all 0.2s; }
+  .btn-aux:active { transform: scale(0.97); background: #0d47a1; }
+  .log-line { font-size: 11px; color: #666; }
   .log-ok   { color: #4caf50; }
   .log-err  { color: #ef5350; }
   .log-warn { color: #ffa726; }
+
+  /* BOTÃO TODOS */
+  #btnTodos { position: absolute; top: 120px; right: 10px; z-index: 999; background: rgba(0,0,0,0.7); border: 1px solid #444; color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; display: none; }
+
+  /* Modal confirmação AUX */
+  #modalAux { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center; }
+  #modalAux.show { display:flex; }
+  #modalBox { background:#1a1a1a; border:1px solid #1565C0; border-radius:14px; padding:20px; width:80%; max-width:320px; text-align:center; }
+  #modalBox p { font-size:14px; color:#ccc; margin-bottom:16px; line-height:1.5; }
+  #modalBox strong { color:#fff; font-size:16px; display:block; margin-bottom:8px; }
+  .modal-btns { display:flex; gap:10px; }
+  .modal-btns button { flex:1; padding:10px; border-radius:10px; border:none; font-size:14px; font-weight:700; cursor:pointer; }
+  #modalConfirm { background:#1565C0; color:#fff; }
+  #modalCancel  { background:#333; color:#aaa; }
+
+  /* MODO FESTA */
+  #btnFesta { background: #333; color: #fff; font-size: 11px; padding: 6px; border: 1px solid #555; border-radius: 8px; cursor: pointer; flex: 1; }
+  #btnFesta.ativo { background: #f9a825; color: #111; font-weight: 700; border-color: #f9a825; }
+
+  /* Modal de confirmação Teste D8 */
+  #modalTesteD8 { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:99999; align-items:center; justify-content:center; }
+  #modalTesteD8 .box { background:#1a1a1a; border:1px solid #555; border-radius:14px; padding:20px; width:80%; max-width:320px; text-align:center; }
+
+  /* Modal de segurança (bloqueio) - CORRIGIDO */
+  #modalSeguranca { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:99999; align-items:center; justify-content:center; }
+  #modalSeguranca .box { background:#1a1a1a; border:1px solid #1565C0; border-radius:14px; padding:24px; width:90%; max-width:320px; text-align:center; }
+  #modalSeguranca h3 { color:#fff; font-size:18px; margin-bottom:8px; }
+  #modalSeguranca p { color:#aaa; font-size:12px; margin-bottom:15px; }
+  #modalSeguranca input { width:100%; padding:10px; margin-bottom:10px; border-radius:6px; border:1px solid #444; background:#111; color:#fff; font-size:14px; }
+  #modalSeguranca input:focus { outline:1px solid #1565C0; border-color:#1565C0; }
+  #modalSeguranca .modal-btns { display:flex; gap:10px; }
+  #modalSeguranca .modal-btns button { flex:1; padding:10px; border:none; border-radius:6px; font-size:14px; font-weight:700; cursor:pointer; }
+  #modalSeguranca .modal-btns .btn-confirm { background:#c62828; color:#fff; }
+  #modalSeguranca .modal-btns .btn-cancel { background:#333; color:#aaa; }
 </style>
 </head>
 <body>
@@ -171,21 +149,12 @@
 
 <!-- TOPBAR -->
 <div id="topbar" style="display:none">
-  <span style="font-size:10px;font-weight:700">🛡️</span>
+  <span style="font-size:13px;font-weight:700">🛡️</span>
   <span id="nomeUsuario"></span>
-  
-  <!-- INDICADOR DE CONEXÃO - ANTENA PARABÓLICA -->
-  <span id="mqttBadge" style="font-size:14px;margin:0 2px;">📡</span>
-  
-  <button onclick="conectarMQTT()" style="font-size:16px;padding:2px 10px;">🔌</button>
-  <button onclick="nextMapStyle()" id="mapStyleBtn" style="font-size:14px;padding:2px 8px;">🛰</button>
-  <span class="badge badge-off" id="veiculosBadge" style="font-size:7px;">0</span>
-  
-  <!-- RELÓGIO + CRÉDITOS EMBAIXO -->
-  <div style="display:flex;flex-direction:column;align-items:flex-end;margin-left:auto;line-height:1.8;">
-    <span id="relogioLocal" style="font-size:9px;">🕐 --:--:--</span>
-    <span style="font-size:9px;color:#fff;font-family:'Courier New',monospace;letter-spacing:0.5px;opacity:0.5;">by darca</span>
-  </div>
+  <span class="badge badge-off" id="mqttBadge">Desconectado</span>
+  <button onclick="conectarMQTT()">🔌 Conectar</button>
+  <button onclick="nextMapStyle()" id="mapStyleBtn">🛰 Satélite</button>
+  <span class="badge badge-off" id="veiculosBadge" style="margin-left:auto">0 veículos</span>
 </div>
 
 <!-- LISTA DE VEÍCULOS -->
@@ -194,49 +163,50 @@
 </div>
 
 <!-- PÂNICO -->
-<div id="panicBanner">🚨 PÂNICO ATIVADO! <span id="panicTimer"></span></div>
+<div id="panicBanner">🚨 PÂNICO ATIVADO — Veículo em perigo! <span id="panicTimer"></span></div>
 <div id="panicWidget" title="Clique para cancelar (60s)" onclick="cancelarPanico()">
   <div id="panicDot"></div>
   <span id="panicTxt">PÂNICO</span>
-  <span id="panicTimer" style="font-size:7px;color:#aaa;"></span>
+  <span id="panicTimer" style="font-size:10px;color:#aaa;"></span>
 </div>
 
 <!-- BOTÃO SALVAR -->
-<button id="btnSalvar" onclick="salvarMapa()">💾</button>
+<button id="btnSalvar" onclick="salvarMapa()">💾 Salvar</button>
 
 <!-- MAPA -->
 <div id="map"></div>
-<button id="btnTodos" onclick="centralizarTodos()">⊕</button>
+<button id="btnTodos" onclick="centralizarTodos()">⊕ Todos</button>
 
-<!-- PAINEL -->
+<!-- PAINEL COMPACTO -->
 <div id="panel" style="display:none">
   <div id="panelNome">Aguardando veículo...</div>
   <div id="pendenteBanner">🟡 Aguardando velocidade ≤ 8 km/h...</div>
   
+  <!-- LINHA 1: INFORMAÇÕES -->
   <div class="info-row">
     <span class="info-pill" id="pVel">0.0 km/h</span>
     <span class="info-pill" id="pSat">0 sat</span>
     <span class="info-pill" id="pRssi">— dBm</span>
     <span class="info-pill" id="pAlt">— m</span>
-    <span id="pTempoParada">⏱️ 00:00</span>
     <span class="badge-sm badge-off" id="pStatus">Aguardando</span>
   </div>
   
-  <div class="btn-row">
+  <!-- LINHA 2: BOTÕES -->
+<div class="btn-row">
     <button class="btn-center" onclick="centralizarAtivo()">◎</button>
-    <button class="btn-block"  id="btnBlock"  onclick="cmdAtivo('DESBLOQUEAR')" style="display:none">🔴 Desbloquear</button>
+    <button class="btn-block"  id="btnBlock"  onclick="cmdAtivo('BLOQUEAR')"         style="display:none">🔴 Bloqueado</button>
     <button class="btn-cancel" id="btnCancel" onclick="cmdAtivo('CANCELAR_BLOQUEIO')" style="display:none">🟡 Aguardando...</button>
     <button class="btn-unlock" id="btnUnlock" onclick="solicitarBloqueio()">🟢 Liberado</button>
-    <button class="btn-aux" onclick="acionarAux()">🔓AUX</button>
-    <button class="btn-festa" id="btnFesta" onclick="toggleModoFesta()">🛡️Festa</button>
+    <button class="btn-aux" onclick="acionarAux()">🔓 AUX</button>
+    <button class="btn-festa" id="btnFesta" onclick="toggleModoFesta()">🛡️ Festa</button>
     <button class="btn-d8" onclick="confirmarTesteD8()">🚨</button>
-    <button class="btn-parar" onclick="desligarAlarme()" title="Parar Alarme">⏹</button>
-  </div>
+    <button onclick="desligarAlarme()" style="background:#c62828; color:#fff; font-size:10px; padding:2px 6px; border:none; border-radius:6px; cursor:pointer; flex:0 0 auto; white-space:nowrap;">🛑 Parar</button>
+</div>
   
   <div id="logBox"></div>
 </div>
 
-<!-- MODAIS -->
+<!-- Modal AUX -->
 <div id="modalAux">
   <div id="modalBox">
     <strong>🔓 Destravar Portas</strong>
@@ -248,21 +218,23 @@
   </div>
 </div>
 
-<div id="modalTesteD8" style="display:none;">
+<!-- Modal de confirmação Teste D8 -->
+<div id="modalTesteD8" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:99999; align-items:center; justify-content:center;">
   <div class="box">
-    <strong style="color:#fff; font-size:15px; display:block; margin-bottom:6px;">🔧 Teste D8</strong>
-    <p style="font-size:12px; color:#aaa; margin-bottom:12px;">Simular pânico manualmente?</p>
+    <strong style="color:#fff; font-size:16px; display:block; margin-bottom:8px;">🔧 Teste Manual D8</strong>
+    <p style="font-size:13px; color:#aaa; margin-bottom:16px;">Isso vai simular um pânico. Deseja realmente testar?</p>
     <div class="modal-btns">
-      <button onclick="executarTesteD8()" style="flex:1; background:#1565C0; color:#fff; padding:8px; border:none; border-radius:8px; font-weight:700; cursor:pointer;">Sim</button>
-      <button onclick="fecharModalTesteD8()" style="flex:1; background:#333; color:#aaa; padding:8px; border:none; border-radius:8px; font-weight:700; cursor:pointer;">Cancelar</button>
+      <button onclick="executarTesteD8()" style="flex:1; background:#1565C0; color:#fff; padding:10px; border:none; border-radius:10px; font-weight:700; cursor:pointer;">Sim, testar</button>
+      <button onclick="fecharModalTesteD8()" style="flex:1; background:#333; color:#aaa; padding:10px; border:none; border-radius:10px; font-weight:700; cursor:pointer;">Cancelar</button>
     </div>
   </div>
 </div>
 
-<div id="modalSeguranca" style="display:none;">
+<!-- 🔒 MODAL DE SEGURANÇA (BLOQUEIO) - CORRIGIDO -->
+<div id="modalSeguranca" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:99999; align-items:center; justify-content:center;">
   <div class="box">
     <h3>🔒 Autenticação</h3>
-    <p>Digite usuário e senha para bloquear:</p>
+    <p>Digite usuário e senha para bloquear o veículo:</p>
     <input type="text" id="segUser" placeholder="Usuário" autofocus>
     <input type="password" id="segPass" placeholder="Senha">
     <div class="modal-btns">
@@ -288,8 +260,8 @@ const USUARIOS = {
 };
 
 const TILES = {
-  map:       { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attr: '© OpenStreetMap', label: '🛰' },
-  satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr: '© Esri', label: '🗺' }
+  map:       { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attr: '© OpenStreetMap', label: '🛰 Satélite' },
+  satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr: '© Esri', label: '🗺 Mapa claro' }
 };
 
 // ═══════════════════════════════════════════════════
@@ -300,7 +272,7 @@ let usuarioId = _u.toLowerCase().trim();
 if (!usuarioId || !(usuarioId in USUARIOS)) usuarioId = 'admin';
 document.getElementById('loginNome').textContent = '👤 ' + usuarioId.toUpperCase();
 let map, tileLayer, mqttClient;
-const PARADA_MIN_MS  = 360000;
+const PARADA_MIN_MS  = 360000; // 6 min
 let panicoAtivo      = false;
 let panicoTimer      = null;
 let panicoCancelavel = true;
@@ -312,31 +284,6 @@ let pinBuffer   = '';
 let currentStyle = 'map';
 let modoFestaAtivo = false;
 let circuloFesta = null;
-
-// ═══════════════════════════════════════════════════
-//  ⏰ RELÓGIO LOCAL (GMT-3)
-// ═══════════════════════════════════════════════════
-function atualizarRelogioLocal() {
-    const el = document.getElementById('relogioLocal');
-    if (!el) return;
-    
-    const agora = new Date();
-    const horaUTC = agora.getUTCHours();
-    const minutoUTC = agora.getUTCMinutes();
-    const segundoUTC = agora.getUTCSeconds();
-    
-    let horaBrasilia = horaUTC - 3;
-    if (horaBrasilia < 0) horaBrasilia += 24;
-    
-    const hora = String(horaBrasilia).padStart(2, '0');
-    const minuto = String(minutoUTC).padStart(2, '0');
-    const segundo = String(segundoUTC).padStart(2, '0');
-    
-    el.textContent = '🕐 ' + hora + ':' + minuto + ':' + segundo;
-}
-
-setInterval(atualizarRelogioLocal, 1000);
-atualizarRelogioLocal();
 
 // ═══════════════════════════════════════════════════
 //  LOGIN
@@ -396,18 +343,18 @@ function nextMapStyle() {
 // ═══════════════════════════════════════════════════
 function conectarMQTT() {
   if (mqttClient) { mqttClient.end(true); }
-  setBadge('mqttBadge', '📡', 'badge-warn');
+  setBadge('mqttBadge', 'Conectando...', 'badge-warn');
   const clientId = 'Web_' + usuarioId + '_' + Math.random().toString(36).slice(2, 6);
   mqttClient = mqtt.connect(BROKER_WSS, { port: BROKER_PORT, clientId, username: 'ESP8266Dario', password: '3SP8266d4r10', reconnectPeriod: 5000 });
 
   mqttClient.on('connect', () => {
-    setBadge('mqttBadge', '📡', 'badge-ok');
+    setBadge('mqttBadge', 'Conectado', 'badge-ok');
     mqttClient.subscribe('rastreador/' + usuarioId + '/+/gps');
     mqttClient.subscribe('rastreador/' + usuarioId + '/+/status');
     addLog('Conectado como ' + usuarioId, 'log-ok');
   });
-  mqttClient.on('disconnect', () => setBadge('mqttBadge', '📡', 'badge-off'));
-  mqttClient.on('offline',    () => setBadge('mqttBadge', '📡', 'badge-err'));
+  mqttClient.on('disconnect', () => setBadge('mqttBadge', 'Desconectado', 'badge-off'));
+  mqttClient.on('offline',    () => setBadge('mqttBadge', 'Offline', 'badge-err'));
   mqttClient.on('error', (e)  => addLog('Erro broker: ' + e.message, 'log-err'));
 
   mqttClient.on('message', (topic, payload) => {
@@ -416,7 +363,6 @@ function conectarMQTT() {
       const chipId = p[2];
       const tipo   = p[3];
       const d      = JSON.parse(payload.toString());
-      
       if (tipo === 'gps')    processarGPS(chipId, d);
       if (tipo === 'status') processarStatus(chipId, d);
       if (tipo === 'status' && d.motivo === 'panico') ativarPanico(chipId);
@@ -445,16 +391,20 @@ function confirmarAux() {
 }
 
 // ═══════════════════════════════════════════════════
-//  BLOQUEIO
+//  BLOQUEIO - CORRIGIDO (FORÇA O VERMELHO IMEDIATAMENTE)
 // ═══════════════════════════════════════════════════
 function cmdAtivo(comando) {
   if (!ativoId) return;
   
+  // Envia o comando MQTT
   cmd(ativoId, comando);
   
   const v = veiculos[ativoId];
   if (!v) return;
   
+  // ════════════════════════════════════════════════
+  //  FORÇA O ESTADO LOCAL IMEDIATAMENTE
+  // ════════════════════════════════════════════════
   if (comando === 'BLOQUEAR') {
     v.pendente = false;
     v.bloqueado = true;
@@ -469,11 +419,12 @@ function cmdAtivo(comando) {
     addLog('🟡 Bloqueio cancelado', 'log-warn');
   }
   
+  // Atualiza a interface
   atualizarPainel(ativoId);
   atualizarBotaoLista(ativoId);
   if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
 }
-
+// 🔒 SEGURANÇA PARA BLOQUEIO - CORRIGIDO (funciona no celular)
 function solicitarBloqueio() {
   const modal = document.getElementById('modalSeguranca');
   if (!modal) {
@@ -483,8 +434,12 @@ function solicitarBloqueio() {
     return;
   }
   modal.style.display = 'flex';
+  
+  // Limpa campos anteriores
   document.getElementById('segUser').value = '';
   document.getElementById('segPass').value = '';
+  
+  // Foca no campo de usuário (funciona no celular)
   setTimeout(function() {
     document.getElementById('segUser').focus();
   }, 300);
@@ -505,6 +460,9 @@ function confirmarBloqueio() {
         document.getElementById('segPass').value = '';
         cmdAtivo('BLOQUEAR');
         
+        // ════════════════════════════════════════════════
+        //  DESLIGA O ALARME AO CONFIRMAR O BLOQUEIO
+        // ════════════════════════════════════════════════
         if (typeof desligarAlarme === 'function') {
             desligarAlarme();
         }
@@ -606,8 +564,8 @@ function processarGPS(chipId, d) {
   }
   v.trail.addLatLng(pos);
 
-  // ── Detecta parada prolongada ──────────────────────
-  if (v.vel <= PARADA_VEL) {
+ // ── Detecta parada prolongada ──────────────────────
+if (v.vel <= PARADA_VEL) {
     if (!v.paradaInicio) {
         v.paradaInicio = Date.now();
         v.paradaPos    = pos;
@@ -627,17 +585,22 @@ function processarGPS(chipId, d) {
         const minutosTotais = Math.round(tempoParado / 60000);
         
         if (tempoParado >= PARADA_MIN_MS) {
+            // ════════════════════════════════════════════
+            //  VERIFICA SE JÁ EXISTE PINGO NA POSIÇÃO
+            // ════════════════════════════════════════════
             let pingoExistente = null;
             if (v.pingos.length > 0) {
                 pingoExistente = v.pingos.find(p => map.distance(p.marker.getLatLng(), pos) < 50);
             }
 
             if (pingoExistente) {
+                // ✅ ATUALIZA O PINGO EXISTENTE COM O TEMPO TOTAL
                 pingoExistente.mins = minutosTotais;
                 const novoIcone = criarIconePingo(pingoExistente.num, minutosTotais);
                 pingoExistente.marker.setIcon(novoIcone);
                 addLog('[' + chipId.slice(-4) + '] P' + pingoExistente.num + ' atualizado: ' + minutosTotais + ' min', 'log-warn');
             } else {
+                // ✅ CRIA UM NOVO PINGO
                 v.contador++;
                 const icone = criarIconePingo(v.contador, minutosTotais);
                 v.paradaCirculo = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
@@ -646,47 +609,17 @@ function processarGPS(chipId, d) {
             }
         }
     }
-  } else {
+} else {
+    // Veículo em movimento: NÃO remove o pingo!
     if (v.paradaCirculo) {
         v.paradaCirculo = null;
         addLog('[' + chipId.slice(-4) + '] Veículo moveu, pingos permanecem', 'log-warn');
     }
     v.paradaInicio = null;
     v.paradaPos    = null;
-  }
-  
-  atualizarTempoParada(chipId);
-  
+}
   atualizarBotaoLista(chipId);
   if (chipId === ativoId) atualizarPainel(chipId);
-}
-
-// ═══════════════════════════════════════════════════
-//  ⏱️ FUNÇÃO DO TEMPO DE PARADA
-// ═══════════════════════════════════════════════════
-function atualizarTempoParada(chipId) {
-  const v = veiculos[chipId];
-  const el = document.getElementById('pTempoParada');
-  if (!v || !el) return;
-  
-  if (v.paradaInicio && v.vel <= PARADA_VEL) {
-    const tempoParado = Date.now() - v.paradaInicio;
-    const segundos = Math.floor(tempoParado / 1000);
-    const minutos = Math.floor(segundos / 60);
-    const horas = Math.floor(minutos / 60);
-    const segs = segundos % 60;
-    const mins = minutos % 60;
-    
-    let str = '';
-    if (horas > 0) str += String(horas).padStart(2, '0') + ':';
-    str += String(mins).padStart(2, '0') + ':' + String(segs).padStart(2, '0');
-    
-    el.textContent = '⏱️ ' + str;
-    el.className = 'ativo';
-  } else {
-    el.className = '';
-    el.style.display = 'none';
-  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -704,22 +637,22 @@ function processarStatus(chipId, d) {
   else if (v.pendente)           addLog('[' + chipId.slice(-4) + '] Aguardando vel...', 'log-warn');
   else if (m === 'desbloqueado') addLog('[' + chipId.slice(-4) + '] LIBERADO', 'log-ok');
   else if (m === 'online' || m === 'reconectado') addLog('[' + chipId.slice(-4) + '] Online ✓', 'log-ok');
+  // Adicionado Modo Festa
   if (m === 'modo_festa_ativado') addLog('🛡️ Modo Festa ATIVADO no ESP', 'log-warn');
   if (m === 'modo_festa_desativado') addLog('🛡️ Modo Festa DESATIVADO no ESP', 'log-ok');
 }
 
 // ═══════════════════════════════════════════════════
-//  PAINEL
+//  PAINEL + SEGURANÇA
 // ═══════════════════════════════════════════════════
 function atualizarPainel(chipId) {
   const v = veiculos[chipId]; if (!v) return;
   
+  // Atualiza as informações
   document.getElementById('pVel').textContent  = v.vel.toFixed(1) + ' km/h';
   document.getElementById('pSat').textContent  = v.sat + ' sat';
   document.getElementById('pRssi').textContent = (v.rssi || '—') + ' dBm';
   document.getElementById('pAlt').textContent  = v.alt ? v.alt.toFixed(0) + ' m' : '— m';
-
-  atualizarTempoParada(chipId);
 
   const st = document.getElementById('pStatus');
   const bB = document.getElementById('btnBlock');
@@ -727,12 +660,16 @@ function atualizarPainel(chipId) {
   const bU = document.getElementById('btnUnlock');
   const bn = document.getElementById('pendenteBanner');
   
+  // ════════════════════════════════════════════════
+  //  RESETA TODOS OS BOTÕES (garante que apareçam)
+  // ════════════════════════════════════════════════
   bB.style.display = 'none';
   bC.style.display = 'none';
   bU.style.display = 'none';
   bn.style.display = 'none';
 
   if (v.bloqueado) {
+    // 🔴 BLOQUEADO
     st.textContent = 'Bloqueado';
     st.className = 'badge-sm badge-err';
     bB.style.display = 'block';
@@ -740,16 +677,18 @@ function atualizarPainel(chipId) {
     bB.onclick = function() { cmdAtivo('DESBLOQUEAR'); };
     bB.textContent = '🔴 Desbloquear';
   } else if (v.pendente) {
+    // 🟡 AGUARDANDO
     st.textContent = 'Aguardando';
     st.className = 'badge-sm badge-warn';
     bC.style.display = 'block';
     bC.style.flex = '1';
     bn.style.display = 'block';
   } else {
+    // 🟢 LIBERADO
     st.textContent = 'Liberado';
     st.className = 'badge-sm badge-ok';
     bU.style.display = 'block';
-    bU.style.flex = '2';
+    bU.style.flex = '1';
     bU.onclick = function() { solicitarBloqueio(); };
     bU.textContent = '🟢 Liberado';
   }
@@ -840,14 +779,14 @@ function toggleModoFesta() {
       }).addTo(map);
     }
     document.getElementById('btnFesta').classList.add('ativo');
-    document.getElementById('btnFesta').textContent = '🛡️Ativo';
+    document.getElementById('btnFesta').textContent = '🛡️ Ativo';
     modoFestaAtivo = true;
     addLog('🛡️ Modo Festa ATIVADO — Círculo de 50m', 'log-warn');
   } else {
     cmd(ativoId, 'DESATIVAR_MODO_FESTA');
     if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
     document.getElementById('btnFesta').classList.remove('ativo');
-    document.getElementById('btnFesta').textContent = '🛡️Festa';
+    document.getElementById('btnFesta').textContent = '🛡️ Modo Festa';
     modoFestaAtivo = false;
     addLog('🛡️ Modo Festa DESATIVADO', 'log-warn');
   }
@@ -861,12 +800,20 @@ function ativarAlertaMovimento(chipId, d) {
     }
     
     document.getElementById('btnFesta').classList.remove('ativo');
-    document.getElementById('btnFesta').textContent = '🛡️Festa';
+    document.getElementById('btnFesta').textContent = '🛡️ Modo Festa';
     modoFestaAtivo = false;
     
+    // ════════════════════════════════════════════════
+    //  INICIA A SIRENE (LOOP INFINITO)
+    // ════════════════════════════════════════════════
     tocarAlarmeNavegador();
+    
+    // Alerta visual
     setBadge('pStatus', '🚨 FURTO', 'badge-err');
     
+    // ════════════════════════════════════════════════
+    //  POPUP PARA DESLIGAR
+    // ════════════════════════════════════════════════
     if (confirm('🚨 ALERTA DE SEGURANÇA!\n\nO veículo se moveu mais de 50 metros!\n\nClique em OK para desligar o alarme.')) {
         desligarAlarme();
     }
@@ -889,16 +836,16 @@ function ativarPanico(chipId, origem = 'mqtt') {
 
   let segsRestantes = 60;
   const timer = document.getElementById('panicTimer');
-  timer.textContent = '(' + segsRestantes + 's)';
+  timer.textContent = '(' + segsRestantes + 's para cancelar)';
 
   panicoTimer = setInterval(() => {
     segsRestantes--;
     if (segsRestantes > 0) {
-      timer.textContent = '(' + segsRestantes + 's)';
+      timer.textContent = '(' + segsRestantes + 's para cancelar)';
     } else {
       clearInterval(panicoTimer);
       panicoCancelavel = false;
-      timer.textContent = '(Confirmado)';
+      timer.textContent = '(CONFIRMADO — não pode ser cancelado)';
       addLog('🚨 PÂNICO CONFIRMADO [' + chipId.slice(-4) + ']', 'log-err');
     }
   }, 1000);
@@ -930,6 +877,7 @@ function fecharModalTesteD8() {
 
 function executarTesteD8() {
   fecharModalTesteD8();
+  console.log('🔴 Simulando acionamento do pino D8...');
   
   if (!ativoId) {
     addLog('❌ Nenhum veículo selecionado para teste D8!', 'log-err');
@@ -947,6 +895,23 @@ function executarTesteD8() {
   cmd(ativoId, 'PANICO_ATIVAR');
   ativarPanico(ativoId, 'manual');
   return true;
+}
+
+// Atalho para console
+function simularD0() {
+    confirmarTesteD8();
+}
+
+// ═══════════════════════════════════════════════════
+//  COMANDOS PARA CONSOLE
+// ═══════════════════════════════════════════════════
+function verEstado() {
+    console.log('📊 ESTADO ATUAL:');
+    console.log('  Pânico ativo:', panicoAtivo);
+    console.log('  Cancelável:', panicoCancelavel);
+    console.log('  Veículo ativo:', ativoId);
+    console.log('  Veículos:', Object.keys(veiculos).length);
+    console.log('  MQTT conectado:', mqttClient ? mqttClient.connected : false);
 }
 
 // ═══════════════════════════════════════════════════
@@ -1052,8 +1017,11 @@ function salvarMapa() {
 }
 
 // ═══════════════════════════════════════════════════
-//  SIRENE FRANCESA
+//  SIRENE FRANCESA - VERSÃO DEFINITIVA
+//  Som contínuo alternando 880Hz ↔ 440Hz
+//  Loop infinito + popup para desligar
 // ═══════════════════════════════════════════════════
+
 let alarmeAtivo = false;
 let alarmeCtx = null;
 let alarmeOsc = null;
@@ -1071,6 +1039,7 @@ function tocarAlarmeNavegador() {
     alarmeAtivo = true;
     
     try {
+        // ── CRIA O CONTEXTO E OSCILADOR ──────────────
         alarmeCtx = new (window.AudioContext || window.webkitAudioContext)();
         if (alarmeCtx.state === 'suspended') {
             alarmeCtx.resume().catch(() => {});
@@ -1088,6 +1057,7 @@ function tocarAlarmeNavegador() {
         
         console.log('🔊 Sirene iniciada!');
         
+        // ── LOOP DE ALTERNÂNCIA ────────────────────────
         let usandoAlta = true;
         
         alarmeInterval = setInterval(() => {
@@ -1113,6 +1083,7 @@ function tocarAlarmeNavegador() {
         alarmeAtivo = false;
     }
     
+    // ── VIBRAÇÃO ──────────────────────────────────────
     if (navigator.vibrate) {
         navigator.vibrate([500, 200, 500, 200, 500, 200, 1000, 500, 500, 500, 500]);
         console.log('📳 Vibração acionada!');
@@ -1148,11 +1119,73 @@ function desligarAlarme() {
     console.log('✅ Sirene desligada');
 }
 
-// ═══════════════════════════════════════════════════
-//  INICIALIZAÇÃO
-// ═══════════════════════════════════════════════════
-console.log('🚀 Rastreador Veicular v2 (Mobile Optimized)');
-console.log('🕐 Horário GMT-3:', new Date().toLocaleTimeString('pt-BR', {timeZone: 'America/Sao_Paulo'}));
+// ── SIMULAÇÃO ──────────────────────────────────────
+function simularModoFesta() {
+    console.log('🧪 SIMULAÇÃO: Iniciando Modo Festa...');
+    
+    if (!ativoId) {
+        alert('⚠️ Selecione um veículo primeiro!');
+        return;
+    }
+    
+    const v = veiculos[ativoId];
+    if (!v || !v.ultimaPos) {
+        alert('⚠️ Veículo sem posição!');
+        return;
+    }
+    
+    if (circuloFesta) {
+        circuloFesta.remove();
+        circuloFesta = null;
+    }
+    
+    circuloFesta = L.circle(v.ultimaPos, {
+        color: '#f9a825',
+        fillColor: '#f9a825',
+        fillOpacity: 0.15,
+        radius: 50
+    }).addTo(map);
+    
+    document.getElementById('btnFesta').classList.add('ativo');
+    document.getElementById('btnFesta').textContent = '🛡️ Ativo';
+    modoFestaAtivo = true;
+    addLog('🛡️ Modo Festa ATIVADO — Círculo de 50m', 'log-warn');
+    
+    setTimeout(() => {
+        const novaPos = L.latLng(
+            v.ultimaPos.lat + 0.0005,
+            v.ultimaPos.lng + 0.001
+        );
+        
+        tocarAlarmeNavegador();
+        setBadge('pStatus', '🚨 FURTO', 'badge-err');
+        
+        if (confirm('🚨 ALERTA!\n\nVeículo moveu mais de 50m!\n\nOK = desligar alarme')) {
+            desligarAlarme();
+        }
+        
+        if (circuloFesta) {
+            circuloFesta.remove();
+            circuloFesta = null;
+        }
+        document.getElementById('btnFesta').classList.remove('ativo');
+        document.getElementById('btnFesta').textContent = '🛡️ Modo Festa';
+        modoFestaAtivo = false;
+        
+        if (v.marker) {
+            v.marker.setLatLng(novaPos);
+        }
+        v.ultimaPos = novaPos;
+        v.trail.addLatLng(novaPos);
+        map.setView(novaPos, 16);
+        addLog('🚨 ALERTA DE FURTO DETECTADO!', 'log-err');
+        
+    }, 3000);
+}
+
+console.log('🎯 SIRENE FRANCESA (som contínuo)');
+console.log('🔊 880Hz ↔ 440Hz (alterna a cada 300ms)');
+simularModoFesta();
 </script>
 
 </body>
