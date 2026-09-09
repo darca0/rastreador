@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Rastreador Veicular</title>
+<title>Rastreador Veicular v2</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
@@ -16,11 +16,6 @@
   #loginScreen h1 { font-size: 22px; font-weight: 700; }
   #loginScreen p  { font-size: 13px; color: #888; }
   
-  .user-select { display: flex; gap: 10px; margin: 8px 0; flex-wrap: wrap; justify-content: center; }
-  .user-btn { padding: 10px 20px; border-radius: 12px; border: 2px solid #444; background: #1a1a1a; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-  .user-btn:active { transform: scale(0.95); }
-  .user-btn.selecionado { border-color: #1565C0; background: #1565C020; box-shadow: 0 0 20px rgba(21,101,192,0.3); }
-  
   .pin-dot { width: 16px; height: 16px; border-radius: 50%; background: #333; border: 2px solid #555; display: inline-block; margin: 0 4px; transition: all 0.15s; }
   .pin-dot.filled { background: #1565C0; border-color: #1565C0; }
   .pin-dot.error  { background: #b71c1c; border-color: #b71c1c; }
@@ -29,9 +24,9 @@
   .numpad button { width: 72px; height: 72px; border-radius: 50%; background: #222; border: 1px solid #333; color: #fff; font-size: 24px; cursor: pointer; transition: all 0.1s; }
   .numpad button:active { background: #1565C0; transform: scale(0.95); }
   #loginError { color: #f44336; font-size: 13px; min-height: 18px; }
-  #loginUser { color: #4caf50; font-size: 16px; font-weight: 700; }
+  #inputUsuario { width:100%; padding:12px; border-radius:8px; border:1px solid #444; background:#1a1a1a; color:#fff; font-size:16px; text-align:center; }
 
-  /* TOPBAR - DUAS LINHAS */
+  /* TOPBAR */
   #topbar { display:none; background: rgba(0,0,0,0.85); border-bottom: 1px solid #222; z-index: 1000; }
   #topbar .linha1 { display:flex; align-items:center; gap:4px; flex-wrap:nowrap; overflow-x:auto; padding:3px 6px; border-bottom:1px solid #222; white-space:nowrap; font-size:10px; }
   #topbar .linha2 { display:flex; align-items:center; gap:4px; flex-wrap:nowrap; overflow-x:auto; padding:3px 6px; white-space:nowrap; font-size:10px; }
@@ -48,7 +43,7 @@
   #relogioLocal { font-size:10px; color:#00ff41; font-family:'Courier New',monospace; margin-left:auto; }
 
   /* LISTA VEÍCULOS */
-  #veiculosList { background:rgba(0,0,0,0.85); border-bottom:1px solid #222; overflow-x:auto; display:flex; gap:4px; padding:4px 6px; z-index:999; display:none; }
+  #veiculosList { display:none; background:rgba(0,0,0,0.85); border-bottom:1px solid #222; overflow-x:auto; display:flex; gap:4px; padding:4px 6px; z-index:999; }
   .veiculo-btn { flex-shrink:0; padding:4px 10px; border-radius:16px; border:2px solid #333; background:#1a1a1a; color:#fff; font-size:10px; font-weight:600; cursor:pointer; white-space:nowrap; }
   .veiculo-btn.ativo { border-color:#1565C0; background:#1565C020; }
   #semVeiculos { color:#555; font-size:11px; padding:4px; }
@@ -56,7 +51,7 @@
   #map { flex: 1; }
 
   /* PAINEL */
-  #panel { position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.88); padding:3px 6px; z-index:1000; border-top:1px solid #222; display:none; }
+  #panel { display:none; position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.88); padding:3px 6px; z-index:1000; border-top:1px solid #222; }
   #panelNome { font-size:9px; font-weight:700; color:#90caf9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:1px; }
   .info-row { display:flex; align-items:center; gap:2px; flex-wrap:nowrap; overflow-x:auto; margin-bottom:1px; }
   .info-pill { background:#1a1a1a; border:1px solid #333; border-radius:6px; padding:1px 4px; font-size:8px; color:#ccc; white-space:nowrap; }
@@ -109,28 +104,24 @@
 <body>
 
 <!-- ============================================================ -->
-<!-- LOGIN COM CAMPO DE TEXTO (digite o usuário) -->
+<!-- LOGIN COM CAMPO DE TEXTO (APENAS) -->
 <!-- ============================================================ -->
 <div id="loginScreen">
   <h1>🛡️ Rastreador</h1>
   <p>Digite seu usuário e PIN:</p>
   
-  <!-- CAMPO USUÁRIO -->
   <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:80%; max-width:300px;">
-    <input type="text" id="inputUsuario" placeholder="Usuário (admin, cicrano, zerruela)" 
-           style="width:100%; padding:12px; border-radius:8px; border:1px solid #444; background:#1a1a1a; color:#fff; font-size:16px; text-align:center;">
+    <input type="text" id="inputUsuario" placeholder="Usuário (admin, cicrano, zerruela)" style="width:100%; padding:12px; border-radius:8px; border:1px solid #444; background:#1a1a1a; color:#fff; font-size:16px; text-align:center;">
     
-    <!-- PONTINHOS DO PIN -->
     <div id="pinDisplay">
       <div class="pin-dot" id="dot0"></div>
       <div class="pin-dot" id="dot1"></div>
       <div class="pin-dot" id="dot2"></div>
       <div class="pin-dot" id="dot3"></div>
     </div>
-    <div id="loginError"></div>
+    <div id="loginError" style="color:#f44336; font-size:13px; min-height:18px;"></div>
   </div>
   
-  <!-- TECLADO NUMÉRICO -->
   <div class="numpad">
     <button onclick="pin('1')">1</button>
     <button onclick="pin('2')">2</button>
@@ -146,11 +137,11 @@
     <button onclick="pin('del')">✕</button>
   </div>
   
-  <!-- BOTÃO ENTRAR -->
   <button onclick="loginComUsuario()" style="padding:12px 40px; border-radius:12px; border:none; background:#1565C0; color:#fff; font-size:16px; font-weight:700; cursor:pointer; margin-top:8px;">Entrar</button>
 </div>
+
 <!-- ============================================================ -->
-<!-- TOPBAR - DUAS LINHAS -->
+<!-- TOPBAR -->
 <!-- ============================================================ -->
 <div id="topbar">
   <div class="linha1">
@@ -206,16 +197,16 @@
     <span id="pTempoParada">⏱️ 00:00</span>
     <span class="badge-sm badge-off" id="pStatus">Aguardando</span>
   </div>
-<div class="btn-row">
+  <div class="btn-row">
     <button class="btn-center" onclick="centralizarAtivo()">◎</button>
-    <button class="btn-block"  id="btnBlock"  onclick="cmdAtivo('DESBLOQUEAR')" style="display:none">🔴 Desbloquear</button>
-    <button class="btn-cancel" id="btnCancel" onclick="cmdAtivo('CANCELAR_BLOQUEIO')" style="display:none">🟡 Aguardando...</button>
+    <button class="btn-block"  id="btnBlock"  onclick="cmdAtivo('DESBLOQUEAR')" style="display:none;">🔴 Desbloquear</button>
+    <button class="btn-cancel" id="btnCancel" onclick="cmdAtivo('CANCELAR_BLOQUEIO')" style="display:none;">🟡 Aguardando...</button>
     <button class="btn-unlock" id="btnUnlock" onclick="solicitarBloqueio()">🟢 Liberado</button>
     <button class="btn-aux" onclick="acionarAux()">🔓AUX</button>
     <button class="btn-festa" id="btnFesta" onclick="toggleModoFesta()">🛡️Festa</button>
     <button class="btn-d8" onclick="confirmarTesteD8()">🚨</button>
     <button class="btn-parar" onclick="desligarAlarme()" title="Parar Alarme">⏹</button>
-</div>
+  </div>
   <div id="logBox"></div>
 </div>
 
@@ -259,47 +250,81 @@
 
 <script>
 // ============================================================
-// CONFIGURAÇÃO
+// USUÁRIOS E PINs
 // ============================================================
-const BROKER_WSS = 'wss://5e7c95681b9f45068546a87087ed9e2c.s1.eu.hivemq.cloud/mqtt';
-const BROKER_PORT = 8884;
-
 const USUARIOS = {
-  'admin':    '8912',
-  'cicrano':  '0123',
+  'admin': '8912',
+  'cicrano': '0123',
   'zerruela': '3412'
 };
 
 // ============================================================
-// ESTADO GLOBAL
+// LOGIN COM CAMPO DE TEXTO
 // ============================================================
-let usuarioId = 'cicrano';
-let map, tileLayer, mqttClient;
-let veiculos = {};
-let ativoId = null;
 let pinBuffer = '';
-let currentStyle = 'map';
-let modoFestaAtivo = false;
-let circuloFesta = null;
-let panicoAtivo = false;
-let panicoTimer = null;
-let panicoCancelavel = true;
-let panicoChipId = null;
-const PARADA_MIN_MS = 360000;
-const PARADA_VEL = 2.0;
+let usuarioId = '';
 
-// ============================================================
-// SELEÇÃO DE USUÁRIO
-// ============================================================
-function selecionarUsuario(user) {
-  usuarioId = user;
-  document.querySelectorAll('.user-btn').forEach(b => b.classList.remove('selecionado'));
-  document.querySelector(`.user-btn[data-user="${user}"]`).classList.add('selecionado');
-  document.getElementById('loginUser').textContent = '👤 ' + user;
-  // Limpa o PIN
+function pin(v) {
+  console.log('🔢 Tecla:', v);
+  
+  if (v === 'del') {
+    pinBuffer = pinBuffer.slice(0, -1);
+  } else if (pinBuffer.length < 4) {
+    pinBuffer += v;
+  }
+  
+  // Atualiza os pontinhos
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('dot' + i);
+    if (dot) dot.className = 'pin-dot' + (i < pinBuffer.length ? ' filled' : '');
+  }
+  
+  if (pinBuffer.length === 4) {
+    loginComUsuario();
+  }
+}
+
+function loginComUsuario() {
+  const inputUser = document.getElementById('inputUsuario');
+  const usuario = inputUser.value.trim().toLowerCase();
+  
+  console.log('🔍 Login:', usuario, 'PIN:', pinBuffer);
+  
+  if (!usuario) {
+    document.getElementById('loginError').textContent = '⚠️ Digite um usuário!';
+    resetPin();
+    return;
+  }
+  
+  if (!USUARIOS[usuario]) {
+    document.getElementById('loginError').textContent = '❌ Usuário inválido! Use: admin, cicrano ou zerruela';
+    resetPin();
+    return;
+  }
+  
+  if (pinBuffer === USUARIOS[usuario]) {
+    usuarioId = usuario;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('topbar').style.display = 'block';
+    document.getElementById('veiculosList').style.display = 'flex';
+    document.getElementById('panel').style.display = 'block';
+    document.getElementById('nomeUsuario').textContent = '👤 ' + usuarioId;
+    iniciarApp();
+  } else {
+    document.getElementById('loginError').textContent = '❌ PIN incorreto para ' + usuario;
+    resetPin();
+  }
+}
+
+function resetPin() {
   pinBuffer = '';
-  document.querySelectorAll('.pin-dot').forEach(d => d.className = 'pin-dot');
-  document.getElementById('loginError').textContent = '';
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('dot' + i);
+    if (dot) dot.className = 'pin-dot';
+  }
+  setTimeout(() => {
+    document.getElementById('loginError').textContent = '';
+  }, 2000);
 }
 
 // ============================================================
@@ -319,77 +344,24 @@ setInterval(atualizarRelogioLocal, 1000);
 atualizarRelogioLocal();
 
 // ============================================================
-// LOGIN COM CAMPO DE TEXTO
+// MAPA E MQTT
 // ============================================================
+const BROKER_WSS = 'wss://5e7c95681b9f45068546a87087ed9e2c.s1.eu.hivemq.cloud/mqtt';
+const BROKER_PORT = 8884;
 
-// Variável para armazenar o PIN digitado
-let pinBuffer = '';
-let usuarioId = '';
+let map, tileLayer, mqttClient;
+let veiculos = {};
+let ativoId = null;
+let currentStyle = 'map';
+let modoFestaAtivo = false;
+let circuloFesta = null;
+let panicoAtivo = false;
+let panicoTimer = null;
+let panicoCancelavel = true;
+let panicoChipId = null;
+const PARADA_MIN_MS = 360000;
+const PARADA_VEL = 2.0;
 
-// Função chamada quando digita o PIN
-function pin(v) {
-  if (v === 'del') {
-    pinBuffer = pinBuffer.slice(0, -1);
-  } else if (pinBuffer.length < 4) {
-    pinBuffer += v;
-  }
-  
-  // Atualiza os pontinhos
-  for (let i = 0; i < 4; i++) {
-    const dot = document.getElementById('dot' + i);
-    if (dot) dot.className = 'pin-dot' + (i < pinBuffer.length ? ' filled' : '');
-  }
-  
-  // Se o PIN tem 4 dígitos, tenta fazer login automaticamente
-  if (pinBuffer.length === 4) {
-    loginComUsuario();
-  }
-}
-
-// Função chamada ao clicar em "Entrar" ou quando o PIN está completo
-function loginComUsuario() {
-  const inputUser = document.getElementById('inputUsuario');
-  const usuario = inputUser.value.trim().toLowerCase();
-  
-  // Verifica se o usuário existe
-  if (!USUARIOS[usuario]) {
-    document.getElementById('loginError').textContent = '❌ Usuário inválido! Use: admin, cicrano ou zerruela';
-    resetPin();
-    return;
-  }
-  
-  // Verifica o PIN
-  if (pinBuffer === USUARIOS[usuario]) {
-    // Login bem-sucedido
-    usuarioId = usuario;
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('topbar').style.display = 'block';
-    document.getElementById('veiculosList').style.display = 'flex';
-    document.getElementById('panel').style.display = 'block';
-    document.getElementById('nomeUsuario').textContent = '👤 ' + usuarioId;
-    iniciarApp();
-  } else {
-    document.getElementById('loginError').textContent = '❌ PIN incorreto para ' + usuario;
-    resetPin();
-  }
-}
-
-// Função para resetar o PIN
-function resetPin() {
-  pinBuffer = '';
-  for (let i = 0; i < 4; i++) {
-    const dot = document.getElementById('dot' + i);
-    if (dot) dot.className = 'pin-dot';
-  }
-  // Limpa o erro após 2 segundos
-  setTimeout(() => {
-    document.getElementById('loginError').textContent = '';
-  }, 2000);
-}
-
-// ============================================================
-// MAPA
-// ============================================================
 function iniciarApp() {
   map = L.map('map', { zoomControl: false }).setView([-22.7078, -47.6659], 13);
   L.control.zoom({ position: 'topleft' }).addTo(map);
@@ -403,9 +375,6 @@ function nextMapStyle() {
   tileLayer.setUrl(url);
 }
 
-// ============================================================
-// MQTT
-// ============================================================
 function conectarMQTT() {
   if (mqttClient) { mqttClient.end(true); }
   setBadge('mqttBadge', 'Conectando...', 'badge-warn');
@@ -451,6 +420,61 @@ function cmd(chipId, comando) {
   if (!mqttClient || !mqttClient.connected) { addLog('Sem conexão!', 'log-err'); return; }
   mqttClient.publish('rastreador/' + usuarioId + '/' + chipId + '/cmd', comando);
   addLog('→ ' + comando + ' [' + chipId.slice(-4) + ']', 'log-warn');
+}
+
+function cmdAtivo(comando) {
+  if (!ativoId) return;
+  cmd(ativoId, comando);
+  const v = veiculos[ativoId];
+  if (!v) return;
+  if (comando === 'BLOQUEAR') {
+    v.pendente = false;
+    v.bloqueado = true;
+    addLog('🔒 VEÍCULO BLOQUEADO!', 'log-err');
+  } else if (comando === 'DESBLOQUEAR') {
+    v.pendente = false;
+    v.bloqueado = false;
+    addLog('🔓 Veículo DESBLOQUEADO', 'log-ok');
+  } else if (comando === 'CANCELAR_BLOQUEIO') {
+    v.pendente = false;
+    v.bloqueado = false;
+    addLog('🟡 Bloqueio cancelado', 'log-warn');
+  }
+  atualizarPainel(ativoId);
+  atualizarBotaoLista(ativoId);
+  atualizarVeiculoTopbar(ativoId);
+  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
+}
+
+function solicitarBloqueio() {
+  const modal = document.getElementById('modalSeguranca');
+  modal.style.display = 'flex';
+  document.getElementById('segUser').value = '';
+  document.getElementById('segPass').value = '';
+  setTimeout(() => { document.getElementById('segUser').focus(); }, 300);
+}
+
+function confirmarBloqueio() {
+  let user = document.getElementById('segUser').value.trim();
+  let pass = document.getElementById('segPass').value.trim();
+  if (!user || !pass) { alert('⚠️ Digite usuário e senha!'); return; }
+  if (user === usuarioId && pass === USUARIOS[usuarioId]) {
+    document.getElementById('modalSeguranca').style.display = 'none';
+    document.getElementById('segUser').value = '';
+    document.getElementById('segPass').value = '';
+    cmdAtivo('BLOQUEAR');
+    if (typeof desligarAlarme === 'function') { desligarAlarme(); }
+  } else {
+    alert('❌ Usuário ou senha incorretos!');
+    document.getElementById('segPass').value = '';
+    document.getElementById('segPass').focus();
+  }
+}
+
+function fecharModalSeguranca() {
+  document.getElementById('modalSeguranca').style.display = 'none';
+  document.getElementById('segUser').value = '';
+  document.getElementById('segPass').value = '';
 }
 
 // ============================================================
@@ -539,7 +563,6 @@ function processarGPS(chipId, d) {
   }
   v.trail.addLatLng(pos);
 
-  // Detecta parada
   if (v.vel <= PARADA_VEL) {
     if (!v.paradaInicio) {
       v.paradaInicio = Date.now();
@@ -731,78 +754,8 @@ function addLog(msg, cls) {
 }
 
 // ============================================================
-// COMANDOS
+// MODO FESTA
 // ============================================================
-function cmdAtivo(comando) {
-  if (!ativoId) return;
-  cmd(ativoId, comando);
-  const v = veiculos[ativoId];
-  if (!v) return;
-  if (comando === 'BLOQUEAR') {
-    v.pendente = false;
-    v.bloqueado = true;
-    addLog('🔒 VEÍCULO BLOQUEADO!', 'log-err');
-  } else if (comando === 'DESBLOQUEAR') {
-    v.pendente = false;
-    v.bloqueado = false;
-    addLog('🔓 Veículo DESBLOQUEADO', 'log-ok');
-  } else if (comando === 'CANCELAR_BLOQUEIO') {
-    v.pendente = false;
-    v.bloqueado = false;
-    addLog('🟡 Bloqueio cancelado', 'log-warn');
-  }
-  atualizarPainel(ativoId);
-  atualizarBotaoLista(ativoId);
-  atualizarVeiculoTopbar(ativoId);
-  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
-}
-
-function solicitarBloqueio() {
-  const modal = document.getElementById('modalSeguranca');
-  modal.style.display = 'flex';
-  document.getElementById('segUser').value = '';
-  document.getElementById('segPass').value = '';
-  setTimeout(function() { document.getElementById('segUser').focus(); }, 300);
-}
-
-function confirmarBloqueio() {
-  let user = document.getElementById('segUser').value.trim();
-  let pass = document.getElementById('segPass').value.trim();
-  if (!user || !pass) { alert('⚠️ Digite usuário e senha!'); return; }
-  if (user === usuarioId && pass === USUARIOS[usuarioId]) {
-    document.getElementById('modalSeguranca').style.display = 'none';
-    document.getElementById('segUser').value = '';
-    document.getElementById('segPass').value = '';
-    cmdAtivo('BLOQUEAR');
-    if (typeof desligarAlarme === 'function') { desligarAlarme(); }
-  } else {
-    alert('❌ Usuário ou senha incorretos!');
-    document.getElementById('segPass').value = '';
-    document.getElementById('segPass').focus();
-  }
-}
-
-function fecharModalSeguranca() {
-  document.getElementById('modalSeguranca').style.display = 'none';
-  document.getElementById('segUser').value = '';
-  document.getElementById('segPass').value = '';
-}
-
-function acionarAux() {
-  if (!ativoId) { addLog('Nenhum veículo selecionado', 'log-err'); return; }
-  document.getElementById('modalAux').classList.add('show');
-}
-
-function fecharModal() {
-  document.getElementById('modalAux').classList.remove('show');
-}
-
-function confirmarAux() {
-  fecharModal();
-  cmd(ativoId, 'AUX_DESTRAVAR');
-  addLog('→ AUX destravamento acionado (2s)', 'log-warn');
-}
-
 function toggleModoFesta() {
   if (!ativoId) return;
   if (!modoFestaAtivo) {
@@ -1020,8 +973,95 @@ function salvarMapa() {
   addLog('💾 Trajeto salvo!', 'log-ok');
 }
 
+// ============================================================
+// SIMULAR MODO FESTA PELO CONSOLE
+// ============================================================
+function simularModoFesta() {
+    console.log('🧪 SIMULAÇÃO: Iniciando Modo Festa...');
+    
+    if (!window.ativoId) {
+        console.error('❌ Nenhum veículo selecionado!');
+        alert('⚠️ Selecione um veículo no mapa primeiro!');
+        return;
+    }
+    
+    const v = window.veiculos[window.ativoId];
+    if (!v || !v.ultimaPos) {
+        console.error('❌ Veículo sem posição GPS!');
+        alert('⚠️ Veículo sem posição!');
+        return;
+    }
+    
+    console.log('📍 Veículo:', v.nome, 'Posição:', v.ultimaPos);
+    
+    if (window.circuloFesta) {
+        window.circuloFesta.remove();
+        window.circuloFesta = null;
+    }
+    
+    window.circuloFesta = L.circle(v.ultimaPos, {
+        color: '#f9a825',
+        fillColor: '#f9a825',
+        fillOpacity: 0.15,
+        radius: 50
+    }).addTo(window.map);
+    
+    const btnFesta = document.getElementById('btnFesta');
+    if (btnFesta) {
+        btnFesta.classList.add('ativo');
+        btnFesta.textContent = '🛡️ Ativo';
+    }
+    window.modoFestaAtivo = true;
+    
+    console.log('✅ Círculo de 50m criado!');
+    
+    if (typeof window.cmd === 'function') {
+        window.cmd(window.ativoId, 'ATIVAR_MODO_FESTA');
+    }
+    
+    setTimeout(() => {
+        console.log('🚨 Simulando movimento do veículo...');
+        
+        const novaPos = L.latLng(
+            v.ultimaPos.lat + 0.0005,
+            v.ultimaPos.lng + 0.001
+        );
+        
+        if (typeof window.tocarAlarmeNavegador === 'function') {
+            window.tocarAlarmeNavegador();
+        }
+        
+        if (window.circuloFesta) {
+            window.circuloFesta.remove();
+            window.circuloFesta = null;
+        }
+        
+        const btnFesta2 = document.getElementById('btnFesta');
+        if (btnFesta2) {
+            btnFesta2.classList.remove('ativo');
+            btnFesta2.textContent = '🛡️Festa';
+        }
+        window.modoFestaAtivo = false;
+        
+        if (v.marker) {
+            v.marker.setLatLng(novaPos);
+        }
+        v.ultimaPos = novaPos;
+        v.trail.addLatLng(novaPos);
+        window.map.setView(novaPos, 16);
+        
+        console.log('✅ Veículo movido para:', novaPos);
+        console.log('🔊 ALARME ATIVADO! Use o botão ⏹ no painel para parar.');
+        
+    }, 3000);
+}
+
+window.testarFesta = simularModoFesta;
+window.modoFesta = simularModoFesta;
+
 console.log('🚀 Rastreador Veicular v2');
 console.log('🕐 GMT-3:', new Date().toLocaleTimeString('pt-BR', {timeZone: 'America/Sao_Paulo'}));
+console.log('✅ Comandos disponíveis: modoFesta() ou testarFesta()');
 </script>
 
 </body>
