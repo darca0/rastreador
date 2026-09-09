@@ -537,118 +537,145 @@ function atualizarVeiculoTopbar(chipId) {
   document.getElementById('veiculoAtivoNome').textContent = emoji + ' ' + chipId.slice(-4).toUpperCase() + ' ' + Math.round(v.vel) + 'km/h';
 }
 
-// -- PROCESSAR GPS --
 window.processarGPS = function(chipId, d) {
-  const v = obterVeiculo(chipId);
-  if (d.rssi !== undefined) v.rssi = d.rssi;
-  if (d.sat !== undefined) v.sat = d.sat;
-  if (d.spd !== undefined) v.vel = d.spd;
-  if (d.alt !== undefined) v.alt = d.alt;
-  if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
-  if (d.pendente !== undefined) v.pendente = d.pendente === true;
-  if (!d.lat || !d.lng) { if (chipId === ativoId) { atualizarPainel(chipId); atualizarVeiculoTopbar(chipId); } return; }
-  const pos = L.latLng(parseFloat(d.lat), parseFloat(d.lng));
-  v.ultimaPos = pos;
-  const cor = corMarcador(v);
-  if (!v.marker) {
-    v.marker = L.marker(pos, { icon: mkIcon(cor) }).addTo(map);
-    v.marker.bindTooltip(v.nome);
-    if (chipId === ativoId) map.setView(pos, 16);
-  } else {
-    v.marker.setLatLng(pos);
-    v.marker.setIcon(mkIcon(cor));
-  }
-  v.trail.addLatLng(pos);
-
-// ════════════════════════════════════════════════════════════════
-//  NOVA LÓGICA DE PARADA (PINGO COMO GATILHO + RAIO DE 50m)
-// ════════════════════════════════════════════════════════════════
-
-if (v.vel <= PARADA_VEL) {
-    // ── VEÍCULO PARADO ──────────────────────────────────────
+    const v = obterVeiculo(chipId);
+    if (!v) return;
     
-    if (!v.paradaInicio) {
-        // INÍCIO DA PARADA
-        v.paradaInicio = Date.now();
-        v.paradaPos = pos;
-        addLog('[' + chipId.slice(-4) + '] Parada detectada (vel=' + v.vel.toFixed(1) + ' km/h)', 'log-warn');
+    // Atualiza os dados do veículo
+    if (d.rssi !== undefined) v.rssi = d.rssi;
+    if (d.sat !== undefined) v.sat = d.sat;
+    if (d.spd !== undefined) v.vel = d.spd;
+    if (d.alt !== undefined) v.alt = d.alt;
+    if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
+    if (d.pendente !== undefined) v.pendente = d.pendente === true;
+
+    // Verifica se tem posição válida
+    if (!d.lat || !d.lng) {
+        if (chipId === ativoId) {
+            atualizarPainel(chipId);
+            atualizarVeiculoTopbar(chipId);
+        }
+        return;
+    }
+
+    const pos = L.latLng(parseFloat(d.lat), parseFloat(d.lng));
+    v.ultimaPos = pos;
+    const cor = corMarcador(v);
+
+    // ── CRIA/ATUALIZA O MARCADOR DO VEÍCULO ──────────────────
+    if (!v.marker) {
+        v.marker = L.marker(pos, { icon: mkIcon(cor) }).addTo(map);
+        v.marker.bindTooltip(v.nome);
+        if (chipId === ativoId) map.setView(pos, 16);
+    } else {
+        v.marker.setLatLng(pos);
+        v.marker.setIcon(mkIcon(cor));
+    }
+    v.trail.addLatLng(pos);
+
+    // ══════════════════════════════════════════════════════════
+    //  NOVA LÓGICA DE PARADA (PINGO COMO GATILHO + RAIO 50m)
+    // ══════════════════════════════════════════════════════════
+    
+    const elTempo = document.getElementById('pTempoParada');
+    
+    if (v.vel <= PARADA_VEL) {
+        // ── VEÍCULO PARADO ──────────────────────────────────
+        
+        if (!v.paradaInicio) {
+            // INÍCIO DA PARADA
+            v.paradaInicio = Date.now();
+            v.paradaPos = pos;
+            addLog('[' + chipId.slice(-4) + '] Parada detectada (vel=' + v.vel.toFixed(1) + ' km/h)', 'log-warn');
+        } else {
+            // ── JÁ ESTÁ PARADO ──────────────────────────────
+            const tempoParado = Date.now() - v.paradaInicio;
+            const minutosTotais = Math.round(tempoParado / 60000);
+            
+            // ── VERIFICA SE JÁ PASSOU 6 MINUTOS ────────────
+            if (tempoParado >= PARADA_MIN_MS) {
+                
+                // ── PROCURA UM PINGO PRÓXIMO (RAIO 50m) ─────
+                let pingoProximo = null;
+                for (let p of v.pingos) {
+                    if (p.marker) {
+                        const dist = map.distance(p.marker.getLatLng(), pos);
+                        if (dist < 50) {
+                            pingoProximo = p;
+                            break;
+                        }
+                    }
+                }
+                
+                if (pingoProximo) {
+                    // ── PINGO EXISTE DENTRO DO RAIO ──────────
+                    // ATUALIZA O TEMPO DO PINGO EXISTENTE
+                    pingoProximo.mins = minutosTotais;
+                    const novoIcone = criarIconePingo(pingoProximo.num, minutosTotais);
+                    pingoProximo.marker.setIcon(novoIcone);
+                    
+                    // Atualiza o contador de tempo parado
+                    if (elTempo) {
+                        elTempo.textContent = '⏱️ ' + minutosTotais + ' min';
+                        elTempo.className = 'ativo';
+                        elTempo.style.display = 'inline-block';
+                    }
+                    
+                    addLog('[' + chipId.slice(-4) + '] P' + pingoProximo.num + ' atualizado: ' + minutosTotais + ' min', 'log-warn');
+                    
+                } else {
+                    // ── NENHUM PINGO PRÓXIMO ──────────────────
+                    // CRIA UM NOVO PINGO
+                    v.contador = (v.contador || 0) + 1;
+                    const icone = criarIconePingo(v.contador, minutosTotais);
+                    const marker = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
+                    v.pingos.push({ marker: marker, num: v.contador, mins: minutosTotais });
+                    v.paradaCirculo = marker;
+                    
+                    // Atualiza o contador
+                    if (elTempo) {
+                        elTempo.textContent = '⏱️ ' + minutosTotais + ' min';
+                        elTempo.className = 'ativo';
+                        elTempo.style.display = 'inline-block';
+                    }
+                    
+                    addLog('[' + chipId.slice(-4) + '] 🅿️ NOVO PINGO P' + v.contador + ': ' + minutosTotais + ' min', 'log-warn');
+                }
+            }
+        }
         
     } else {
-        // ── JÁ ESTÁ PARADO ──────────────────────────────────
-        const tempoParado = Date.now() - v.paradaInicio;
-        const minutosTotais = Math.round(tempoParado / 60000);
+        // ── VEÍCULO EM MOVIMENTO ──────────────────────────────
         
-        // ── VERIFICA SE JÁ PASSOU 6 MINUTOS ────────────────
-        if (tempoParado >= PARADA_MIN_MS) {
-            
-            // ── PROCURA UM PINGO PRÓXIMO (RAIO DE 50m) ──────
-            let pingoProximo = null;
-            for (let p of v.pingos) {
-                const dist = map.distance(p.marker.getLatLng(), pos);
-                if (dist < 50) {
-                    pingoProximo = p;
-                    break;
-                }
-            }
-            
-            if (pingoProximo) {
-                // ── PINGO EXISTE DENTRO DO RAIO ──────────────
-                // ATUALIZA O TEMPO DO PINGO EXISTENTE
-                pingoProximo.mins = minutosTotais;
-                const novoIcone = criarIconePingo(pingoProximo.num, minutosTotais);
-                pingoProximo.marker.setIcon(novoIcone);
-                
-                // Atualiza o contador de tempo parado
-                const el = document.getElementById('pTempoParada');
-                if (el) {
-                    el.textContent = '⏱️ ' + minutosTotais + ' min';
-                    el.className = 'ativo';
-                }
-                
-                addLog('[' + chipId.slice(-4) + '] P' + pingoProximo.num + ' atualizado: ' + minutosTotais + ' min', 'log-warn');
-                
-            } else {
-                // ── NENHUM PINGO PRÓXIMO ──────────────────────
-                // CRIA UM NOVO PINGO
-                v.contador++;
-                const icone = criarIconePingo(v.contador, minutosTotais);
-                const marker = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
-                v.pingos.push({ marker: marker, num: v.contador, mins: minutosTotais });
-                v.paradaCirculo = marker;
-                
-                // Atualiza o contador
-                const el = document.getElementById('pTempoParada');
-                if (el) {
-                    el.textContent = '⏱️ ' + minutosTotais + ' min';
-                    el.className = 'ativo';
-                }
-                
-                addLog('[' + chipId.slice(-4) + '] 🅿️ NOVO PINGO P' + v.contador + ': ' + minutosTotais + ' min', 'log-warn');
+        if (v.paradaCirculo) {
+            // Verifica se o veículo ultrapassou 50m do pingo
+            const dist = map.distance(v.paradaCirculo.getLatLng(), pos);
+            if (dist > 50) {
+                // VEÍCULO ULTRAPASSOU O RAIO → CONGELA O PINGO
+                v.paradaCirculo = null;
+                addLog('[' + chipId.slice(-4) + '] Veículo ultrapassou 50m → tempo congelado', 'log-warn');
             }
         }
-    }
-    
-} else {
-    // ── VEÍCULO EM MOVIMENTO ──────────────────────────────────
-    
-    if (v.paradaCirculo) {
-        // Verifica se o veículo ultrapassou 50m do pingo
-        const dist = map.distance(v.paradaCirculo.getLatLng(), pos);
-        if (dist > 50) {
-            // VEÍCULO ULTRAPASSOU O RAIO → CONGELA O PINGO
-            v.paradaCirculo = null;
-            addLog('[' + chipId.slice(-4) + '] Veículo ultrapassou 50m → tempo congelado', 'log-warn');
+        
+        // Reseta a contagem de parada atual
+        v.paradaInicio = null;
+        v.paradaPos = null;
+        
+        // Esconde o contador de tempo
+        if (elTempo) {
+            elTempo.className = '';
+            elTempo.style.display = 'none';
         }
     }
-    
-    // Reseta a contagem de parada atual
-    v.paradaInicio = null;
-    v.paradaPos = null;
-    
-    // Esconde o contador de tempo
-    document.getElementById('pTempoParada').className = '';
-    document.getElementById('pTempoParada').style.display = 'none';
-} 
+
+    // ── ATUALIZA A INTERFACE ──────────────────────────────────
+    atualizarTempoParada(chipId);
+    atualizarBotaoLista(chipId);
+    if (chipId === ativoId) {
+        atualizarPainel(chipId);
+        atualizarVeiculoTopbar(chipId);
+    }
+};
 
 function atualizarTempoParada(chipId) {
   const v = veiculos[chipId];
