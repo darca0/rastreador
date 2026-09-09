@@ -123,20 +123,40 @@
   </div>
 </div>
 
-<div id="topbar" style="display:none">
-  <div class="linha1">
-    <span style="font-size:10px;font-weight:700">🛡️</span>
-    <span id="nomeUsuario" style="font-size:9px;color:#4caf50;font-weight:700;"></span>
-    <span class="badge badge-off" id="mqttBadge">Conectando</span>
-    <button onclick="conectarMQTT()" style="font-size:12px;padding:1px 6px;">🔌</button>
-    <button onclick="nextMapStyle()" id="mapStyleBtn" style="font-size:11px;padding:1px 6px;">🛰</button>
-    <span class="badge badge-off" id="veiculosBadge" style="font-size:7px;padding:1px 6px;margin-left:auto;">0 veículos</span>
-  </div>
-  <div class="linha2">
-    <span id="veiculoAtivoNome" style="font-size:9px;font-weight:700;color:#90caf9;">Aguardando...</span>
-    <span id="relogioLocal" style="font-size:9px;color:#00ff41;font-family:'Courier New',monospace;margin-left:auto;">🕐 --:--:--</span>
-    <button onclick="salvarMapa()" style="background:#1a1a1a;border:1px solid #444;color:#fff;padding:1px 6px;border-radius:10px;font-size:9px;cursor:pointer;">💾</button>
-    <span style="font-size:6px;color:#555;font-family:'Courier New',monospace;opacity:0.4;">by darca</span>
+<!-- TOPBAR - TUDO EM UMA LINHA -->
+<div id="topbar" style="display:none; background: rgba(0,0,0,0.85); padding: 4px 6px; border-bottom: 1px solid #222; z-index: 1000;">
+  <div style="display:flex; align-items:center; gap:4px; flex-wrap:nowrap; overflow-x:auto; white-space:nowrap; font-size:10px;">
+    
+    <!-- Ícone -->
+    <span style="font-size:12px; font-weight:700;">🛡️</span>
+    
+    <!-- Usuário -->
+    <span id="nomeUsuario" style="font-size:10px; color:#4caf50; font-weight:700;"></span>
+    
+    <!-- Status MQTT -->
+    <span class="badge badge-off" id="mqttBadge" style="font-size:8px; padding:1px 5px;">Conectando</span>
+    
+    <!-- Botão Conectar -->
+    <button onclick="conectarMQTT()" style="font-size:13px; padding:1px 4px; background:#1a1a1a; border:1px solid #333; color:#fff; border-radius:8px; cursor:pointer;">🔌</button>
+    
+    <!-- Botão Mapa -->
+    <button onclick="nextMapStyle()" id="mapStyleBtn" style="font-size:12px; padding:1px 4px; background:#1a1a1a; border:1px solid #333; color:#fff; border-radius:8px; cursor:pointer;">🛰</button>
+    
+    <!-- Contador veículos -->
+    <span class="badge badge-off" id="veiculosBadge" style="font-size:7px; padding:1px 5px;">0</span>
+    
+    <!-- Veículo ativo + velocidade -->
+    <span id="veiculoAtivoNome" style="font-size:9px; font-weight:700; color:#90caf9; margin-left:2px;">D315 0km/h</span>
+    
+    <!-- RELÓGIO -->
+    <span id="relogioLocal" style="font-size:9px; color:#00ff41; font-family:'Courier New',monospace; margin-left:auto;">🕐 --:--:--</span>
+    
+    <!-- BOTÃO SALVAR -->
+    <button onclick="salvarMapa()" style="font-size:10px; padding:1px 5px; background:#1a1a1a; border:1px solid #444; color:#fff; border-radius:8px; cursor:pointer;">💾</button>
+    
+    <!-- BY DARCA (AGORA VISÍVEL) -->
+    <span style="font-size:8px; color:#888; font-family:'Courier New',monospace; opacity:0.7; margin-left:2px;">by darca</span>
+    
   </div>
 </div>
 
