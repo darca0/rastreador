@@ -4,52 +4,38 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Rastreador Veicular v2</title>
-<meta name="application-name" content="Rastreador">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Rastreador">
-<meta name="theme-color" content="#1b5e20">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #111; color: #fff; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-
-  /* LOGIN */
   #loginScreen { position: fixed; inset: 0; background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; gap: 16px; }
   #loginScreen h1 { font-size: 22px; font-weight: 700; }
   #loginScreen p  { font-size: 13px; color: #888; }
-  .pin-dot { width: 16px; height: 16px; border-radius: 50%; background: #333; border: 2px solid #555; transition: all 0.15s; }
+  .pin-dot { width: 16px; height: 16px; border-radius: 50%; background: #333; border: 2px solid #555; display: inline-block; margin: 0 4px; transition: all 0.15s; }
   .pin-dot.filled { background: #1565C0; border-color: #1565C0; }
   .pin-dot.error  { background: #b71c1c; border-color: #b71c1c; }
-  #pinDisplay { display: flex; gap: 12px; margin: 8px 0; }
+  #pinDisplay { display: flex; gap: 12px; margin: 8px 0; justify-content: center; }
   .numpad { display: grid; grid-template-columns: repeat(3, 72px); gap: 10px; margin-top: 8px; }
   .numpad button { width: 72px; height: 72px; border-radius: 50%; background: #222; border: 1px solid #333; color: #fff; font-size: 24px; cursor: pointer; transition: all 0.1s; }
   .numpad button:active { background: #1565C0; transform: scale(0.95); }
   #loginError { color: #f44336; font-size: 13px; min-height: 18px; }
-
-  /* TOPBAR - DUAS LINHAS */
   #topbar { background: rgba(0,0,0,0.85); display: none; flex-direction: column; z-index: 1000; border-bottom: 1px solid #222; }
   #topbar .linha1 { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; overflow-x: auto; padding: 2px 6px; border-bottom: 1px solid #222; }
   #topbar .linha2 { display: flex; align-items: center; gap: 4px; flex-wrap: nowrap; overflow-x: auto; padding: 2px 6px; }
-  
   .badge { padding: 2px 6px; border-radius: 12px; font-size: 8px; font-weight: 600; border: 1px solid; white-space: nowrap; }
   .badge-ok   { background: #2e7d3288; color: #a5d6a7; border-color: #2e7d32; }
   .badge-err  { background: #c6282888; color: #ef9a9a; border-color: #c62828; }
   .badge-warn { background: #f9a82588; color: #fff8e1; border-color: #f9a825; animation: blink 1s infinite; }
   .badge-off  { background: #33333388; color: #888; border-color: #444; }
   @keyframes blink { 50% { opacity: 0.5; } }
-  
   #topbar button { background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 1px 6px; border-radius: 10px; font-size: 10px; cursor: pointer; white-space: nowrap; }
   #topbar button:active { background: #1565C0; }
-  
   #nomeUsuario { font-size: 9px; color: #4caf50; font-weight: 700; white-space: nowrap; }
   #veiculoAtivoNome { font-size: 9px; font-weight: 700; color: #90caf9; white-space: nowrap; }
   #relogioLocal { font-size: 9px; color: #00ff41; font-family: 'Courier New', monospace; white-space: nowrap; margin-left: auto; }
   #creditosTop { font-size: 6px; color: #555; font-family: 'Courier New', monospace; white-space: nowrap; opacity: 0.4; }
-
-  /* LISTA DE VEÍCULOS */
   #veiculosList { background: rgba(0,0,0,0.85); border-bottom: 1px solid #222; overflow-x: auto; display: flex; gap: 4px; padding: 4px 6px; z-index: 999; }
   .veiculo-btn { flex-shrink: 0; padding: 4px 10px; border-radius: 16px; border: 2px solid #333; background: #1a1a1a; color: #fff; font-size: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
   .veiculo-btn.ativo     { border-color: #1565C0; background: #1565C020; }
@@ -57,15 +43,10 @@
   .veiculo-btn.pendente  { border-color: #f9a825; }
   .veiculo-btn.liberado  { border-color: #2e7d32; }
   #semVeiculos { color: #555; font-size: 11px; padding: 4px 4px; }
-
-  /* MAPA */
   #map { flex: 1; }
-
-  /* PAINEL */
   #panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.88); padding: 3px 6px; z-index: 1000; border-top: 1px solid #222; }
   #panelNome { font-size: 9px; font-weight: 700; color: #90caf9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 1px; }
   #pendenteBanner { background: #f9a825dd; border-radius: 4px; padding: 1px 6px; font-size: 8px; font-weight: 600; text-align: center; color: #fff; display: none; margin-bottom: 1px; }
-  
   .info-row { display: flex; align-items: center; gap: 2px; flex-wrap: nowrap; overflow-x: auto; margin-bottom: 1px; }
   .info-pill { background: #1a1a1a; border: 1px solid #333; border-radius: 6px; padding: 1px 4px; font-size: 8px; color: #ccc; white-space: nowrap; }
   .badge-sm { font-size: 7px; padding: 1px 4px; border-radius: 8px; border: 1px solid; white-space: nowrap; }
@@ -73,7 +54,6 @@
   .badge-sm.badge-err  { background: #c6282888; color: #ef9a9a; border-color: #c62828; }
   .badge-sm.badge-warn { background: #f9a82588; color: #fff8e1; border-color: #f9a825; animation: blink 1s infinite; }
   .badge-sm.badge-off  { background: #33333388; color: #888; border-color: #444; }
-  
   .btn-row { display: flex; align-items: center; gap: 2px; flex-wrap: nowrap; overflow-x: auto; }
   .btn-row button { padding: 2px 4px; font-size: 8px; border-radius: 5px; border: none; cursor: pointer; white-space: nowrap; flex: 1; min-width: 28px; height: 24px; font-weight: 700; }
   .btn-row .btn-block  { background: #c62828; color: #fff; display: none; }
@@ -85,30 +65,16 @@
   .btn-row .btn-d8     { flex: 0 0 24px; background: #c62828; color: #fff; font-size: 9px; padding: 0; text-align: center; }
   .btn-row .btn-aux    { background: #1565C0; color: #fff; flex: 1; font-size: 7px; }
   .btn-row .btn-parar  { flex: 0 0 24px; background: #c62828; color: #fff; font-size: 10px; padding: 0; text-align: center; font-weight: 900; }
-
   #logBox { max-height: 14px; overflow-y: auto; margin-top: 1px; font-size: 6px; color: #666; }
-
-  #pTempoParada {
-    background: #1a1a1a;
-    border: 1px solid #f9a825;
-    border-radius: 5px;
-    padding: 1px 4px;
-    font-size: 7px;
-    color: #f9a825;
-    white-space: nowrap;
-    display: none;
-  }
+  #pTempoParada { background: #1a1a1a; border: 1px solid #f9a825; border-radius: 5px; padding: 1px 4px; font-size: 7px; color: #f9a825; white-space: nowrap; display: none; }
   #pTempoParada.ativo { display: inline-block; animation: blink 1s infinite; }
-
   #panicWidget { display:none; position:fixed; top:3px; right:50px; z-index:9998; align-items:center; gap:3px; background:rgba(0,0,0,0.7); border:1px solid #c62828; border-radius:14px; padding:2px 6px; cursor:pointer; }
   #panicDot { width:7px; height:7px; border-radius:50%; background:#ff0000; box-shadow:0 0 4px #ff0000; animation:panicoLed 0.4s infinite alternate; flex-shrink:0; }
   #panicTxt { font-size:8px; font-weight:700; color:#ff6666; letter-spacing:0.5px; }
   @keyframes panicoLed { from{opacity:1;} to{opacity:0.2;} }
   #panicBanner { display:none; position:fixed; top:0; left:0; right:0; z-index:9997; background:#b71c1c; color:#fff; text-align:center; padding:3px; font-weight:700; font-size:10px; }
-
   #btnSalvar { position:absolute; top:45px; right:5px; z-index:999; background:rgba(0,0,0,0.7); border:1px solid #444; color:#fff; padding:3px 6px; border-radius:14px; font-size:8px; cursor:pointer; }
   #btnTodos { position: absolute; top:70px; right:5px; z-index: 999; background: rgba(0,0,0,0.7); border: 1px solid #444; color: #fff; padding:3px 6px; border-radius:14px; font-size:8px; cursor: pointer; display: none; }
-
   #modalAux { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center; }
   #modalAux.show { display:flex; }
   #modalBox { background:#1a1a1a; border:1px solid #1565C0; border-radius:14px; padding:16px; width:80%; max-width:320px; text-align:center; }
@@ -118,10 +84,8 @@
   .modal-btns button { flex:1; padding:8px; border-radius:8px; border:none; font-size:13px; font-weight:700; cursor:pointer; }
   #modalConfirm { background:#1565C0; color:#fff; }
   #modalCancel  { background:#333; color:#aaa; }
-
   #modalTesteD8 { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:99999; align-items:center; justify-content:center; }
   #modalTesteD8 .box { background:#1a1a1a; border:1px solid #555; border-radius:14px; padding:16px; width:80%; max-width:320px; text-align:center; }
-
   #modalSeguranca { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:99999; align-items:center; justify-content:center; }
   #modalSeguranca .box { background:#1a1a1a; border:1px solid #1565C0; border-radius:14px; padding:20px; width:90%; max-width:320px; text-align:center; }
   #modalSeguranca h3 { color:#fff; font-size:16px; margin-bottom:6px; }
@@ -132,7 +96,6 @@
   #modalSeguranca .modal-btns button { flex:1; padding:8px; border:none; border-radius:6px; font-size:13px; font-weight:700; cursor:pointer; }
   #modalSeguranca .modal-btns .btn-confirm { background:#c62828; color:#fff; }
   #modalSeguranca .modal-btns .btn-cancel { background:#333; color:#aaa; }
-
   .log-line { font-size: 8px; color: #666; }
   .log-ok   { color: #4caf50; }
   .log-err  { color: #ef5350; }
@@ -141,12 +104,16 @@
 </head>
 <body>
 
-<!-- LOGIN -->
 <div id="loginScreen">
   <h1>🛡️ Rastreador</h1>
   <p id="loginNome" style="color:#4caf50;font-weight:700;font-size:18px;letter-spacing:2px">👤 ADMIN</p>
   <p>Digite seu PIN de 4 dígitos</p>
-  <div id="pinDisplay"><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div></div>
+  <div id="pinDisplay">
+    <div class="pin-dot" id="dot0"></div>
+    <div class="pin-dot" id="dot1"></div>
+    <div class="pin-dot" id="dot2"></div>
+    <div class="pin-dot" id="dot3"></div>
+  </div>
   <div id="loginError"></div>
   <div class="numpad">
     <button onclick="pin('1')">1</button><button onclick="pin('2')">2</button><button onclick="pin('3')">3</button>
@@ -156,35 +123,27 @@
   </div>
 </div>
 
-<!-- TOPBAR - DUAS LINHAS -->
 <div id="topbar" style="display:none">
-  
-  <!-- LINHA 1 -->
   <div class="linha1">
     <span style="font-size:10px;font-weight:700">🛡️</span>
-    <span id="nomeUsuario" style="font-size:9px;color:#4caf50;font-weight:700;white-space:nowrap;"></span>
-    <span class="badge badge-off" id="mqttBadge" style="font-size:8px;padding:1px 6px;">Conectando</span>
+    <span id="nomeUsuario" style="font-size:9px;color:#4caf50;font-weight:700;"></span>
+    <span class="badge badge-off" id="mqttBadge">Conectando</span>
     <button onclick="conectarMQTT()" style="font-size:12px;padding:1px 6px;">🔌</button>
     <button onclick="nextMapStyle()" id="mapStyleBtn" style="font-size:11px;padding:1px 6px;">🛰</button>
     <span class="badge badge-off" id="veiculosBadge" style="font-size:7px;padding:1px 6px;margin-left:auto;">0 veículos</span>
   </div>
-  
-  <!-- LINHA 2 -->
   <div class="linha2">
-    <span id="veiculoAtivoNome" style="font-size:9px;font-weight:700;color:#90caf9;white-space:nowrap;">Aguardando...</span>
-    <span id="relogioLocal" style="font-size:9px;color:#00ff41;font-family:'Courier New',monospace;margin-left:auto;white-space:nowrap;">🕐 --:--:--</span>
+    <span id="veiculoAtivoNome" style="font-size:9px;font-weight:700;color:#90caf9;">Aguardando...</span>
+    <span id="relogioLocal" style="font-size:9px;color:#00ff41;font-family:'Courier New',monospace;margin-left:auto;">🕐 --:--:--</span>
     <button onclick="salvarMapa()" style="background:#1a1a1a;border:1px solid #444;color:#fff;padding:1px 6px;border-radius:10px;font-size:9px;cursor:pointer;">💾</button>
-    <span style="font-size:6px;color:#555;font-family:'Courier New',monospace;white-space:nowrap;opacity:0.4;">by darca</span>
+    <span style="font-size:6px;color:#555;font-family:'Courier New',monospace;opacity:0.4;">by darca</span>
   </div>
-  
 </div>
 
-<!-- LISTA DE VEÍCULOS -->
 <div id="veiculosList" style="display:none">
   <span id="semVeiculos" style="color:#555;font-size:11px;">Aguardando veículos...</span>
 </div>
 
-<!-- PÂNICO -->
 <div id="panicBanner">🚨 PÂNICO ATIVADO! <span id="panicTimer"></span></div>
 <div id="panicWidget" onclick="cancelarPanico()">
   <div id="panicDot"></div>
@@ -192,15 +151,12 @@
   <span id="panicTimer" style="font-size:7px;color:#aaa;"></span>
 </div>
 
-<!-- MAPA -->
 <div id="map"></div>
 <button id="btnTodos" onclick="centralizarTodos()" style="position:absolute;top:70px;right:5px;z-index:999;background:rgba(0,0,0,0.7);border:1px solid #444;color:#fff;padding:3px 6px;border-radius:14px;font-size:8px;cursor:pointer;display:none;">⊕</button>
 
-<!-- PAINEL -->
 <div id="panel" style="display:none">
   <div id="panelNome">Aguardando veículo...</div>
   <div id="pendenteBanner">🟡 Aguardando velocidade ≤ 8 km/h...</div>
-  
   <div class="info-row">
     <span class="info-pill" id="pVel">0.0 km/h</span>
     <span class="info-pill" id="pSat">0 sat</span>
@@ -209,7 +165,6 @@
     <span id="pTempoParada">⏱️ 00:00</span>
     <span class="badge-sm badge-off" id="pStatus">Aguardando</span>
   </div>
-  
   <div class="btn-row">
     <button class="btn-center" onclick="centralizarAtivo()">◎</button>
     <button class="btn-block"  id="btnBlock"  onclick="cmdAtivo('DESBLOQUEAR')" style="display:none">🔴 Desbloquear</button>
@@ -220,11 +175,9 @@
     <button class="btn-d8" onclick="confirmarTesteD8()">🚨</button>
     <button class="btn-parar" onclick="desligarAlarme()" title="Parar Alarme">⏹</button>
   </div>
-  
   <div id="logBox"></div>
 </div>
 
-<!-- MODAIS -->
 <div id="modalAux">
   <div id="modalBox">
     <strong>🔓 Destravar Portas</strong>
@@ -261,9 +214,9 @@
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════
-//  CONFIGURAÇÃO
-// ═══════════════════════════════════════════════════
+// ============================================================
+// CONFIGURAÇÃO
+// ============================================================
 const BROKER_WSS = 'wss://5e7c95681b9f45068546a87087ed9e2c.s1.eu.hivemq.cloud/mqtt';
 const BROKER_PORT = 8884;
 
@@ -275,35 +228,27 @@ const USUARIOS = {
   'zerruela': '3412'
 };
 
-const TILES = {
-  map: { url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attr: '© OpenStreetMap', label: '🛰' },
-  satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr: '© Esri', label: '🗺' }
-};
-
-// ═══════════════════════════════════════════════════
-//  ESTADO
-// ═══════════════════════════════════════════════════
-const _u = new URLSearchParams(window.location.search).get('u') || '';
-let usuarioId = _u.toLowerCase().trim();
-if (!usuarioId || !(usuarioId in USUARIOS)) usuarioId = 'admin';
-document.getElementById('loginNome').textContent = '👤 ' + usuarioId.toUpperCase();
+// ============================================================
+// ESTADO GLOBAL
+// ============================================================
+let usuarioId = 'admin';
 let map, tileLayer, mqttClient;
-const PARADA_MIN_MS = 360000;
-let panicoAtivo = false;
-let panicoTimer = null;
-let panicoCancelavel = true;
-let panicoChipId = null;
-const PARADA_VEL = 2.0;
 let veiculos = {};
 let ativoId = null;
 let pinBuffer = '';
 let currentStyle = 'map';
 let modoFestaAtivo = false;
 let circuloFesta = null;
+let panicoAtivo = false;
+let panicoTimer = null;
+let panicoCancelavel = true;
+let panicoChipId = null;
+const PARADA_MIN_MS = 360000;
+const PARADA_VEL = 2.0;
 
-// ═══════════════════════════════════════════════════
-//  ⏰ RELÓGIO LOCAL (GMT-3)
-// ═══════════════════════════════════════════════════
+// ============================================================
+// RELÓGIO GMT-3
+// ============================================================
 function atualizarRelogioLocal() {
   const el = document.getElementById('relogioLocal');
   if (!el) return;
@@ -317,120 +262,393 @@ function atualizarRelogioLocal() {
 setInterval(atualizarRelogioLocal, 1000);
 atualizarRelogioLocal();
 
-// ═══════════════════════════════════════════════════
-//  LOGIN
-// ═══════════════════════════════════════════════════
+// ============================================================
+// LOGIN
+// ============================================================
 function pin(v) {
-  if (!usuarioId || !(usuarioId in USUARIOS)) usuarioId = 'admin';
-  if (v === 'del') { pinBuffer = pinBuffer.slice(0, -1); }
-  else if (pinBuffer.length < 4) { pinBuffer += v; }
-  updateDots(false);
+  console.log('🔢 Tecla pressionada:', v);
+  
+  if (v === 'del') {
+    pinBuffer = pinBuffer.slice(0, -1);
+  } else if (pinBuffer.length < 4) {
+    pinBuffer += v;
+  }
+  
+  // Atualiza os pontinhos
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('dot' + i);
+    if (dot) {
+      dot.className = 'pin-dot' + (i < pinBuffer.length ? ' filled' : '');
+    }
+  }
+  
+  console.log('PIN atual:', pinBuffer);
+  
   if (pinBuffer.length === 4) {
-    if (pinBuffer === USUARIOS[usuarioId]) {
+    if (pinBuffer === '0123') {
       document.getElementById('loginScreen').style.display = 'none';
       document.getElementById('topbar').style.display = 'flex';
-      document.getElementById('veiculosList').style.display = '';
+      document.getElementById('veiculosList').style.display = 'flex';
       document.getElementById('panel').style.display = 'block';
-      document.getElementById('nomeUsuario').textContent = '👤 ' + usuarioId.toUpperCase();
+      document.getElementById('nomeUsuario').textContent = '👤 cicrano';
       iniciarApp();
-      setTimeout(() => {
-        document.getElementById('btnBlock').style.display = 'none';
-        document.getElementById('btnCancel').style.display = 'none';
-        document.getElementById('btnUnlock').style.display = '';
-      }, 100);
     } else {
-      updateDots(true);
       document.getElementById('loginError').textContent = 'PIN incorreto';
-      setTimeout(() => { pinBuffer = ''; updateDots(false); document.getElementById('loginError').textContent = ''; }, 1200);
+      // Limpa os pontinhos com efeito de erro
+      for (let i = 0; i < 4; i++) {
+        const dot = document.getElementById('dot' + i);
+        if (dot) dot.className = 'pin-dot error';
+      }
+      setTimeout(() => {
+        pinBuffer = '';
+        document.getElementById('loginError').textContent = '';
+        for (let i = 0; i < 4; i++) {
+          const dot = document.getElementById('dot' + i);
+          if (dot) dot.className = 'pin-dot';
+        }
+      }, 1200);
     }
   }
 }
-function updateDots(err) {
-  document.querySelectorAll('.pin-dot').forEach((d, i) => {
-    d.className = 'pin-dot' + (i < pinBuffer.length ? (err ? ' error' : ' filled') : '');
-  });
-}
 
-// ═══════════════════════════════════════════════════
-//  MAPA
-// ═══════════════════════════════════════════════════
+// ============================================================
+// MAPA
+// ============================================================
 function iniciarApp() {
   map = L.map('map', { zoomControl: false }).setView([-22.7078, -47.6659], 13);
   L.control.zoom({ position: 'topleft' }).addTo(map);
-  tileLayer = L.tileLayer(TILES[currentStyle].url, { attribution: TILES[currentStyle].attr, maxZoom: 19 }).addTo(map);
+  tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
   conectarMQTT();
 }
 
 function nextMapStyle() {
   currentStyle = currentStyle === 'map' ? 'satellite' : 'map';
-  tileLayer.setUrl(TILES[currentStyle].url);
-  document.getElementById('mapStyleBtn').textContent = TILES[currentStyle].label;
+  const url = currentStyle === 'map' ? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' : 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+  tileLayer.setUrl(url);
 }
 
-// ═══════════════════════════════════════════════════
-//  MQTT
-// ═══════════════════════════════════════════════════
+// ============================================================
+// MQTT
+// ============================================================
 function conectarMQTT() {
   if (mqttClient) { mqttClient.end(true); }
   setBadge('mqttBadge', 'Conectando...', 'badge-warn');
-  const clientId = 'Web_' + usuarioId + '_' + Math.random().toString(36).slice(2, 6);
   mqttClient = mqtt.connect(BROKER_WSS, {
     port: BROKER_PORT,
-    clientId: clientId,
+    clientId: 'Web_' + Math.random().toString(36).slice(2, 6),
     username: 'ESP8266Dario',
     password: '3SP8266d4r10',
     reconnectPeriod: 5000
   });
-
   mqttClient.on('connect', () => {
     setBadge('mqttBadge', '✅ Conectado', 'badge-ok');
-    mqttClient.subscribe('rastreador/' + usuarioId + '/+/gps');
-    mqttClient.subscribe('rastreador/' + usuarioId + '/+/status');
-    addLog('Conectado como ' + usuarioId, 'log-ok');
+    mqttClient.subscribe('rastreador/cicrano/+/gps');
+    mqttClient.subscribe('rastreador/cicrano/+/status');
   });
   mqttClient.on('disconnect', () => setBadge('mqttBadge', 'Desconectado', 'badge-off'));
   mqttClient.on('offline', () => setBadge('mqttBadge', 'Offline', 'badge-err'));
-  mqttClient.on('error', (e) => addLog('Erro broker: ' + e.message, 'log-err'));
-
   mqttClient.on('message', (topic, payload) => {
     try {
-      const p = topic.split('/');
-      const chipId = p[2];
-      const tipo = p[3];
-      const d = JSON.parse(payload.toString());
-      if (tipo === 'gps') processarGPS(chipId, d);
-      if (tipo === 'status') processarStatus(chipId, d);
-      if (tipo === 'status' && d.motivo === 'panico') ativarPanico(chipId);
-      if (tipo === 'status' && d.motivo === 'panico_cancelado') cancelarPanico();
-      if (tipo === 'status' && d.motivo === 'alerta_movimento') ativarAlertaMovimento(chipId, d);
+      const parts = topic.split('/');
+      const chipId = parts[2];
+      const tipo = parts[3];
+      const data = JSON.parse(payload.toString());
+      if (tipo === 'gps') processarGPS(chipId, data);
+      if (tipo === 'status') processarStatus(chipId, data);
     } catch(e) {}
   });
 }
 
+function setBadge(id, txt, cls) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = txt;
+  el.className = 'badge ' + cls;
+}
+
+// ============================================================
+// VEÍCULOS
+// ============================================================
+function obterVeiculo(chipId) {
+  if (!veiculos[chipId]) {
+    veiculos[chipId] = {
+      chipId: chipId,
+      nome: 'Veículo ' + chipId.slice(-4).toUpperCase(),
+      bloqueado: false, pendente: false,
+      vel: 0, sat: 0, rssi: 0, alt: 0,
+      marker: null,
+      trail: L.polyline([], { color: '#1565C0', weight: 3, opacity: 0.8 }).addTo(map),
+      ultimaPos: null,
+      paradaInicio: null,
+      paradaPos: null,
+      paradaCirculo: null,
+      pingos: [],
+      contador: 0
+    };
+    adicionarBotao(chipId);
+    atualizarContagem();
+    document.getElementById('semVeiculos').style.display = 'none';
+    document.getElementById('btnTodos').style.display = '';
+    if (!ativoId) selecionarVeiculo(chipId);
+  }
+  return veiculos[chipId];
+}
+
+function adicionarBotao(chipId) {
+  const btn = document.createElement('button');
+  btn.className = 'veiculo-btn liberado';
+  btn.id = 'vbtn_' + chipId;
+  btn.textContent = '🟢 ' + chipId.slice(-4).toUpperCase();
+  btn.onclick = () => selecionarVeiculo(chipId);
+  document.getElementById('veiculosList').appendChild(btn);
+}
+
+function selecionarVeiculo(chipId) {
+  ativoId = chipId;
+  document.querySelectorAll('.veiculo-btn').forEach(b => b.classList.remove('ativo'));
+  const btn = document.getElementById('vbtn_' + chipId);
+  if (btn) btn.classList.add('ativo');
+  const v = veiculos[chipId];
+  if (v) {
+    document.getElementById('panelNome').textContent = '🚗 ' + v.nome + ' (' + chipId + ')';
+    atualizarPainel(chipId);
+    atualizarVeiculoTopbar(chipId);
+    if (v.ultimaPos) map.setView(v.ultimaPos, 16);
+  }
+}
+
+function atualizarVeiculoTopbar(chipId) {
+  const v = veiculos[chipId];
+  if (!v) return;
+  const emoji = v.bloqueado ? '🔴' : v.pendente ? '🟡' : '🟢';
+  document.getElementById('veiculoAtivoNome').textContent = emoji + ' ' + chipId.slice(-4).toUpperCase() + ' ' + Math.round(v.vel) + 'km/h';
+}
+
+function processarGPS(chipId, d) {
+  const v = obterVeiculo(chipId);
+  if (d.rssi !== undefined) v.rssi = d.rssi;
+  if (d.sat !== undefined) v.sat = d.sat;
+  if (d.spd !== undefined) v.vel = d.spd;
+  if (d.alt !== undefined) v.alt = d.alt;
+  if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
+  if (d.pendente !== undefined) v.pendente = d.pendente === true;
+
+  if (!d.lat || !d.lng) {
+    if (chipId === ativoId) { atualizarPainel(chipId); atualizarVeiculoTopbar(chipId); }
+    return;
+  }
+
+  const pos = L.latLng(parseFloat(d.lat), parseFloat(d.lng));
+  v.ultimaPos = pos;
+  const cor = corMarcador(v);
+
+  if (!v.marker) {
+    v.marker = L.marker(pos, { icon: mkIcon(cor) }).addTo(map);
+    v.marker.bindTooltip(v.nome);
+    if (chipId === ativoId) map.setView(pos, 16);
+  } else {
+    v.marker.setLatLng(pos);
+    v.marker.setIcon(mkIcon(cor));
+  }
+  v.trail.addLatLng(pos);
+
+  // Detecta parada
+  if (v.vel <= PARADA_VEL) {
+    if (!v.paradaInicio) {
+      v.paradaInicio = Date.now();
+      v.paradaPos = pos;
+    } else {
+      const distancia = map.distance(v.paradaPos, pos);
+      if (distancia > 100) {
+        v.paradaInicio = Date.now();
+        v.paradaPos = pos;
+        if (v.paradaCirculo) { v.paradaCirculo = null; }
+      }
+      const tempoParado = Date.now() - v.paradaInicio;
+      const minutosTotais = Math.round(tempoParado / 60000);
+      if (tempoParado >= PARADA_MIN_MS) {
+        let pingoExistente = null;
+        if (v.pingos.length > 0) {
+          pingoExistente = v.pingos.find(p => map.distance(p.marker.getLatLng(), pos) < 50);
+        }
+        if (pingoExistente) {
+          pingoExistente.mins = minutosTotais;
+          const novoIcone = criarIconePingo(pingoExistente.num, minutosTotais);
+          pingoExistente.marker.setIcon(novoIcone);
+        } else {
+          v.contador++;
+          const icone = criarIconePingo(v.contador, minutosTotais);
+          v.paradaCirculo = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
+          v.pingos.push({ marker: v.paradaCirculo, num: v.contador, mins: minutosTotais });
+        }
+      }
+    }
+  } else {
+    if (v.paradaCirculo) { v.paradaCirculo = null; }
+    v.paradaInicio = null;
+    v.paradaPos = null;
+  }
+
+  atualizarTempoParada(chipId);
+  atualizarBotaoLista(chipId);
+  if (chipId === ativoId) {
+    atualizarPainel(chipId);
+    atualizarVeiculoTopbar(chipId);
+  }
+}
+
+function processarStatus(chipId, d) {
+  const v = obterVeiculo(chipId);
+  if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
+  if (d.pendente !== undefined) v.pendente = d.pendente === true;
+  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
+  atualizarBotaoLista(chipId);
+  if (chipId === ativoId) {
+    atualizarPainel(chipId);
+    atualizarVeiculoTopbar(chipId);
+  }
+  const m = d.motivo || '';
+  if (v.bloqueado) addLog('[' + chipId.slice(-4) + '] BLOQUEADO — ' + m, 'log-err');
+  else if (v.pendente) addLog('[' + chipId.slice(-4) + '] Aguardando vel...', 'log-warn');
+  else if (m === 'desbloqueado') addLog('[' + chipId.slice(-4) + '] LIBERADO', 'log-ok');
+}
+
+function atualizarTempoParada(chipId) {
+  const v = veiculos[chipId];
+  const el = document.getElementById('pTempoParada');
+  if (!v || !el) return;
+  if (v.paradaInicio && v.vel <= PARADA_VEL) {
+    const tempoParado = Date.now() - v.paradaInicio;
+    const segundos = Math.floor(tempoParado / 1000);
+    const minutos = Math.floor(segundos / 60);
+    const horas = Math.floor(minutos / 60);
+    const segs = segundos % 60;
+    const mins = minutos % 60;
+    let str = '';
+    if (horas > 0) str += String(horas).padStart(2, '0') + ':';
+    str += String(mins).padStart(2, '0') + ':' + String(segs).padStart(2, '0');
+    el.textContent = '⏱️ ' + str;
+    el.className = 'ativo';
+  } else {
+    el.className = '';
+    el.style.display = 'none';
+  }
+}
+
+function atualizarBotaoLista(chipId) {
+  const v = veiculos[chipId];
+  const btn = document.getElementById('vbtn_' + chipId);
+  if (!btn || !v) return;
+  const emoji = v.bloqueado ? '🔴' : v.pendente ? '🟡' : '🟢';
+  const vel = Math.round(v.vel);
+  btn.className = 'veiculo-btn' + (chipId === ativoId ? ' ativo' : '') +
+    (v.bloqueado ? ' bloqueado' : v.pendente ? ' pendente' : ' liberado');
+  btn.textContent = emoji + ' ' + chipId.slice(-4).toUpperCase() + ' ' + vel + 'km/h';
+}
+
+function atualizarPainel(chipId) {
+  const v = veiculos[chipId];
+  if (!v) return;
+  document.getElementById('pVel').textContent = v.vel.toFixed(1) + ' km/h';
+  document.getElementById('pSat').textContent = v.sat + ' sat';
+  document.getElementById('pRssi').textContent = (v.rssi || '—') + ' dBm';
+  document.getElementById('pAlt').textContent = v.alt ? v.alt.toFixed(0) + ' m' : '— m';
+  atualizarTempoParada(chipId);
+
+  const st = document.getElementById('pStatus');
+  const bB = document.getElementById('btnBlock');
+  const bC = document.getElementById('btnCancel');
+  const bU = document.getElementById('btnUnlock');
+  const bn = document.getElementById('pendenteBanner');
+  
+  bB.style.display = 'none';
+  bC.style.display = 'none';
+  bU.style.display = 'none';
+  bn.style.display = 'none';
+
+  if (v.bloqueado) {
+    st.textContent = 'Bloqueado';
+    st.className = 'badge-sm badge-err';
+    bB.style.display = 'block';
+    bB.style.flex = '1';
+    bB.onclick = function() { cmdAtivo('DESBLOQUEAR'); };
+    bB.textContent = '🔴 Desbloquear';
+  } else if (v.pendente) {
+    st.textContent = 'Aguardando';
+    st.className = 'badge-sm badge-warn';
+    bC.style.display = 'block';
+    bC.style.flex = '1';
+    bn.style.display = 'block';
+  } else {
+    st.textContent = 'Liberado';
+    st.className = 'badge-sm badge-ok';
+    bU.style.display = 'block';
+    bU.style.flex = '2';
+    bU.onclick = function() { solicitarBloqueio(); };
+    bU.textContent = '🟢 Liberado';
+  }
+}
+
+function criarIconePingo(num, mins) {
+  const pingoSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="58" viewBox="0 0 60 80">
+    <path d="M30 0 C13 0 0 13 0 30 C0 47 30 80 30 80 C30 80 60 47 60 30 C60 13 47 0 30 0Z" fill="#FF6B00" stroke="#CC5500" stroke-width="2"/>
+    <circle cx="30" cy="28" r="17" fill="white" opacity="0.95"/>
+    <text x="30" y="33" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="14" font-weight="900" fill="#CC5500">P${num}</text>
+  </svg>`;
+  return L.divIcon({ className: '', html: pingoSVG, iconSize: [44, 58], iconAnchor: [22, 58], popupAnchor: [0, -58] });
+}
+
+function corMarcador(v) {
+  if (v.bloqueado) return '#c62828';
+  if (v.pendente) return '#f9a825';
+  return '#2e7d32';
+}
+
+function mkIcon(cor) {
+  return L.divIcon({
+    className: '',
+    html: '<div style="width:22px;height:22px;border-radius:50%;background:' + cor +
+          ';border:3px solid #fff;box-shadow:0 0 0 2px ' + cor + ',0 2px 8px rgba(0,0,0,0.5)"></div>',
+    iconSize: [22, 22], iconAnchor: [11, 11]
+  });
+}
+
+function atualizarContagem() {
+  const n = Object.keys(veiculos).length;
+  setBadge('veiculosBadge', n + ' veículo' + (n !== 1 ? 's' : ''), n > 0 ? 'badge-ok' : 'badge-off');
+}
+
+function centralizarAtivo() {
+  if (!ativoId || !veiculos[ativoId]?.ultimaPos) return;
+  map.setView(veiculos[ativoId].ultimaPos, 16);
+}
+
+function centralizarTodos() {
+  const pts = Object.values(veiculos).filter(v => v.ultimaPos).map(v => v.ultimaPos);
+  if (!pts.length) return;
+  if (pts.length === 1) { map.setView(pts[0], 15); return; }
+  map.fitBounds(L.latLngBounds(pts), { padding: [40, 40] });
+}
+
+function addLog(msg, cls) {
+  const box = document.getElementById('logBox');
+  const t = new Date().toTimeString().slice(0, 8);
+  const el = document.createElement('div');
+  el.className = 'log-line ' + (cls || '');
+  el.textContent = '[' + t + '] ' + msg;
+  box.insertBefore(el, box.firstChild);
+  while (box.children.length > 10) box.removeChild(box.lastChild);
+}
+
+// ============================================================
+// COMANDOS
+// ============================================================
 function cmd(chipId, comando) {
   if (!mqttClient || !mqttClient.connected) { addLog('Sem conexão!', 'log-err'); return; }
-  mqttClient.publish('rastreador/' + usuarioId + '/' + chipId + '/cmd', comando);
+  mqttClient.publish('rastreador/cicrano/' + chipId + '/cmd', comando);
   addLog('→ ' + comando + ' [' + chipId.slice(-4) + ']', 'log-warn');
 }
 
-function acionarAux() {
-  if (!ativoId) { addLog('Nenhum veículo selecionado', 'log-err'); return; }
-  document.getElementById('modalAux').classList.add('show');
-}
-
-function fecharModal() {
-  document.getElementById('modalAux').classList.remove('show');
-}
-
-function confirmarAux() {
-  fecharModal();
-  cmd(ativoId, 'AUX_DESTRAVAR');
-  addLog('→ AUX destravamento acionado (2s)', 'log-warn');
-}
-
-// ═══════════════════════════════════════════════════
-//  BLOQUEIO
-// ═══════════════════════════════════════════════════
 function cmdAtivo(comando) {
   if (!ativoId) return;
   cmd(ativoId, comando);
@@ -473,7 +691,7 @@ function confirmarBloqueio() {
   let user = document.getElementById('segUser').value.trim();
   let pass = document.getElementById('segPass').value.trim();
   if (!user || !pass) { alert('⚠️ Digite usuário e senha!'); return; }
-  if (user === usuarioId && pass === USUARIOS[usuarioId]) {
+  if (user === 'cicrano' && pass === '0123') {
     document.getElementById('modalSeguranca').style.display = 'none';
     document.getElementById('segUser').value = '';
     document.getElementById('segPass').value = '';
@@ -492,317 +710,21 @@ function fecharModalSeguranca() {
   document.getElementById('segPass').value = '';
 }
 
-// ═══════════════════════════════════════════════════
-//  VEÍCULOS
-// ═══════════════════════════════════════════════════
-function obterVeiculo(chipId) {
-  if (!veiculos[chipId]) {
-    veiculos[chipId] = {
-      chipId: chipId,
-      nome: 'Veículo ' + chipId.slice(-4).toUpperCase(),
-      bloqueado: false, pendente: false,
-      vel: 0, sat: 0, rssi: 0, alt: 0,
-      marker: null,
-      trail: L.polyline([], { color: '#1565C0', weight: 3, opacity: 0.8 }).addTo(map),
-      ultimaPos: null,
-      paradaInicio: null,
-      paradaPos: null,
-      paradaCirculo: null,
-      pingos: [],
-      contador: 0
-    };
-    adicionarBotao(chipId);
-    atualizarContagem();
-    document.getElementById('semVeiculos').style.display = 'none';
-    document.getElementById('btnTodos').style.display = '';
-    addLog('Novo veículo: ' + chipId.slice(-4), 'log-ok');
-    if (!ativoId) selecionarVeiculo(chipId);
-  }
-  return veiculos[chipId];
+function acionarAux() {
+  if (!ativoId) { addLog('Nenhum veículo selecionado', 'log-err'); return; }
+  document.getElementById('modalAux').classList.add('show');
 }
 
-function adicionarBotao(chipId) {
-  const btn = document.createElement('button');
-  btn.className = 'veiculo-btn liberado';
-  btn.id = 'vbtn_' + chipId;
-  btn.textContent = '🟢 ' + chipId.slice(-4).toUpperCase();
-  btn.onclick = () => selecionarVeiculo(chipId);
-  document.getElementById('veiculosList').appendChild(btn);
+function fecharModal() {
+  document.getElementById('modalAux').classList.remove('show');
 }
 
-function selecionarVeiculo(chipId) {
-  ativoId = chipId;
-  document.querySelectorAll('.veiculo-btn').forEach(b => b.classList.remove('ativo'));
-  const btn = document.getElementById('vbtn_' + chipId);
-  if (btn) btn.classList.add('ativo');
-  const v = veiculos[chipId];
-  if (v) {
-    document.getElementById('panelNome').textContent = '🚗 ' + v.nome + ' (' + chipId + ')';
-    atualizarPainel(chipId);
-    atualizarVeiculoTopbar(chipId);
-    if (v.ultimaPos) map.setView(v.ultimaPos, 16);
-  }
+function confirmarAux() {
+  fecharModal();
+  cmd(ativoId, 'AUX_DESTRAVAR');
+  addLog('→ AUX destravamento acionado (2s)', 'log-warn');
 }
 
-function atualizarVeiculoTopbar(chipId) {
-  const v = veiculos[chipId];
-  if (!v) return;
-  const emoji = v.bloqueado ? '🔴' : v.pendente ? '🟡' : '🟢';
-  document.getElementById('veiculoAtivoNome').textContent = emoji + ' ' + chipId.slice(-4).toUpperCase() + ' ' + Math.round(v.vel) + 'km/h';
-}
-
-// ═══════════════════════════════════════════════════
-//  GPS
-// ═══════════════════════════════════════════════════
-function processarGPS(chipId, d) {
-  const v = obterVeiculo(chipId);
-  if (d.rssi !== undefined) v.rssi = d.rssi;
-  if (d.sat !== undefined) v.sat = d.sat;
-  if (d.spd !== undefined) v.vel = d.spd;
-  if (d.alt !== undefined) v.alt = d.alt;
-  if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
-  if (d.pendente !== undefined) v.pendente = d.pendente === true;
-
-  if (d.fix === false) {
-    if (chipId === ativoId) atualizarPainel(chipId);
-    atualizarBotaoLista(chipId);
-    return;
-  }
-  if (!d.lat || !d.lng) return;
-
-  const pos = L.latLng(parseFloat(d.lat), parseFloat(d.lng));
-  v.ultimaPos = pos;
-  const cor = corMarcador(v);
-
-  if (!v.marker) {
-    v.marker = L.marker(pos, { icon: mkIcon(cor) }).addTo(map);
-    v.marker.bindTooltip(v.nome);
-    if (chipId === ativoId) map.setView(pos, 16);
-  } else {
-    v.marker.setLatLng(pos);
-    v.marker.setIcon(mkIcon(cor));
-  }
-  v.trail.addLatLng(pos);
-
-  // ── Detecta parada prolongada ──────────────────────
-  if (v.vel <= PARADA_VEL) {
-    if (!v.paradaInicio) {
-      v.paradaInicio = Date.now();
-      v.paradaPos = pos;
-      addLog('[' + chipId.slice(-4) + '] Parada detectada vel=' + v.vel.toFixed(1), 'log-warn');
-    } else {
-      const distancia = map.distance(v.paradaPos, pos);
-      if (distancia > 100) {
-        v.paradaInicio = Date.now();
-        v.paradaPos = pos;
-        if (v.paradaCirculo) { v.paradaCirculo = null; }
-        addLog('[' + chipId.slice(-4) + '] Movimento >100m, resetando contagem', 'log-warn');
-      }
-      const tempoParado = Date.now() - v.paradaInicio;
-      const minutosTotais = Math.round(tempoParado / 60000);
-      if (tempoParado >= PARADA_MIN_MS) {
-        let pingoExistente = null;
-        if (v.pingos.length > 0) {
-          pingoExistente = v.pingos.find(p => map.distance(p.marker.getLatLng(), pos) < 50);
-        }
-        if (pingoExistente) {
-          pingoExistente.mins = minutosTotais;
-          const novoIcone = criarIconePingo(pingoExistente.num, minutosTotais);
-          pingoExistente.marker.setIcon(novoIcone);
-          addLog('[' + chipId.slice(-4) + '] P' + pingoExistente.num + ' atualizado: ' + minutosTotais + ' min', 'log-warn');
-        } else {
-          v.contador++;
-          const icone = criarIconePingo(v.contador, minutosTotais);
-          v.paradaCirculo = L.marker(v.paradaPos, { icon: icone, zIndexOffset: 100 }).addTo(map);
-          v.pingos.push({ marker: v.paradaCirculo, num: v.contador, mins: minutosTotais });
-          addLog('[' + chipId.slice(-4) + '] P' + v.contador + ' criado: ' + minutosTotais + ' min', 'log-warn');
-        }
-      }
-    }
-  } else {
-    if (v.paradaCirculo) {
-      v.paradaCirculo = null;
-      addLog('[' + chipId.slice(-4) + '] Veículo moveu, pingos permanecem', 'log-warn');
-    }
-    v.paradaInicio = null;
-    v.paradaPos = null;
-  }
-  
-  atualizarTempoParada(chipId);
-  atualizarBotaoLista(chipId);
-  if (chipId === ativoId) {
-    atualizarPainel(chipId);
-    atualizarVeiculoTopbar(chipId);
-  }
-}
-
-// ═══════════════════════════════════════════════════
-//  ⏱️ FUNÇÃO DO TEMPO DE PARADA
-// ═══════════════════════════════════════════════════
-function atualizarTempoParada(chipId) {
-  const v = veiculos[chipId];
-  const el = document.getElementById('pTempoParada');
-  if (!v || !el) return;
-  if (v.paradaInicio && v.vel <= PARADA_VEL) {
-    const tempoParado = Date.now() - v.paradaInicio;
-    const segundos = Math.floor(tempoParado / 1000);
-    const minutos = Math.floor(segundos / 60);
-    const horas = Math.floor(minutos / 60);
-    const segs = segundos % 60;
-    const mins = minutos % 60;
-    let str = '';
-    if (horas > 0) str += String(horas).padStart(2, '0') + ':';
-    str += String(mins).padStart(2, '0') + ':' + String(segs).padStart(2, '0');
-    el.textContent = '⏱️ ' + str;
-    el.className = 'ativo';
-  } else {
-    el.className = '';
-    el.style.display = 'none';
-  }
-}
-
-// ═══════════════════════════════════════════════════
-//  STATUS
-// ═══════════════════════════════════════════════════
-function processarStatus(chipId, d) {
-  const v = obterVeiculo(chipId);
-  if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
-  if (d.pendente !== undefined) v.pendente = d.pendente === true;
-  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
-  atualizarBotaoLista(chipId);
-  if (chipId === ativoId) {
-    atualizarPainel(chipId);
-    atualizarVeiculoTopbar(chipId);
-  }
-  const m = d.motivo || '';
-  if (v.bloqueado) addLog('[' + chipId.slice(-4) + '] BLOQUEADO — ' + m, 'log-err');
-  else if (v.pendente) addLog('[' + chipId.slice(-4) + '] Aguardando vel...', 'log-warn');
-  else if (m === 'desbloqueado') addLog('[' + chipId.slice(-4) + '] LIBERADO', 'log-ok');
-  else if (m === 'online' || m === 'reconectado') addLog('[' + chipId.slice(-4) + '] Online ✓', 'log-ok');
-  if (m === 'modo_festa_ativado') addLog('🛡️ Modo Festa ATIVADO no ESP', 'log-warn');
-  if (m === 'modo_festa_desativado') addLog('🛡️ Modo Festa DESATIVADO no ESP', 'log-ok');
-}
-
-// ═══════════════════════════════════════════════════
-//  PAINEL
-// ═══════════════════════════════════════════════════
-function atualizarPainel(chipId) {
-  const v = veiculos[chipId]; if (!v) return;
-  document.getElementById('pVel').textContent = v.vel.toFixed(1) + ' km/h';
-  document.getElementById('pSat').textContent = v.sat + ' sat';
-  document.getElementById('pRssi').textContent = (v.rssi || '—') + ' dBm';
-  document.getElementById('pAlt').textContent = v.alt ? v.alt.toFixed(0) + ' m' : '— m';
-  atualizarTempoParada(chipId);
-
-  const st = document.getElementById('pStatus');
-  const bB = document.getElementById('btnBlock');
-  const bC = document.getElementById('btnCancel');
-  const bU = document.getElementById('btnUnlock');
-  const bn = document.getElementById('pendenteBanner');
-  
-  bB.style.display = 'none';
-  bC.style.display = 'none';
-  bU.style.display = 'none';
-  bn.style.display = 'none';
-
-  if (v.bloqueado) {
-    st.textContent = 'Bloqueado';
-    st.className = 'badge-sm badge-err';
-    bB.style.display = 'block';
-    bB.style.flex = '1';
-    bB.onclick = function() { cmdAtivo('DESBLOQUEAR'); };
-    bB.textContent = '🔴 Desbloquear';
-  } else if (v.pendente) {
-    st.textContent = 'Aguardando';
-    st.className = 'badge-sm badge-warn';
-    bC.style.display = 'block';
-    bC.style.flex = '1';
-    bn.style.display = 'block';
-  } else {
-    st.textContent = 'Liberado';
-    st.className = 'badge-sm badge-ok';
-    bU.style.display = 'block';
-    bU.style.flex = '2';
-    bU.onclick = function() { solicitarBloqueio(); };
-    bU.textContent = '🟢 Liberado';
-  }
-}
-
-// ═══════════════════════════════════════════════════
-//  HELPERS
-// ═══════════════════════════════════════════════════
-function criarIconePingo(num, mins) {
-  const pingoSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="58" viewBox="0 0 60 80">
-    <path d="M30 0 C13 0 0 13 0 30 C0 47 30 80 30 80 C30 80 60 47 60 30 C60 13 47 0 30 0Z" fill="#FF6B00" stroke="#CC5500" stroke-width="2"/>
-    <circle cx="30" cy="28" r="17" fill="white" opacity="0.95"/>
-    <text x="30" y="33" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="14" font-weight="900" fill="#CC5500">P${num}</text>
-  </svg>`;
-  return L.divIcon({ className: '', html: pingoSVG, iconSize: [44, 58], iconAnchor: [22, 58], popupAnchor: [0, -58] });
-}
-
-function atualizarBotaoLista(chipId) {
-  const v = veiculos[chipId];
-  const btn = document.getElementById('vbtn_' + chipId);
-  if (!btn || !v) return;
-  const emoji = v.bloqueado ? '🔴' : v.pendente ? '🟡' : '🟢';
-  const vel = Math.round(v.vel);
-  btn.className = 'veiculo-btn' + (chipId === ativoId ? ' ativo' : '') +
-    (v.bloqueado ? ' bloqueado' : v.pendente ? ' pendente' : ' liberado');
-  btn.textContent = emoji + ' ' + chipId.slice(-4).toUpperCase() + ' ' + vel + 'km/h';
-}
-
-function corMarcador(v) {
-  if (v.bloqueado) return '#c62828';
-  if (v.pendente) return '#f9a825';
-  return '#2e7d32';
-}
-
-function mkIcon(cor) {
-  return L.divIcon({
-    className: '',
-    html: '<div style="width:22px;height:22px;border-radius:50%;background:' + cor +
-          ';border:3px solid #fff;box-shadow:0 0 0 2px ' + cor + ',0 2px 8px rgba(0,0,0,0.5)"></div>',
-    iconSize: [22, 22], iconAnchor: [11, 11]
-  });
-}
-
-function setBadge(id, txt, cls) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.textContent = txt;
-  el.className = 'badge ' + cls;
-}
-
-function atualizarContagem() {
-  const n = Object.keys(veiculos).length;
-  setBadge('veiculosBadge', n + ' veículo' + (n !== 1 ? 's' : ''), n > 0 ? 'badge-ok' : 'badge-off');
-}
-
-function centralizarAtivo() {
-  if (!ativoId || !veiculos[ativoId]?.ultimaPos) return;
-  map.setView(veiculos[ativoId].ultimaPos, 16);
-}
-
-function centralizarTodos() {
-  const pts = Object.values(veiculos).filter(v => v.ultimaPos).map(v => v.ultimaPos);
-  if (!pts.length) return;
-  if (pts.length === 1) { map.setView(pts[0], 15); return; }
-  map.fitBounds(L.latLngBounds(pts), { padding: [40, 40] });
-}
-
-function addLog(msg, cls) {
-  const box = document.getElementById('logBox');
-  const t = new Date().toTimeString().slice(0, 8);
-  const el = document.createElement('div');
-  el.className = 'log-line ' + (cls || '');
-  el.textContent = '[' + t + '] ' + msg;
-  box.insertBefore(el, box.firstChild);
-  while (box.children.length > 10) box.removeChild(box.lastChild);
-}
-
-// ═══════════════════════════════════════════════════
-//  MODO FESTA
-// ═══════════════════════════════════════════════════
 function toggleModoFesta() {
   if (!ativoId) return;
   if (!modoFestaAtivo) {
@@ -840,9 +762,9 @@ function ativarAlertaMovimento(chipId, d) {
   addLog('🚨 ALERTA DE FURTO DETECTADO!', 'log-err');
 }
 
-// ═══════════════════════════════════════════════════
-//  PÂNICO
-// ═══════════════════════════════════════════════════
+// ============================================================
+// PÂNICO
+// ============================================================
 function ativarPanico(chipId, origem = 'mqtt') {
   if (panicoAtivo) return;
   panicoAtivo = true;
@@ -864,8 +786,7 @@ function ativarPanico(chipId, origem = 'mqtt') {
       addLog('🚨 PÂNICO CONFIRMADO [' + chipId.slice(-4) + ']', 'log-err');
     }
   }, 1000);
-  const origemTxt = origem === 'manual' ? 'MANUAL (D8)' : 'MQTT';
-  addLog('🚨 PÂNICO ativado [' + chipId.slice(-4) + '] via ' + origemTxt + ' — 60s para cancelar', 'log-err');
+  addLog('🚨 PÂNICO ativado [' + chipId.slice(-4) + '] — 60s para cancelar', 'log-err');
 }
 
 function cancelarPanico() {
@@ -878,9 +799,6 @@ function cancelarPanico() {
   addLog('✅ Pânico cancelado', 'log-ok');
 }
 
-// ═══════════════════════════════════════════════════
-//  TESTE DO PINO D8
-// ═══════════════════════════════════════════════════
 function confirmarTesteD8() {
   document.getElementById('modalTesteD8').style.display = 'flex';
 }
@@ -907,68 +825,98 @@ function executarTesteD8() {
   return true;
 }
 
-// ═══════════════════════════════════════════════════
-//  SALVAR MAPA
-// ═══════════════════════════════════════════════════
+// ============================================================
+// SIRENE
+// ============================================================
+let alarmeAtivo = false;
+let alarmeCtx = null;
+let alarmeOsc = null;
+let alarmeGain = null;
+let alarmeInterval = null;
+
+function tocarAlarmeNavegador() {
+  if (alarmeAtivo) return;
+  alarmeAtivo = true;
+  try {
+    alarmeCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (alarmeCtx.state === 'suspended') { alarmeCtx.resume(); }
+    alarmeOsc = alarmeCtx.createOscillator();
+    alarmeGain = alarmeCtx.createGain();
+    alarmeOsc.connect(alarmeGain);
+    alarmeGain.connect(alarmeCtx.destination);
+    alarmeOsc.type = 'sawtooth';
+    alarmeGain.gain.value = 0.3;
+    alarmeOsc.frequency.value = 880;
+    alarmeOsc.start();
+    let usandoAlta = true;
+    alarmeInterval = setInterval(() => {
+      if (!alarmeAtivo || !alarmeOsc) { clearInterval(alarmeInterval); return; }
+      usandoAlta = !usandoAlta;
+      alarmeOsc.frequency.value = usandoAlta ? 880 : 440;
+      alarmeGain.gain.value = usandoAlta ? 0.4 : 0.2;
+    }, 350);
+  } catch(e) { alarmeAtivo = false; }
+  if (navigator.vibrate) { navigator.vibrate([500, 200, 500, 200, 500, 200, 1000]); }
+}
+
+function desligarAlarme() {
+  alarmeAtivo = false;
+  if (alarmeInterval) { clearInterval(alarmeInterval); alarmeInterval = null; }
+  if (alarmeOsc) { try { alarmeOsc.stop(); } catch(e) {} alarmeOsc = null; }
+  if (alarmeCtx) { try { alarmeCtx.close(); } catch(e) {} alarmeCtx = null; }
+  alarmeGain = null;
+  if (navigator.vibrate) { navigator.vibrate(0); }
+}
+
+// ============================================================
+// SALVAR MAPA
+// ============================================================
 function salvarMapa() {
   const data = new Date().toLocaleString('pt-BR');
   const dataArq = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
-  let resumo = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-  <title>Rastreador — Trajeto ${dataArq}</title>
+  let resumo = `<html><head><meta charset="UTF-8"><title>Trajeto ${dataArq}</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
-  <style>
-    body{font-family:system-ui;background:#111;color:#fff;margin:0;padding:0;}
-    #mapaExport{width:100%;height:60vh;}
-    .info{padding:16px;}
-    h2{color:#90caf9;margin:0 0 8px;}
-    table{width:100%;border-collapse:collapse;margin-top:8px;}
-    th{background:#1565C0;color:#fff;padding:8px;text-align:left;}
-    td{padding:6px 8px;border:1px solid #333;font-size:13px;}
-    tr:nth-child(even){background:#1a1a1a;}
-    .verde{color:#4caf50;font-weight:700;}
-    .verm{color:#ef5350;font-weight:700;}
-    a{color:#90caf9;}
-  </style>
-  </head><body>
-  <div id="mapaExport"></div>
-  <div class="info">
-  <h2>🛡️ Rastreador — Trajeto salvo em ${data}</h2>`;
+  <style>body{font-family:system-ui;background:#111;color:#fff;margin:0;padding:0;}
+  #mapaExport{width:100%;height:60vh;}.info{padding:16px;}h2{color:#90caf9;}
+  table{width:100%;border-collapse:collapse;margin-top:8px;}
+  th{background:#1565C0;color:#fff;padding:8px;text-align:left;}
+  td{padding:6px 8px;border:1px solid #333;font-size:13px;}
+  tr:nth-child(even){background:#1a1a1a;}
+  .verde{color:#4caf50;font-weight:700;}.verm{color:#ef5350;font-weight:700;}a{color:#90caf9;}
+  </style></head><body><div id="mapaExport"></div><div class="info"><h2>🛡️ Rastreador — Trajeto salvo em ${data}</h2>`;
+  
   Object.values(veiculos).forEach(v => {
     const pontos = v.trail.getLatLngs();
     const status = v.bloqueado ? '<span class="verm">BLOQUEADO</span>' : '<span class="verde">LIBERADO</span>';
     resumo += `<h3>🚗 ${v.nome} (${v.chipId}) — ${status}</h3>`;
-    resumo += `<p>📍 Pontos registrados: <b>${pontos.length}</b> | 🅿️ Paradas: <b>${v.pingos.length}</b></p>`;
+    resumo += `<p>📍 Pontos: ${pontos.length} | 🅿️ Paradas: ${v.pingos.length}</p>`;
     if (v.pingos.length > 0) {
-      resumo += '<h4>🅿️ Paradas registradas:</h4><table>';
-      resumo += '<tr><th>#</th><th>Duração</th><th>Localização</th><th>Google Maps</th></tr>';
+      resumo += '<h4>🅿️ Paradas:</h4><table><tr><th>#</th><th>Duração</th><th>Localização</th><th>Google Maps</th></tr>';
       v.pingos.forEach((p, i) => {
         const ll = p.marker.getLatLng();
-        const tempoRealMs = Date.now() - v.paradaInicio;
-        const minutosReais = Math.max(p.mins, Math.round(tempoRealMs / 60000));
-        resumo += `<tr><td>${i+1}</td><td>${minutosReais} min</td><td>${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}</td><td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td></tr>`;
+        resumo += `<tr><td>${i+1}</td><td>${p.mins} min</td><td>${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}</td><td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td></tr>`;
       });
       resumo += '</table>';
     }
   });
+  
   const trailData = Object.values(veiculos).map(v => ({
-    nome: v.nome,
-    chipId: v.chipId,
+    nome: v.nome, chipId: v.chipId,
     pontos: v.trail.getLatLngs().map(p => [p.lat, p.lng]),
     pingos: v.pingos.map(p => ({ ll: p.marker.getLatLng(), mins: p.mins })),
     bloqueado: v.bloqueado
   }));
-  resumo += `</div>
-  <script>
+
+  resumo += `</div><script>
   const dados = ${JSON.stringify(trailData)};
   const m = L.map('mapaExport');
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(m);
   const bounds = [];
   dados.forEach(v => {
     if (v.pontos.length > 0) {
-      const poly = L.polyline(v.pontos, {color:'#1565C0',weight:3,opacity:0.8}).addTo(m);
+      L.polyline(v.pontos, {color:'#1565C0',weight:3,opacity:0.8}).addTo(m);
       v.pontos.forEach(p => bounds.push(p));
-      L.circleMarker(v.pontos[v.pontos.length-1], {radius:8,color:'#2e7d32',fillColor:'#2e7d32',fillOpacity:1}).addTo(m).bindTooltip(v.nome, {permanent:false});
     }
     v.pingos.forEach(p => {
       const svg = \`<svg xmlns="http://www.w3.org/2000/svg" width="44" height="58" viewBox="0 0 60 80">
@@ -982,8 +930,8 @@ function salvarMapa() {
     });
   });
   if (bounds.length > 0) m.fitBounds(bounds, {padding:[30,30]});
-  <\/script>
-  </body></html>`;
+  <\/script></body></html>`;
+  
   const blob = new Blob([resumo], {type:'text/html'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -991,59 +939,11 @@ function salvarMapa() {
   a.download = 'trajeto_' + dataArq + '.html';
   a.click();
   URL.revokeObjectURL(url);
-  addLog('💾 Trajeto salvo com ' + Object.values(veiculos).reduce((s,v) => s + v.trail.getLatLngs().length, 0) + ' pontos!', 'log-ok');
+  addLog('💾 Trajeto salvo!', 'log-ok');
 }
 
-// ═══════════════════════════════════════════════════
-//  SIRENE FRANCESA
-// ═══════════════════════════════════════════════════
-let alarmeAtivo = false;
-let alarmeCtx = null;
-let alarmeOsc = null;
-let alarmeGain = null;
-let alarmeInterval = null;
-
-function tocarAlarmeNavegador() {
-  console.log('🚨 SIRENE FRANCESA (som contínuo)');
-  if (alarmeAtivo) { console.log('ℹ️ Sirene já está tocando'); return; }
-  alarmeAtivo = true;
-  try {
-    alarmeCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (alarmeCtx.state === 'suspended') { alarmeCtx.resume().catch(() => {}); }
-    alarmeOsc = alarmeCtx.createOscillator();
-    alarmeGain = alarmeCtx.createGain();
-    alarmeOsc.connect(alarmeGain);
-    alarmeGain.connect(alarmeCtx.destination);
-    alarmeOsc.type = 'sawtooth';
-    alarmeGain.gain.value = 0.4;
-    alarmeOsc.frequency.value = 880;
-    alarmeOsc.start();
-    console.log('🔊 Sirene iniciada!');
-    let usandoAlta = true;
-    alarmeInterval = setInterval(() => {
-      if (!alarmeAtivo || !alarmeOsc) { clearInterval(alarmeInterval); return; }
-      usandoAlta = !usandoAlta;
-      if (usandoAlta) { alarmeOsc.frequency.value = 880; alarmeGain.gain.value = 0.5; } 
-      else { alarmeOsc.frequency.value = 440; alarmeGain.gain.value = 0.3; }
-    }, 300);
-  } catch(e) { console.warn('⚠️ Erro na sirene:', e); alarmeAtivo = false; }
-  if (navigator.vibrate) { navigator.vibrate([500, 200, 500, 200, 500, 200, 1000, 500, 500, 500, 500]); console.log('📳 Vibração acionada!'); }
-}
-
-function desligarAlarme() {
-  console.log('🔇 Desligando sirene...');
-  alarmeAtivo = false;
-  if (alarmeInterval) { clearInterval(alarmeInterval); alarmeInterval = null; }
-  if (alarmeOsc) { try { alarmeOsc.stop(); } catch(e) {} alarmeOsc = null; }
-  if (alarmeCtx) { try { alarmeCtx.close(); } catch(e) {} alarmeCtx = null; }
-  alarmeGain = null;
-  if (navigator.vibrate) { navigator.vibrate(0); }
-  console.log('✅ Sirene desligada');
-}
-
-console.log('🎯 SIRENE FRANCESA (som contínuo)');
-console.log('🔊 880Hz ↔ 440Hz (alterna a cada 300ms)');
+console.log('🚀 Rastreador Veicular v2');
+console.log('🕐 GMT-3:', new Date().toLocaleTimeString('pt-BR', {timeZone: 'America/Sao_Paulo'}));
 </script>
-
 </body>
 </html>
