@@ -445,7 +445,24 @@ function cmdAtivo(comando) {
   atualizarVeiculoTopbar(ativoId);
   if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
 }
-
+// ============================================================
+// AUX - DESTRAVAR PORTAS (com popup de confirmação)
+// ============================================================
+function acionarAux() {
+  if (!ativoId) { 
+    addLog('Nenhum veículo selecionado', 'log-err'); 
+    alert('⚠️ Selecione um veículo primeiro!');
+    return; 
+  }
+  
+  // Popup de confirmação
+  if (confirm('🔓 Deseja ligar o AUX manualmente?\n\nPulso de 2 segundos para destravamento de emergência.')) {
+    cmd(ativoId, 'AUX_DESTRAVAR');
+    addLog('→ AUX destravamento acionado (2s)', 'log-warn');
+  } else {
+    addLog('→ AUX cancelado', 'log-ok');
+  }
+}
 function solicitarBloqueio() {
   const modal = document.getElementById('modalSeguranca');
   modal.style.display = 'flex';
