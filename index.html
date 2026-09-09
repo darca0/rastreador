@@ -15,6 +15,7 @@
   #loginScreen { position: fixed; inset: 0; background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; gap: 12px; padding: 20px; }
   #loginScreen h1 { font-size: 22px; font-weight: 700; }
   #loginScreen p  { font-size: 13px; color: #888; }
+  
   .pin-dot { width: 16px; height: 16px; border-radius: 50%; background: #333; border: 2px solid #555; display: inline-block; margin: 0 4px; transition: all 0.15s; }
   .pin-dot.filled { background: #1565C0; border-color: #1565C0; }
   .pin-dot.error  { background: #b71c1c; border-color: #b71c1c; }
@@ -103,7 +104,7 @@
 <body>
 
 <!-- ============================================================ -->
-<!-- LOGIN COM CAMPO DE TEXTO -->
+<!-- LOGIN COM CAMPO DE TEXTO (APENAS) -->
 <!-- ============================================================ -->
 <div id="loginScreen">
   <h1>🛡️ Rastreador</h1>
@@ -193,7 +194,7 @@
     <span class="info-pill" id="pSat">0 sat</span>
     <span class="info-pill" id="pRssi">— dBm</span>
     <span class="info-pill" id="pAlt">— m</span>
-    <span id="pTempoParada" style="display:none;">⏱️ 00:00</span>
+    <span id="pTempoParada">⏱️ 00:00</span>
     <span class="badge-sm badge-off" id="pStatus">Aguardando</span>
   </div>
   <div class="btn-row">
@@ -258,37 +259,26 @@ const USUARIOS = {
 };
 
 // ============================================================
-// RELÓGIO LOCAL DO NAVEGADOR (GMT-3)
-// ============================================================
-function atualizarRelogioLocal() {
-  const el = document.getElementById('relogioLocal');
-  if (!el) return;
-  const agora = new Date();
-  let h = agora.getUTCHours() - 3;
-  if (h < 0) h += 24;
-  const m = String(agora.getUTCMinutes()).padStart(2, '0');
-  const s = String(agora.getUTCSeconds()).padStart(2, '0');
-  el.textContent = '🕐 ' + String(h).padStart(2, '0') + ':' + m + ':' + s;
-}
-setInterval(atualizarRelogioLocal, 1000);
-atualizarRelogioLocal();
-
-// ============================================================
-// LOGIN
+// LOGIN COM CAMPO DE TEXTO
 // ============================================================
 let pinBuffer = '';
 let usuarioId = '';
 
 function pin(v) {
+  console.log('🔢 Tecla:', v);
+  
   if (v === 'del') {
     pinBuffer = pinBuffer.slice(0, -1);
   } else if (pinBuffer.length < 4) {
     pinBuffer += v;
   }
+  
+  // Atualiza os pontinhos
   for (let i = 0; i < 4; i++) {
     const dot = document.getElementById('dot' + i);
     if (dot) dot.className = 'pin-dot' + (i < pinBuffer.length ? ' filled' : '');
   }
+  
   if (pinBuffer.length === 4) {
     loginComUsuario();
   }
@@ -297,11 +287,21 @@ function pin(v) {
 function loginComUsuario() {
   const inputUser = document.getElementById('inputUsuario');
   const usuario = inputUser.value.trim().toLowerCase();
+  
+  console.log('🔍 Login:', usuario, 'PIN:', pinBuffer);
+  
+  if (!usuario) {
+    document.getElementById('loginError').textContent = '⚠️ Digite um usuário!';
+    resetPin();
+    return;
+  }
+  
   if (!USUARIOS[usuario]) {
     document.getElementById('loginError').textContent = '❌ Usuário inválido! Use: admin, cicrano ou zerruela';
     resetPin();
     return;
   }
+  
   if (pinBuffer === USUARIOS[usuario]) {
     usuarioId = usuario;
     document.getElementById('loginScreen').style.display = 'none';
@@ -326,6 +326,22 @@ function resetPin() {
     document.getElementById('loginError').textContent = '';
   }, 2000);
 }
+
+// ============================================================
+// RELÓGIO GMT-3
+// ============================================================
+function atualizarRelogioLocal() {
+  const el = document.getElementById('relogioLocal');
+  if (!el) return;
+  const agora = new Date();
+  let h = agora.getUTCHours() - 3;
+  if (h < 0) h += 24;
+  const m = String(agora.getUTCMinutes()).padStart(2, '0');
+  const s = String(agora.getUTCSeconds()).padStart(2, '0');
+  el.textContent = '🕐 ' + String(h).padStart(2, '0') + ':' + m + ':' + s;
+}
+setInterval(atualizarRelogioLocal, 1000);
+atualizarRelogioLocal();
 
 // ============================================================
 // MAPA E MQTT
@@ -429,9 +445,8 @@ function cmdAtivo(comando) {
   atualizarVeiculoTopbar(ativoId);
   if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
 }
-
 // ============================================================
-// AUX
+// AUX - DESTRAVAR PORTAS (com modal bonito)
 // ============================================================
 function acionarAux() {
   if (!ativoId) { 
@@ -452,6 +467,36 @@ function fecharModal() {
   document.getElementById('modalAux').classList.remove('show');
   addLog('→ AUX cancelado', 'log-ok');
 }
+function solicitarBloqueio() {
+  const modal = document.getElementById('modalSeguranca');
+  modal.style.display = 'flex';
+  document.getElementById('segUser').value = '';
+  document.getElementById('segPass').value = '';
+  setTimeout(() => { document.getElementById('segUser').focus(); }, 300);
+}
+
+function confirmarBloqueio() {
+  let user = document.getElementById('segUser').value.trim();
+  let pass = document.getElementById('segPass').value.trim();
+  if (!user || !pass) { alert('⚠️ Digite usuário e senha!'); return; }
+  if (user === usuarioId && pass === USUARIOS[usuarioId]) {
+    document.getElementById('modalSeguranca').style.display = 'none';
+    document.getElementById('segUser').value = '';
+    document.getElementById('segPass').value = '';
+    cmdAtivo('BLOQUEAR');
+    if (typeof desligarAlarme === 'function') { desligarAlarme(); }
+  } else {
+    alert('❌ Usuário ou senha incorretos!');
+    document.getElementById('segPass').value = '';
+    document.getElementById('segPass').focus();
+  }
+}
+
+function fecharModalSeguranca() {
+  document.getElementById('modalSeguranca').style.display = 'none';
+  document.getElementById('segUser').value = '';
+  document.getElementById('segPass').value = '';
+}
 
 // ============================================================
 // VEÍCULOS
@@ -463,7 +508,6 @@ function obterVeiculo(chipId) {
       nome: 'Veículo ' + chipId.slice(-4).toUpperCase(),
       bloqueado: false, pendente: false,
       vel: 0, sat: 0, rssi: 0, alt: 0,
-      paradoSegundos: 0,
       marker: null,
       trail: L.polyline([], { color: '#1565C0', weight: 3, opacity: 0.8 }).addTo(map),
       ultimaPos: null,
@@ -520,18 +564,9 @@ function processarGPS(chipId, d) {
   if (d.alt !== undefined) v.alt = d.alt;
   if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
   if (d.pendente !== undefined) v.pendente = d.pendente === true;
-  
-  // ⏱️ RECEBE O TEMPO DE PARADA DO ESP
-  if (d.paradoSegundos !== undefined) {
-    v.paradoSegundos = d.paradoSegundos;
-  }
 
   if (!d.lat || !d.lng) {
-    if (chipId === ativoId) { 
-      atualizarPainel(chipId); 
-      atualizarVeiculoTopbar(chipId); 
-      atualizarTempoParada(chipId);
-    }
+    if (chipId === ativoId) { atualizarPainel(chipId); atualizarVeiculoTopbar(chipId); }
     return;
   }
 
@@ -612,29 +647,25 @@ function processarStatus(chipId, d) {
   if (m === 'modo_festa_desativado') addLog('🛡️ Modo Festa DESATIVADO no ESP', 'log-ok');
 }
 
-// ⏱️ ATUALIZA O TEMPO DE PARADA USANDO O VALOR DO ESP
 function atualizarTempoParada(chipId) {
   const v = veiculos[chipId];
   const el = document.getElementById('pTempoParada');
   if (!v || !el) return;
-  
-  // Usa o valor enviado pelo ESP (paradoSegundos)
-  if (v.paradoSegundos !== undefined && v.paradoSegundos > 0) {
-    const segundos = v.paradoSegundos;
-    const horas = Math.floor(segundos / 3600);
-    const minutos = Math.floor((segundos % 3600) / 60);
+  if (v.paradaInicio && v.vel <= PARADA_VEL) {
+    const tempoParado = Date.now() - v.paradaInicio;
+    const segundos = Math.floor(tempoParado / 1000);
+    const minutos = Math.floor(segundos / 60);
+    const horas = Math.floor(minutos / 60);
     const segs = segundos % 60;
-    
+    const mins = minutos % 60;
     let str = '';
     if (horas > 0) str += String(horas).padStart(2, '0') + ':';
-    str += String(minutos).padStart(2, '0') + ':' + String(segs).padStart(2, '0');
-    
+    str += String(mins).padStart(2, '0') + ':' + String(segs).padStart(2, '0');
     el.textContent = '⏱️ ' + str;
-    el.style.display = 'inline-block';
     el.className = 'ativo';
   } else {
-    el.style.display = 'none';
     el.className = '';
+    el.style.display = 'none';
   }
 }
 
