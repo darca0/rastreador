@@ -705,56 +705,46 @@ function atualizarTempoParada(chipId) {
     const el = document.getElementById('pTempoParada');
     if (!v || !el) return;
     
-    // ── VERIFICA SE O VEÍCULO ESTÁ PARADO ──────────
-    if (v.vel <= PARADA_VEL) {
+    // ════════════════════════════════════════════════════════════════
+    //  CRONÔMETRO USA EXCLUSIVAMENTE O TEMPO DO PINGO
+    //  (IGNORA COMPLETAMENTE O v.paradaInicio)
+    // ════════════════════════════════════════════════════════════════
+    
+    if (v.pingos.length > 0) {
+        // ── TEMPO DO PINGO ──────────────────────────────────────
+        const p = v.pingos[v.pingos.length - 1];
+        const minutos = p.mins;
+        const horas = Math.floor(minutos / 60);
+        const mins = minutos % 60;
         
-        // ── PROCURA O PINGO MAIS RECENTE ────────────
-        let pingoAtivo = null;
-        if (v.pingos.length > 0) {
-            // Pega o último pingo criado
-            pingoAtivo = v.pingos[v.pingos.length - 1];
+        // Calcula os segundos baseado no tempo real (apenas para mostrar)
+        // Usa o timestamp do primeiro pingo como referência
+        let segundos = 0;
+        if (v.paradaInicio) {
+            segundos = Math.round((Date.now() - v.paradaInicio) / 1000) % 60;
+        } else if (p.marker) {
+            // Fallback: usa o horário atual
+            segundos = new Date().getSeconds();
         }
         
-        if (pingoAtivo) {
-            // ── USA O TEMPO DO PINGO ──────────────────
-            const minutos = pingoAtivo.mins;
-            const segundos = Math.round((Date.now() - v.paradaInicio) / 1000) % 60;
-            
-            // Formata o tempo
-            const horas = Math.floor(minutos / 60);
-            const mins = minutos % 60;
-            let str = '';
-            if (horas > 0) str += String(horas).padStart(2, '0') + ':';
-            str += String(mins).padStart(2, '0') + ':' + String(segundos).padStart(2, '0');
-            
-            el.textContent = '⏱️ ' + str;
-            el.className = 'ativo';
-            el.style.display = 'inline-block';
-            
-        } else {
-            // ── NENHUM PINGO: USA O TEMPO ATUAL ──────
-            const tempoParado = Date.now() - v.paradaInicio;
-            const segundos = Math.floor(tempoParado / 1000);
-            const minutos = Math.floor(segundos / 60);
-            const horas = Math.floor(minutos / 60);
-            const segs = segundos % 60;
-            const mins = minutos % 60;
-            let str = '';
-            if (horas > 0) str += String(horas).padStart(2, '0') + ':';
-            str += String(mins).padStart(2, '0') + ':' + String(segs).padStart(2, '0');
-            el.textContent = '⏱️ ' + str;
-            el.className = 'ativo';
-            el.style.display = 'inline-block';
-        }
+        let str = '';
+        if (horas > 0) str += String(horas).padStart(2, '0') + ':';
+        str += String(mins).padStart(2, '0') + ':' + String(segundos).padStart(2, '0');
+        
+        el.textContent = '⏱️ ' + str;
+        el.className = 'ativo';
+        el.style.display = 'inline-block';
+        
+        console.log('⏱️ Cronômetro: P' + p.num + ' = ' + minutos + 'min ' + segundos + 's');
         
     } else {
-        // ── VEÍCULO EM MOVIMENTO ──────────────────────
+        // ── SEM PINGO: NÃO MOSTRA NADA ──────────────────────────
         el.className = '';
         el.style.display = 'none';
     }
 }
 
-function atualizarBotaoLista(chipId) {
+ function atualizarBotaoLista(chipId) {
   const v = veiculos[chipId];
   const btn = document.getElementById('vbtn_' + chipId);
   if (!btn || !v) return;
