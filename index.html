@@ -459,36 +459,25 @@ window.processarGPS = function(chipId, d) {
     if (!v) return;
     
     // ══════════════════════════════════════════════════════════════
-    //  FILTRO DE MÉDIA MÓVEL (5 LEITURAS)
+    //  FILTRO DE MÉDIA MÓVEL DA VELOCIDADE (10 leituras)
     // ══════════════════════════════════════════════════════════════
     
-    // Inicializa o buffer de velocidades
-    if (!v.velBuffer) {
-        v.velBuffer = [];
-    }
+    if (!v.velBuffer) v.velBuffer = [];
     
-    // Adiciona a nova velocidade ao buffer
-    if (d.spd !== undefined) {
+    if (d.spd !== undefined && d.spd <= 20) {
         v.velBuffer.push(d.spd);
-        
-        // Mantém apenas as últimas 5 leituras
-        if (v.velBuffer.length > 5) {
-            v.velBuffer.shift();
-        }
+        if (v.velBuffer.length > 10) v.velBuffer.shift();
     }
     
-    // Calcula a média móvel
     let velMedia = 0;
     if (v.velBuffer.length > 0) {
         const soma = v.velBuffer.reduce((acc, val) => acc + val, 0);
         velMedia = soma / v.velBuffer.length;
     }
     
-    // Usa a média móvel como velocidade real
     v.vel = velMedia;
-    v.velInstantanea = d.spd; // Guarda a velocidade instantânea para debug
+    v.velInstantanea = d.spd;
     
-    // Outros dados
     if (d.rssi !== undefined) v.rssi = d.rssi;
     if (d.sat !== undefined) v.sat = d.sat;
     if (d.alt !== undefined) v.alt = d.alt;
@@ -515,15 +504,13 @@ window.processarGPS = function(chipId, d) {
     v.trail.addLatLng(pos);
 
     // ══════════════════════════════════════════════════════════════
-    //  LÓGICA DE PARADA (USA A MÉDIA MÓVEL)
+    //  LÓGICA DE PARADA COM MÉDIA DA DISTÂNCIA
     // ══════════════════════════════════════════════════════════════
     
     const agora = Date.now();
     const elTempo = document.getElementById('pTempoParada');
     
-    // Debug: mostra a velocidade instantânea e a média
-    console.log('📊 Vel instantânea: ' + d.spd + ' | Média(5): ' + velMedia.toFixed(2) + ' | Parado? ' + (velMedia <= PARADA_VEL ? 'SIM' : 'NÃO'));
-    
+    // ── VEÍCULO PARADO (média ≤ PARADA_VEL) ──────────────────
     if (v.vel <= PARADA_VEL) {
         // ── VEÍCULO PARADO ──────────────────────────────────────
         
@@ -537,32 +524,65 @@ window.processarGPS = function(chipId, d) {
         const minutosTotais = Math.floor(tempoParado / 60000);
         
         if (tempoParado >= PARADA_MIN_MS) {
-            // ── CRIA O PINGO ──────────────────────────────────
+            // ── JÁ PASSOU 6 MINUTOS ──────────────────────────────
+            
+            // Procura o pingo ativo (o mais recente que ainda está contando)
             let pingoAtivo = null;
-            if (v.pingos.length > 0) {
-                pingoAtivo = v.pingos[v.pingos.length - 1];
+            for (let i = v.pingos.length - 1; i >= 0; i--) {
+                if (v.pingos[i].tempoDentro) {
+                    pingoAtivo = v.pingos[i];
+                    break;
+                }
             }
             
-            if (!pingoAtivo || !pingoAtivo.tempoDentro) {
-                if (!pingoAtivo) {
+            if (!pingoAtivo) {
+                // ── VERIFICA SE JÁ EXISTE UM PINGO PRÓXIMO ──────
+                let pingoProximo = null;
+                for (let p of v.pingos) {
+                    if (p.marker) {
+                        const dist = map.distance(p.marker.getLatLng(), pos);
+                        if (dist < RAIO_PINGO_M) {
+                            pingoProximo = p;
+                            break;
+                        }
+                    }
+                }
+                
+                if (pingoProximo) {
+                    // ── PINGO EXISTENTE: REATIVA A CONTAGEM ────
+                    pingoProximo.tempoDentro = agora;
+                    pingoProximo.mins = 0;
+                    pingoProximo.distBuffer = [];  // ← Limpa o buffer de distância
+                    
+                    const novoIcone = criarIconePingo(pingoProximo.num, 0);
+                    pingoProximo.marker.setIcon(novoIcone);
+                    
+                    console.log('▶️ P' + pingoProximo.num + ' REATIVADO (veículo voltou ao raio)');
+                    addLog('▶️ P' + pingoProximo.num + ' reativado', 'log-warn');
+                    
+                } else {
+                    // ── CRIA UM NOVO PINGO ──────────────────────
                     v.contador = (v.contador || 0) + 1;
-                    const icone = criarIconePingo(v.contador, minutosTotais);
+                    const icone = criarIconePingo(v.contador, 0);
                     const marker = L.marker(pos, { icon: icone, zIndexOffset: 100 }).addTo(map);
                     v.pingos.push({
                         marker: marker,
                         num: v.contador,
-                        mins: minutosTotais,
+                        mins: 0,
                         lat: pos.lat,
                         lng: pos.lng,
-                        tempoDentro: agora
+                        tempoDentro: agora,
+                        distBuffer: []  // ← Inicializa o buffer de distância
                     });
                     v.paradaCirculo = marker;
-                    console.log('🅿️ PINGO P' + v.contador + ' criado');
+                    
+                    console.log('🅿️ PINGO P' + v.contador + ' CRIADO');
+                    addLog('🅿️ P' + v.contador + ' criado', 'log-warn');
                 }
             }
             
-            // ── ATUALIZA O CRONO 2 ────────────────────────────
-            if (pingoAtivo && pingoAtivo.tempoDentro) {
+            // ── ATUALIZA O CRONO 2 (se pingo ativo) ────────────
+            if (pingoAtivo) {
                 const tempoDentro = agora - pingoAtivo.tempoDentro;
                 pingoAtivo.mins = Math.floor(tempoDentro / 60000);
                 const novoIcone = criarIconePingo(pingoAtivo.num, pingoAtivo.mins);
@@ -574,8 +594,9 @@ window.processarGPS = function(chipId, d) {
                     elTempo.style.display = 'inline-block';
                 }
             }
+            
         } else {
-            // ── CRONO 1 (tempo até 6min) ──────────────────────
+            // ── AINDA NÃO PASSOU 6 MINUTOS ──────────────────────
             if (elTempo) {
                 const segundos = Math.floor(tempoParado / 1000);
                 const minutos = Math.floor(segundos / 60);
@@ -587,30 +608,67 @@ window.processarGPS = function(chipId, d) {
         }
         
     } else {
-        // ── VEÍCULO EM MOVIMENTO ──────────────────────────────
+        // ══════════════════════════════════════════════════════════
+        //  VEÍCULO EM MOVIMENTO - VERIFICA DISTÂNCIA MÉDIA
+        // ══════════════════════════════════════════════════════════
         
-        // Verifica se o pingo foi ultrapassado
-        if (v.pingos.length > 0) {
-            const ultimoPingo = v.pingos[v.pingos.length - 1];
-            if (ultimoPingo.tempoDentro && v.ultimaPos) {
-                const posPingo = L.latLng(ultimoPingo.lat, ultimoPingo.lng);
-                const distancia = map.distance(posPingo, v.ultimaPos);
-                if (distancia > RAIO_PINGO_M) {
-                    ultimoPingo.tempoDentro = null;
-                    v.paradaCirculo = null;
-                    console.log('⏹️ P' + ultimoPingo.num + ' congelado em ' + ultimoPingo.mins + 'min');
+        // Procura o pingo ativo
+        let pingoAtivo = null;
+        for (let i = v.pingos.length - 1; i >= 0; i--) {
+            if (v.pingos[i].tempoDentro) {
+                pingoAtivo = v.pingos[i];
+                break;
+            }
+        }
+        
+        if (pingoAtivo) {
+            // ── CALCULA DISTÂNCIA INSTANTÂNEA ───────────────────
+            const posPingo = L.latLng(pingoAtivo.lat, pingoAtivo.lng);
+            const distanciaInstantanea = map.distance(posPingo, pos);
+            
+            // ── ADICIONA AO BUFFER (MÉDIA MÓVEL) ─────────────────
+            if (!pingoAtivo.distBuffer) pingoAtivo.distBuffer = [];
+            pingoAtivo.distBuffer.push(distanciaInstantanea);
+            if (pingoAtivo.distBuffer.length > 5) pingoAtivo.distBuffer.shift();
+            
+            // ── CALCULA A MÉDIA ──────────────────────────────────
+            const distanciaMedia = pingoAtivo.distBuffer.reduce((a, b) => a + b, 0) / pingoAtivo.distBuffer.length;
+            
+            console.log('📏 P' + pingoAtivo.num + ' | Dist. inst: ' + distanciaInstantanea.toFixed(1) + 'm | Média(5): ' + distanciaMedia.toFixed(1) + 'm | Raio: ' + RAIO_PINGO_M + 'm');
+            
+            // ── VERIFICA SE A MÉDIA ULTRAPASSOU O RAIO ──────────
+            if (distanciaMedia > RAIO_PINGO_M) {
+                // ── CONGELA O PINGO ──────────────────────────────
+                pingoAtivo.tempoDentro = null;
+                v.paradaCirculo = null;
+                
+                console.log('⏹️ P' + pingoAtivo.num + ' CONGELADO em ' + pingoAtivo.mins + 'min (média: ' + distanciaMedia.toFixed(1) + 'm)');
+                addLog('⏹️ P' + pingoAtivo.num + ' congelado em ' + pingoAtivo.mins + 'min', 'log-ok');
+                
+                if (elTempo) {
+                    elTempo.className = '';
+                    elTempo.style.display = 'none';
+                }
+            } else {
+                // ── DENTRO DO RAIO: CONTINUA CONTANDO ───────────
+                const tempoDentro = agora - pingoAtivo.tempoDentro;
+                pingoAtivo.mins = Math.floor(tempoDentro / 60000);
+                const novoIcone = criarIconePingo(pingoAtivo.num, pingoAtivo.mins);
+                pingoAtivo.marker.setIcon(novoIcone);
+                
+                console.log('✅ P' + pingoAtivo.num + ' DENTRO do raio - continuando (' + pingoAtivo.mins + 'min)');
+                
+                if (elTempo) {
+                    elTempo.textContent = '⏱️ ' + pingoAtivo.mins + ' min';
+                    elTempo.className = 'ativo';
+                    elTempo.style.display = 'inline-block';
                 }
             }
         }
         
-        // Reseta a parada
+        // Reseta a parada (mas NÃO o pingo ativo)
         v.paradaInicio = null;
         v.paradaPos = null;
-        
-        if (elTempo) {
-            elTempo.className = '';
-            elTempo.style.display = 'none';
-        }
     }
 
     atualizarBotaoLista(chipId);
@@ -620,7 +678,7 @@ window.processarGPS = function(chipId, d) {
     }
 };
 
-// ================================================================
+ // ================================================================
 //  PROCESSAR STATUS
 // ================================================================
 window.processarStatus = function(chipId, d) {
