@@ -700,30 +700,58 @@ window.processarStatus = function(chipId, d) {
   if (m === 'modo_festa_desativado') addLog('🛡️ Modo Festa DESATIVADO no ESP', 'log-ok');
 };
 
-// ================================================================
-//  🕐 ATUALIZAR TEMPO PARADA
-// ================================================================
 function atualizarTempoParada(chipId) {
-  const v = veiculos[chipId];
-  const el = document.getElementById('pTempoParada');
-  if (!v || !el) return;
-  if (v.paradaInicio && v.vel <= PARADA_VEL) {
-    const tempoParado = Date.now() - v.paradaInicio;
-    const segundos = Math.floor(tempoParado / 1000);
-    const minutos = Math.floor(segundos / 60);
-    const horas = Math.floor(minutos / 60);
-    const segs = segundos % 60;
-    const mins = minutos % 60;
-    let str = '';
-    if (horas > 0) str += String(horas).padStart(2, '0') + ':';
-    str += String(mins).padStart(2, '0') + ':' + String(segs).padStart(2, '0');
-    el.textContent = '⏱️ ' + str;
-    el.className = 'ativo';
-    el.style.display = 'inline-block';
-  } else {
-    el.className = '';
-    el.style.display = 'none';
-  }
+    const v = veiculos[chipId];
+    const el = document.getElementById('pTempoParada');
+    if (!v || !el) return;
+    
+    // ── VERIFICA SE O VEÍCULO ESTÁ PARADO ──────────
+    if (v.vel <= PARADA_VEL) {
+        
+        // ── PROCURA O PINGO MAIS RECENTE ────────────
+        let pingoAtivo = null;
+        if (v.pingos.length > 0) {
+            // Pega o último pingo criado
+            pingoAtivo = v.pingos[v.pingos.length - 1];
+        }
+        
+        if (pingoAtivo) {
+            // ── USA O TEMPO DO PINGO ──────────────────
+            const minutos = pingoAtivo.mins;
+            const segundos = Math.round((Date.now() - v.paradaInicio) / 1000) % 60;
+            
+            // Formata o tempo
+            const horas = Math.floor(minutos / 60);
+            const mins = minutos % 60;
+            let str = '';
+            if (horas > 0) str += String(horas).padStart(2, '0') + ':';
+            str += String(mins).padStart(2, '0') + ':' + String(segundos).padStart(2, '0');
+            
+            el.textContent = '⏱️ ' + str;
+            el.className = 'ativo';
+            el.style.display = 'inline-block';
+            
+        } else {
+            // ── NENHUM PINGO: USA O TEMPO ATUAL ──────
+            const tempoParado = Date.now() - v.paradaInicio;
+            const segundos = Math.floor(tempoParado / 1000);
+            const minutos = Math.floor(segundos / 60);
+            const horas = Math.floor(minutos / 60);
+            const segs = segundos % 60;
+            const mins = minutos % 60;
+            let str = '';
+            if (horas > 0) str += String(horas).padStart(2, '0') + ':';
+            str += String(mins).padStart(2, '0') + ':' + String(segs).padStart(2, '0');
+            el.textContent = '⏱️ ' + str;
+            el.className = 'ativo';
+            el.style.display = 'inline-block';
+        }
+        
+    } else {
+        // ── VEÍCULO EM MOVIMENTO ──────────────────────
+        el.className = '';
+        el.style.display = 'none';
+    }
 }
 
 function atualizarBotaoLista(chipId) {
