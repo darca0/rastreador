@@ -871,39 +871,52 @@ let sireneOsc = null;
 let sireneCtx = null;
 let sireneGain = null;
 
+// ═══════════════════════════════════════════════════
+//  SIRENE FRANCESA - VERSÃO DEFINITIVA
+//  880Hz ↔ 440Hz (alternância seca com setInterval)
+//  Loop infinito + botão ⏹ para parar
+// ═══════════════════════════════════════════════════
+
+window.__sirene = window.__sirene || {
+    ativa: false,
+    interval: null,
+    osc: null,
+    ctx: null,
+    gain: null
+};
+
 window.tocarAlarmeNavegador = function() {
     console.log('🚨 SIRENE FRANCESA INICIADA');
     
-    if (sireneAtiva) {
+    if (window.__sirene.ativa) {
         console.log('ℹ️ Sirene já está tocando');
         return;
     }
     
-    sireneAtiva = true;
+    window.__sirene.ativa = true;
     
     try {
-        sireneCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (sireneCtx.state === 'suspended') sireneCtx.resume();
+        window.__sirene.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (window.__sirene.ctx.state === 'suspended') window.__sirene.ctx.resume();
         
-        sireneOsc = sireneCtx.createOscillator();
-        sireneGain = sireneCtx.createGain();
-        sireneOsc.connect(sireneGain);
-        sireneGain.connect(sireneCtx.destination);
+        window.__sirene.osc = window.__sirene.ctx.createOscillator();
+        window.__sirene.gain = window.__sirene.ctx.createGain();
+        window.__sirene.osc.connect(window.__sirene.gain);
+        window.__sirene.gain.connect(window.__sirene.ctx.destination);
         
-        sireneOsc.type = 'square';
-        sireneOsc.frequency.value = 880;
-        sireneGain.gain.value = 0.3;
-        sireneOsc.start();
+        window.__sirene.osc.type = 'square';
+        window.__sirene.osc.frequency.value = 880;
+        window.__sirene.gain.gain.value = 0.3;
+        window.__sirene.osc.start();
         
         console.log('🔊 Sirene iniciada!');
         
-        // ── LOOP INFINITO (alternância seca) ─────────
         let usandoAlta = true;
         let count = 0;
         
-        sireneInterval = setInterval(() => {
-            if (!sireneAtiva || !sireneOsc) {
-                clearInterval(sireneInterval);
+        window.__sirene.interval = setInterval(() => {
+            if (!window.__sirene.ativa || !window.__sirene.osc) {
+                clearInterval(window.__sirene.interval);
                 return;
             }
             
@@ -911,21 +924,20 @@ window.tocarAlarmeNavegador = function() {
             usandoAlta = !usandoAlta;
             
             if (usandoAlta) {
-                sireneOsc.frequency.value = 880;
-                sireneGain.gain.value = 0.3;
+                window.__sirene.osc.frequency.value = 880;
+                window.__sirene.gain.gain.value = 0.3;
                 console.log('🔊 880Hz');
             } else {
-                sireneOsc.frequency.value = 440;
-                sireneGain.gain.value = 0.2;
+                window.__sirene.osc.frequency.value = 440;
+                window.__sirene.gain.gain.value = 0.2;
                 console.log('🔊 440Hz');
             }
             
-            // A cada 20 alternâncias (~6s), faz uma pausa curta
             if (count % 20 === 0) {
-                sireneGain.gain.value = 0;
+                window.__sirene.gain.gain.value = 0;
                 setTimeout(() => {
-                    if (sireneAtiva && sireneGain) {
-                        sireneGain.gain.value = 0.3;
+                    if (window.__sirene.ativa && window.__sirene.gain) {
+                        window.__sirene.gain.gain.value = 0.3;
                     }
                 }, 200);
             }
@@ -934,10 +946,9 @@ window.tocarAlarmeNavegador = function() {
         
     } catch(e) {
         console.warn('⚠️ Erro na sirene:', e);
-        sireneAtiva = false;
+        window.__sirene.ativa = false;
     }
     
-    // ── VIBRAÇÃO ──────────────────────────────────────
     if (navigator.vibrate) {
         navigator.vibrate([500, 200, 500, 200, 500, 200, 1000]);
     }
@@ -946,28 +957,26 @@ window.tocarAlarmeNavegador = function() {
 window.desligarAlarme = function() {
     console.log('🔇 Desligando sirene...');
     
-    sireneAtiva = false;
+    window.__sirene.ativa = false;
     
-    if (sireneInterval) {
-        clearInterval(sireneInterval);
-        sireneInterval = null;
+    if (window.__sirene.interval) {
+        clearInterval(window.__sirene.interval);
+        window.__sirene.interval = null;
     }
     
-    if (sireneOsc) {
-        try { sireneOsc.stop(); } catch(e) {}
-        sireneOsc = null;
+    if (window.__sirene.osc) {
+        try { window.__sirene.osc.stop(); } catch(e) {}
+        window.__sirene.osc = null;
     }
     
-    if (sireneCtx) {
-        try { sireneCtx.close(); } catch(e) {}
-        sireneCtx = null;
+    if (window.__sirene.ctx) {
+        try { window.__sirene.ctx.close(); } catch(e) {}
+        window.__sirene.ctx = null;
     }
     
-    sireneGain = null;
+    window.__sirene.gain = null;
     
-    if (navigator.vibrate) {
-        navigator.vibrate(0);
-    }
+    if (navigator.vibrate) navigator.vibrate(0);
     
     console.log('✅ Sirene desligada');
 };
