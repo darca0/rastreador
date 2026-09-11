@@ -819,8 +819,7 @@ window.ativarAlertaMovimento = function(chipId, d) {
   modoFestaAtivo = false;
   window.tocarAlarmeNavegador();
   setBadge('pStatus', '🚨 FURTO', 'badge-err');
-  if (confirm('🚨 ALERTA DE SEGURANÇA!\n\nO veículo se moveu mais de 50 metros!\n\nOK para desligar o alarme.')) window.desligarAlarme();
-  map.setView(pos, 15);
+   map.setView(pos, 15);
 };
 
 // ================================================================
