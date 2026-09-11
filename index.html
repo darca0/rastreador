@@ -812,14 +812,19 @@ window.toggleModoFesta = function() {
 };
 
 window.ativarAlertaMovimento = function(chipId, d) {
-  const pos = L.latLng(d.lat, d.lng);
-  if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
-  document.getElementById('btnFesta').classList.remove('ativo');
-  document.getElementById('btnFesta').textContent = '🛡️Festa';
-  modoFestaAtivo = false;
-  window.tocarAlarmeNavegador();
-  setBadge('pStatus', '🚨 FURTO', 'badge-err');
-   map.setView(pos, 15);
+    const pos = L.latLng(d.lat, d.lng);
+    if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
+    document.getElementById('btnFesta').classList.remove('ativo');
+    document.getElementById('btnFesta').textContent = '🛡️Festa';
+    modoFestaAtivo = false;
+    window.tocarAlarmeNavegador();
+    setBadge('pStatus', '🚨 FURTO', 'badge-err');
+    
+    // ✅ SUBSTITUÍDO (sem popup):
+    addLog('🔊 Clique no ⏹ para parar a sirene', 'log-warn');
+    
+    map.setView(pos, 15);
+    addLog('🚨 ALERTA DE FURTO DETECTADO!', 'log-err');
 };
 
 // ================================================================
