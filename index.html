@@ -220,6 +220,71 @@ let alarmeOsc = null;
 let alarmeGain = null;
 let alarmeInterval = null;
 
+// ⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️
+// ⬇️  NOVO: BANCO DE DADOS LOCAL (IndexedDB)                    ⬇️
+// ⬇️  Persistência do Modo Festa entre reinícios              ⬇️
+// ⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️
+
+const DB_NAME = 'telematic_db';
+const DB_VERSION = 1;
+const STORE_NAME = 'config';
+let db = null;
+
+function abrirBanco() {
+  return new Promise((resolve, reject) => {
+    if (db) return resolve(db);
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = (event) => {
+      const database = event.target.result;
+      if (!database.objectStoreNames.contains(STORE_NAME)) {
+        database.createObjectStore(STORE_NAME, { keyPath: 'chave' });
+      }
+    };
+    request.onsuccess = (event) => { db = event.target.result; resolve(db); };
+    request.onerror = (event) => { console.error('Erro IndexedDB:', event.target.error); reject(event.target.error); };
+  });
+}
+
+async function salvarConfig(chave, valor) {
+  const database = await abrirBanco();
+  return new Promise((resolve, reject) => {
+    const tx = database.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.put({ chave, valor });
+    request.onsuccess = () => resolve(true);
+    request.onerror = (event) => reject(event.target.error);
+  });
+}
+
+async function lerConfig(chave, valorPadrao = null) {
+  const database = await abrirBanco();
+  return new Promise((resolve, reject) => {
+    const tx = database.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.get(chave);
+    request.onsuccess = (event) => {
+      const resultado = event.target.result;
+      resolve(resultado ? resultado.valor : valorPadrao);
+    };
+    request.onerror = (event) => reject(event.target.error);
+  });
+}
+
+async function removerConfig(chave) {
+  const database = await abrirBanco();
+  return new Promise((resolve, reject) => {
+    const tx = database.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.delete(chave);
+    request.onsuccess = () => resolve(true);
+    request.onerror = (event) => reject(event.target.error);
+  });
+}
+
+// ⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️
+// ⬆️  FIM DO BANCO DE DADOS LOCAL                              ⬆️
+// ⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️
+
 // ================================================================
 //  LOGIN
 // ================================================================
@@ -282,6 +347,9 @@ window.iniciarApp = function() {
   L.control.zoom({ position: 'topleft' }).addTo(map);
   tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
   window.conectarMQTT();
+
+  // ⬅️ NOVO: restaura o Modo Festa após o mapa estar pronto
+  restaurarModoFesta();
 };
 
 window.nextMapStyle = function() {
@@ -798,16 +866,27 @@ window.toggleModoFesta = function() {
   if (!modoFestaAtivo) {
     window.cmd(ativoId, 'ATIVAR_MODO_FESTA');
     const v = veiculos[ativoId];
-    if (v && v.ultimaPos) circuloFesta = L.circle(v.ultimaPos, { color: '#f9a825', fillColor: '#f9a825', fillOpacity: 0.15, radius: 50.0 }).addTo(map);
+    if (v && v.ultimaPos) circuloFesta = L.circle(v.ultimaPos, { color: '#f9a825', fillColor: '#f9a825', fillOpacity: 0.15, radius: 0.1 }).addTo(map);
     document.getElementById('btnFesta').classList.add('ativo');
     document.getElementById('btnFesta').textContent = '🛡️Ativo';
     modoFestaAtivo = true;
+
+    // ⬅️ NOVO: salva no IndexedDB
+    salvarConfig('modoFestaAtivo', true);
+    salvarConfig('modoFestaChipId', ativoId);
+    console.log('💾 Modo Festa salvo no banco (chipId: ' + ativoId + ')');
+
   } else {
     window.cmd(ativoId, 'DESATIVAR_MODO_FESTA');
     if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
     document.getElementById('btnFesta').classList.remove('ativo');
     document.getElementById('btnFesta').textContent = '🛡️Festa';
     modoFestaAtivo = false;
+
+    // ⬅️ NOVO: remove do IndexedDB
+    removerConfig('modoFestaAtivo');
+    removerConfig('modoFestaChipId');
+    console.log('🗑️ Modo Festa removido do banco');
   }
 };
 
@@ -817,6 +896,12 @@ window.ativarAlertaMovimento = function(chipId, d) {
     document.getElementById('btnFesta').classList.remove('ativo');
     document.getElementById('btnFesta').textContent = '🛡️Festa';
     modoFestaAtivo = false;
+
+    // ⬅️ NOVO: remove do IndexedDB (o alerta cancelou o modo festa)
+    removerConfig('modoFestaAtivo');
+    removerConfig('modoFestaChipId');
+    console.log('🗑️ Modo Festa removido do banco (alerta de movimento)');
+
     window.tocarAlarmeNavegador();
     setBadge('pStatus', '🚨 FURTO', 'badge-err');
     
@@ -826,6 +911,64 @@ window.ativarAlertaMovimento = function(chipId, d) {
     map.setView(pos, 15);
     addLog('🚨 ALERTA DE FURTO DETECTADO!', 'log-err');
 };
+
+// ⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️
+// ⬇️  NOVO: RESTAURAR MODO FESTA AO INICIAR                    ⬇️
+// ⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️
+async function restaurarModoFesta() {
+  try {
+    const ativo = await lerConfig('modoFestaAtivo', false);
+    const chipIdSalvo = await lerConfig('modoFestaChipId', null);
+
+    if (ativo && chipIdSalvo) {
+      console.log('🔄 Modo Festa estava ativo. Restaurando...');
+
+      // Aguarda o veículo ser criado (pode levar alguns segundos até o MQTT conectar)
+      let tentativas = 0;
+      const intervalo = setInterval(() => {
+        tentativas++;
+        const v = veiculos[chipIdSalvo];
+
+        if (v && v.ultimaPos) {
+          // Veículo já tem posição: restaura o círculo
+          clearInterval(intervalo);
+          ativoId = chipIdSalvo;
+          modoFestaAtivo = true;
+
+          if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
+          circuloFesta = L.circle(v.ultimaPos, { color: '#f9a825', fillColor: '#f9a825', fillOpacity: 0.15, radius: 0.1 }).addTo(map);
+
+          document.getElementById('btnFesta').classList.add('ativo');
+          document.getElementById('btnFesta').textContent = '🛡️Ativo';
+          document.getElementById('panelNome').textContent = '🚗 ' + v.nome + ' (' + chipIdSalvo + ')';
+
+          // Seleciona o veículo na lista
+          document.querySelectorAll('.veiculo-btn').forEach(b => b.classList.remove('ativo'));
+          const btn = document.getElementById('vbtn_' + chipIdSalvo);
+          if (btn) btn.classList.add('ativo');
+
+          addLog('🔄 Modo Festa restaurado', 'log-ok');
+          console.log('✅ Modo Festa restaurado com sucesso para ' + chipIdSalvo);
+
+        } else if (tentativas > 60) {
+          // 60 tentativas × 500ms = 30s sem o veículo aparecer
+          clearInterval(intervalo);
+          console.warn('⚠️ Veículo ' + chipIdSalvo + ' não apareceu. Modo Festa não restaurado.');
+          addLog('⚠️ Modo Festa não pôde ser restaurado', 'log-warn');
+          removerConfig('modoFestaAtivo');
+          removerConfig('modoFestaChipId');
+        }
+      }, 500);
+    } else {
+      console.log('ℹ️ Modo Festa não estava ativo.');
+    }
+  } catch (erro) {
+    console.error('Erro ao restaurar Modo Festa:', erro);
+  }
+}
+// ⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️
+// ⬆️  FIM DA RESTAURAÇÃO                                       ⬆️
+// ⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️
 
 // ================================================================
 //  PÂNICO
@@ -862,18 +1005,6 @@ window.executarTesteD8 = function() {
   window.cmd(ativoId, 'PANICO_ATIVAR');
   window.ativarPanico(ativoId, 'manual');
 };
-
-// ═══════════════════════════════════════════════════
-//  SIRENE FRANCESA - VERSÃO DEFINITIVA (TESTE 1)
-//  880Hz ↔ 440Hz (alternância seca com setInterval)
-//  Loop infinito + botão ⏹ para parar
-// ═══════════════════════════════════════════════════
-
-let sireneAtiva = false;
-let sireneInterval = null;
-let sireneOsc = null;
-let sireneCtx = null;
-let sireneGain = null;
 
 // ═══════════════════════════════════════════════════
 //  SIRENE FRANCESA - VERSÃO DEFINITIVA
@@ -930,11 +1061,9 @@ window.tocarAlarmeNavegador = function() {
             if (usandoAlta) {
                 window.__sirene.osc.frequency.value = 880;
                 window.__sirene.gain.gain.value = 0.3;
-                console.log('🔊 880Hz');
             } else {
                 window.__sirene.osc.frequency.value = 440;
                 window.__sirene.gain.gain.value = 0.2;
-                console.log('🔊 440Hz');
             }
             
             if (count % 20 === 0) {
@@ -1052,6 +1181,7 @@ console.log('🚀 Rastreador Veicular v2');
 console.log('✅ PARADA_VEL =', PARADA_VEL, 'km/h');
 console.log('✅ PARADA_MIN_MS =', PARADA_MIN_MS/60000, 'min');
 console.log('✅ RAIO_PINGO_M =', RAIO_PINGO_M, 'm');
+console.log('✅ IndexedDB: persistência do Modo Festa ativa');
 </script>
 </body>
 </html>
