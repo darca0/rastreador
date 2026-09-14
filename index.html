@@ -199,6 +199,7 @@ const BROKER_PORT = 8884;
 const PARADA_VEL = 8.0;          // ← AUMENTADO para 8.0 km/h
 const PARADA_MIN_MS = 360000;    // 6 minutos
 const RAIO_PINGO_M = 70;         // Raio de 70 metros
+const RAIO_FESTA_M = 50;  // ← Raio real do Modo Festa (50 metros)
 
 let pinBuffer = '';
 let usuarioId = '';
@@ -866,7 +867,12 @@ window.toggleModoFesta = function() {
   if (!modoFestaAtivo) {
     window.cmd(ativoId, 'ATIVAR_MODO_FESTA');
     const v = veiculos[ativoId];
-    if (v && v.ultimaPos) circuloFesta = L.circle(v.ultimaPos, { color: '#f9a825', fillColor: '#f9a825', fillOpacity: 0.15, radius: 0.1 }).addTo(map);
+    if (v && v.ultimaPos) circuloFesta = L.circle(v.ultimaPos, { 
+  color: '#f9a825', 
+  fillColor: '#f9a825', 
+  fillOpacity: 0.15, 
+  radius: RAIO_FESTA_M
+}).addTo(map);
     document.getElementById('btnFesta').classList.add('ativo');
     document.getElementById('btnFesta').textContent = '🛡️Ativo';
     modoFestaAtivo = true;
