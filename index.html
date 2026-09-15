@@ -1115,16 +1115,32 @@ window.desligarAlarme = function() {
 // ================================================================
 //  SALVAR MAPA
 // ================================================================
-window.salvarMapa = async function() {
+  window.salvarMapa = async function() {
   addLog('📸 Capturando mapa...', 'log-warn');
 
+  // 1. Centraliza o mapa em todos os veículos SEM animação
   const pts = Object.values(veiculos).filter(v => v.ultimaPos).map(v => v.ultimaPos);
   if (pts.length > 0) {
-    if (pts.length === 1) map.setView(pts[0], 16);
-    else map.fitBounds(L.latLngBounds(pts), { padding: [40, 40] });
+    if (pts.length === 1) {
+      map.setView(pts[0], 16, { animate: false });
+    } else {
+      map.fitBounds(L.latLngBounds(pts), { padding: [40, 40], animate: false });
+    }
   }
 
-  await new Promise(r => setTimeout(r, 800));
+  // 2. Aguarda o Leaflet redesenhar os tiles
+  await new Promise(r => setTimeout(r, 1500));
+
+  // 3. Esconde os controles do Leaflet
+  const zoomControl = document.querySelector('.leaflet-control-zoom');
+  const attribution = document.querySelector('.leaflet-control-attribution');
+  let zoomDisplay = '', attrDisplay = '';
+  if (zoomControl) { zoomDisplay = zoomControl.style.display; zoomControl.style.display = 'none'; }
+  if (attribution) { attrDisplay = attribution.style.display; attribution.style.display = 'none'; }
+
+  // 4. Força o Leaflet a redesenhar tudo (isso reposiciona as polylines)
+  map.invalidateSize();
+  await new Promise(r => setTimeout(r, 500));
 
   const mapEl = document.getElementById('map');
   if (!mapEl) { alert('⚠️ Mapa não encontrado!'); return; }
@@ -1135,8 +1151,20 @@ window.salvarMapa = async function() {
       allowTaint: false,
       backgroundColor: '#111',
       scale: 2,
-      logging: false
+      logging: false,
+      onclone: (clonedDoc) => {
+        // No clone, força o Leaflet a recalcular o tamanho
+        const clonedMap = clonedDoc.querySelector('.leaflet-container');
+        if (clonedMap) {
+          clonedMap.style.width = mapEl.offsetWidth + 'px';
+          clonedMap.style.height = mapEl.offsetHeight + 'px';
+        }
+      }
     });
+
+    // Restaura os controles
+    if (zoomControl) zoomControl.style.display = zoomDisplay || '';
+    if (attribution) attribution.style.display = attrDisplay || '';
 
     const imgBase64 = canvas.toDataURL('image/png');
 
@@ -1201,6 +1229,8 @@ window.salvarMapa = async function() {
     addLog('💾 Trajeto salvo com foto do mapa!', 'log-ok');
 
   } catch (e) {
+    if (zoomControl) zoomControl.style.display = zoomDisplay || '';
+    if (attribution) attribution.style.display = attrDisplay || '';
     console.error('Erro ao capturar mapa:', e);
     addLog('❌ Erro ao capturar mapa: ' + e.message, 'log-err');
     alert('Erro ao capturar o mapa. Veja o console para detalhes.');
