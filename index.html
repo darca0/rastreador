@@ -615,6 +615,7 @@ window.processarGPS = function(chipId, d) {
                         lat: pos.lat,
                         lng: pos.lng,
                         tempoDentro: agora,
+                        horaBrasilia: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),  // ← ADICIONAR
                         distBuffer: []
                     });
                     v.paradaCirculo = marker;
@@ -1117,32 +1118,28 @@ window.desligarAlarme = function() {
 window.salvarMapa = async function() {
   addLog('📸 Capturando mapa...', 'log-warn');
 
-  // Garante que o mapa está centralizado em todos os veículos
   const pts = Object.values(veiculos).filter(v => v.ultimaPos).map(v => v.ultimaPos);
   if (pts.length > 0) {
     if (pts.length === 1) map.setView(pts[0], 16);
     else map.fitBounds(L.latLngBounds(pts), { padding: [40, 40] });
   }
 
-  // Aguarda o Leaflet redesenhar os tiles
   await new Promise(r => setTimeout(r, 800));
 
   const mapEl = document.getElementById('map');
   if (!mapEl) { alert('⚠️ Mapa não encontrado!'); return; }
 
   try {
-    // Captura o mapa como imagem
     const canvas = await html2canvas(mapEl, {
       useCORS: true,
       allowTaint: false,
       backgroundColor: '#111',
-      scale: 2,           // dobra a resolução
+      scale: 2,
       logging: false
     });
 
     const imgBase64 = canvas.toDataURL('image/png');
 
-    // ─── Monta o HTML do relatório ───
     const data = new Date().toLocaleString('pt-BR');
     const dataArq = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
     const veiculosArr = Object.values(veiculos);
@@ -1151,19 +1148,28 @@ window.salvarMapa = async function() {
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Trajeto ${dataArq}</title>
     <style>
-      body{font-family:system-ui;background:#111;color:#fff;margin:0;padding:16px;}
-      h2{color:#90caf9;}
-      .mapa{width:100%;max-width:900px;border-radius:12px;border:1px solid #333;display:block;margin:0 auto 16px;}
+      * { box-sizing: border-box; }
+      body{font-family:system-ui;background:#111;color:#fff;margin:0;padding:0;}
+      .header{padding:16px 20px;}
+      .header h2{color:#90caf9;margin:0 0 4px 0;font-size:20px;}
+      .header p{color:#888;font-size:12px;margin:0;}
+      .mapa{width:100vw;height:auto;display:block;border-top:1px solid #333;border-bottom:1px solid #333;margin:0;}
+      .relatorio{padding:16px 20px;}
+      h3{color:#fff;font-size:16px;margin:16px 0 8px 0;}
       table{width:100%;border-collapse:collapse;margin-top:8px;}
-      th{background:#1565C0;color:#fff;padding:8px;text-align:left;font-size:13px;}
-      td{padding:6px 8px;border:1px solid #333;font-size:13px;}
+      th{background:#1565C0;color:#fff;padding:10px;text-align:left;font-size:13px;}
+      td{padding:8px 10px;border:1px solid #333;font-size:13px;}
       tr:nth-child(even){background:#1a1a1a;}
       .verde{color:#4caf50;font-weight:700;}
       .verm{color:#ef5350;font-weight:700;}
       a{color:#90caf9;}
     </style></head><body>
-    <h2>🛡️ Rastreador — Trajeto salvo em ${data}</h2>
+    <div class="header">
+      <h2>🛡️ Rastreador — Trajeto salvo em ${data}</h2>
+      <p>Horário de Brasília</p>
+    </div>
     <img class="mapa" src="${imgBase64}" alt="Mapa do trajeto">
+    <div class="relatorio">
     `;
 
     veiculosArr.forEach(v => {
@@ -1172,18 +1178,18 @@ window.salvarMapa = async function() {
       html += `<h3>🚗 ${v.nome} (${v.chipId}) — ${status}</h3>`;
       html += `<p>📍 Pontos: ${pontos.length} | 🅿️ Paradas: ${v.pingos.length}</p>`;
       if (v.pingos.length > 0) {
-        html += '<h4>🅿️ Paradas:</h4><table><tr><th>#</th><th>Duração</th><th>Localização</th><th>Google Maps</th></tr>';
+        html += '<table><tr><th>#</th><th>Horário</th><th>Duração</th><th>Localização</th><th>Google Maps</th></tr>';
         v.pingos.forEach(p => {
           const ll = p.marker.getLatLng();
-          html += `<tr><td>P${p.num}</td><td>${p.mins} min</td><td>${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}</td><td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td></tr>`;
+          const hora = p.horaBrasilia || '—';
+          html += `<tr><td>P${p.num}</td><td>${hora}</td><td>${p.mins} min</td><td>${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}</td><td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td></tr>`;
         });
         html += '</table>';
       }
     });
 
-    html += '</body></html>';
+    html += '</div></body></html>';
 
-    // ─── Baixa o arquivo ───
     const blob = new Blob([html], {type:'text/html'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
