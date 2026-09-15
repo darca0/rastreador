@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
- <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://unpkg.com/leaflet-image@0.4.0/leaflet-image.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>VeyLink</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -341,7 +341,7 @@ atualizarRelogioLocal();
 window.iniciarApp = function() {
   map = L.map('map', { zoomControl: false }).setView([-22.7078, -47.6659], 13);
   L.control.zoom({ position: 'topleft' }).addTo(map);
-  tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19,crossOrigin: true  }).addTo(map);
+  tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, crossOrigin: true }).addTo(map);
   window.conectarMQTT();
   restaurarModoFesta();
 };
@@ -379,7 +379,6 @@ window.conectarMQTT = function() {
       const data = JSON.parse(payload.toString());
       if (tipo === 'gps') window.processarGPS(chipId, data);
       if (tipo === 'status') window.processarStatus(chipId, data);
-      // ⬅️ ALTERADO: passa o data completo para o ativarPanico
       if (tipo === 'status' && data.motivo === 'panico') window.ativarPanico(chipId, 'mqtt', data);
       if (tipo === 'status' && data.motivo === 'panico_cancelado') window.cancelarPanico();
       if (tipo === 'status' && data.motivo === 'alerta_movimento') window.ativarAlertaMovimento(chipId, data);
@@ -614,7 +613,7 @@ window.processarGPS = function(chipId, d) {
                         lat: pos.lat,
                         lng: pos.lng,
                         tempoDentro: agora,
-                        horaBrasilia: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),  // ← ADICIONAR
+                        horaBrasilia: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
                         distBuffer: []
                     });
                     v.paradaCirculo = marker;
@@ -958,7 +957,6 @@ window.addEventListener('online', async () => {
 // ================================================================
 //  PÂNICO
 // ================================================================
-// ⬅️ ALTERADO: recebe o objeto 'dados' com a origem do pânico
 window.ativarPanico = function(chipId, origem = 'mqtt', dados = {}) {
   if (panicoAtivo) return;
   panicoAtivo = true; panicoCancelavel = true; panicoChipId = chipId;
@@ -973,14 +971,11 @@ window.ativarPanico = function(chipId, origem = 'mqtt', dados = {}) {
     else { clearInterval(panicoTimer); panicoCancelavel = false; timer.textContent = '(Confirmado)'; }
   }, 1000);
 
-  // ⬅️ ALTERADO: só toca a sirene se NÃO for botão físico
   if (dados.origem === 'botao_fisico') {
-    // Modo silencioso: apenas vibração discreta + alerta visual
     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
     addLog('🚨 PÂNICO via botão físico (modo silencioso)', 'log-warn');
     console.log('🔕 Pânico via botão físico — sirene NÃO tocada (modo silencioso)');
   } else {
-    // Modo normal: toca a sirene
     window.tocarAlarmeNavegador();
     addLog('🚨 PÂNICO ATIVADO (com sirene)', 'log-err');
     console.log('🔊 Pânico ativado com sirene (origem: ' + (dados.origem || origem) + ')');
@@ -1114,7 +1109,7 @@ window.desligarAlarme = function() {
 // ================================================================
 //  SALVAR MAPA
 // ================================================================
- window.salvarMapa = function() {
+window.salvarMapa = function() {
   addLog('📸 Capturando mapa...', 'log-warn');
 
   // Centraliza sem animação
@@ -1207,6 +1202,7 @@ window.desligarAlarme = function() {
     });
   }, 1000);
 };
+
 // ================================================================
 //  SIMULAR MODO FESTA
 // ================================================================
@@ -1245,7 +1241,7 @@ console.log('✅ IndexedDB: persistência do Modo Festa ativa');
 console.log('✅ Refresh automático do Modo Festa após reconexão');
 console.log('✅ Pânico via D2: aguardando MQTT {"motivo":"panico"}');
 console.log('✅ Pânico silencioso para botão físico');
-console.log('✅ Mapa salvo com OpenStreetMap + referrerPolicy');
+console.log('✅ Mapa salvo com leaflet-image + OpenStreetMap');
 </script>
 </body>
 </html>
