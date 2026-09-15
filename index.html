@@ -341,9 +341,8 @@ atualizarRelogioLocal();
 window.iniciarApp = function() {
   map = L.map('map', { zoomControl: false }).setView([-22.7078, -47.6659], 13);
   L.control.zoom({ position: 'topleft' }).addTo(map);
-  tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+  tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19,crossOrigin: true  }).addTo(map);
   window.conectarMQTT();
-
   restaurarModoFesta();
 };
 
@@ -1115,126 +1114,98 @@ window.desligarAlarme = function() {
 // ================================================================
 //  SALVAR MAPA
 // ================================================================
-  window.salvarMapa = async function() {
+ window.salvarMapa = function() {
   addLog('📸 Capturando mapa...', 'log-warn');
 
-  // 1. Centraliza o mapa em todos os veículos SEM animação
+  // Centraliza sem animação
   const pts = Object.values(veiculos).filter(v => v.ultimaPos).map(v => v.ultimaPos);
   if (pts.length > 0) {
-    if (pts.length === 1) {
-      map.setView(pts[0], 16, { animate: false });
-    } else {
-      map.fitBounds(L.latLngBounds(pts), { padding: [40, 40], animate: false });
-    }
+    if (pts.length === 1) map.setView(pts[0], 16, { animate: false });
+    else map.fitBounds(L.latLngBounds(pts), { padding: [40, 40], animate: false });
   }
 
-  // 2. Aguarda o Leaflet redesenhar os tiles
-  await new Promise(r => setTimeout(r, 1500));
-
-  // 3. Esconde os controles do Leaflet
+  // Esconde controles
   const zoomControl = document.querySelector('.leaflet-control-zoom');
   const attribution = document.querySelector('.leaflet-control-attribution');
   let zoomDisplay = '', attrDisplay = '';
   if (zoomControl) { zoomDisplay = zoomControl.style.display; zoomControl.style.display = 'none'; }
   if (attribution) { attrDisplay = attribution.style.display; attribution.style.display = 'none'; }
 
-  // 4. Força o Leaflet a redesenhar tudo (isso reposiciona as polylines)
-  map.invalidateSize();
-  await new Promise(r => setTimeout(r, 500));
+  // Aguarda tiles carregarem
+  setTimeout(() => {
+    leafletImage(map, function(err, canvas) {
+      if (zoomControl) zoomControl.style.display = zoomDisplay || '';
+      if (attribution) attribution.style.display = attrDisplay || '';
 
-  const mapEl = document.getElementById('map');
-  if (!mapEl) { alert('⚠️ Mapa não encontrado!'); return; }
+      if (err) {
+        console.error('Erro leaflet-image:', err);
+        addLog('❌ Erro: ' + err, 'log-err');
+        alert('Erro ao capturar o mapa: ' + err);
+        return;
+      }
 
-  try {
-    const canvas = await html2canvas(mapEl, {
-      useCORS: true,
-      allowTaint: false,
-      backgroundColor: '#111',
-      scale: 2,
-      logging: false,
-      onclone: (clonedDoc) => {
-        // No clone, força o Leaflet a recalcular o tamanho
-        const clonedMap = clonedDoc.querySelector('.leaflet-container');
-        if (clonedMap) {
-          clonedMap.style.width = mapEl.offsetWidth + 'px';
-          clonedMap.style.height = mapEl.offsetHeight + 'px';
+      const imgBase64 = canvas.toDataURL('image/png');
+      const data = new Date().toLocaleString('pt-BR');
+      const dataArq = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
+      const veiculosArr = Object.values(veiculos);
+
+      let html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>Trajeto ${dataArq}</title>
+      <style>
+        * { box-sizing: border-box; }
+        body{font-family:system-ui;background:#111;color:#fff;margin:0;padding:0;}
+        .header{padding:16px 20px;}
+        .header h2{color:#90caf9;margin:0 0 4px 0;font-size:20px;}
+        .header p{color:#888;font-size:12px;margin:0;}
+        .mapa{width:100vw;height:auto;display:block;border-top:1px solid #333;border-bottom:1px solid #333;margin:0;}
+        .relatorio{padding:16px 20px;}
+        h3{color:#fff;font-size:16px;margin:16px 0 8px 0;}
+        table{width:100%;border-collapse:collapse;margin-top:8px;}
+        th{background:#1565C0;color:#fff;padding:10px;text-align:left;font-size:13px;}
+        td{padding:8px 10px;border:1px solid #333;font-size:13px;}
+        tr:nth-child(even){background:#1a1a1a;}
+        .verde{color:#4caf50;font-weight:700;}
+        .verm{color:#ef5350;font-weight:700;}
+        a{color:#90caf9;}
+      </style></head><body>
+      <div class="header">
+        <h2>🛡️ Rastreador — Trajeto salvo em ${data}</h2>
+        <p>Horário de Brasília</p>
+      </div>
+      <img class="mapa" src="${imgBase64}" alt="Mapa do trajeto">
+      <div class="relatorio">
+      `;
+
+      veiculosArr.forEach(v => {
+        const pontos = v.trail.getLatLngs();
+        const status = v.bloqueado ? '<span class="verm">BLOQUEADO</span>' : '<span class="verde">LIBERADO</span>';
+        html += `<h3>🚗 ${v.nome} (${v.chipId}) — ${status}</h3>`;
+        html += `<p>📍 Pontos: ${pontos.length} | 🅿️ Paradas: ${v.pingos.length}</p>`;
+        if (v.pingos.length > 0) {
+          html += '<table><tr><th>#</th><th>Horário</th><th>Duração</th><th>Localização</th><th>Google Maps</th></tr>';
+          v.pingos.forEach(p => {
+            const ll = p.marker.getLatLng();
+            const hora = p.horaBrasilia || '—';
+            html += `<tr><td>P${p.num}</td><td>${hora}</td><td>${p.mins} min</td><td>${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}</td><td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td></tr>`;
+          });
+          html += '</table>';
         }
-      }
+      });
+
+      html += '</div></body></html>';
+
+      const blob = new Blob([html], {type:'text/html'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'trajeto_' + dataArq + '.html';
+      a.click();
+      URL.revokeObjectURL(url);
+
+      addLog('💾 Trajeto salvo!', 'log-ok');
     });
-
-    // Restaura os controles
-    if (zoomControl) zoomControl.style.display = zoomDisplay || '';
-    if (attribution) attribution.style.display = attrDisplay || '';
-
-    const imgBase64 = canvas.toDataURL('image/png');
-
-    const data = new Date().toLocaleString('pt-BR');
-    const dataArq = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
-    const veiculosArr = Object.values(veiculos);
-
-    let html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Trajeto ${dataArq}</title>
-    <style>
-      * { box-sizing: border-box; }
-      body{font-family:system-ui;background:#111;color:#fff;margin:0;padding:0;}
-      .header{padding:16px 20px;}
-      .header h2{color:#90caf9;margin:0 0 4px 0;font-size:20px;}
-      .header p{color:#888;font-size:12px;margin:0;}
-      .mapa{width:100vw;height:auto;display:block;border-top:1px solid #333;border-bottom:1px solid #333;margin:0;}
-      .relatorio{padding:16px 20px;}
-      h3{color:#fff;font-size:16px;margin:16px 0 8px 0;}
-      table{width:100%;border-collapse:collapse;margin-top:8px;}
-      th{background:#1565C0;color:#fff;padding:10px;text-align:left;font-size:13px;}
-      td{padding:8px 10px;border:1px solid #333;font-size:13px;}
-      tr:nth-child(even){background:#1a1a1a;}
-      .verde{color:#4caf50;font-weight:700;}
-      .verm{color:#ef5350;font-weight:700;}
-      a{color:#90caf9;}
-    </style></head><body>
-    <div class="header">
-      <h2>🛡️ Rastreador — Trajeto salvo em ${data}</h2>
-      <p>Horário de Brasília</p>
-    </div>
-    <img class="mapa" src="${imgBase64}" alt="Mapa do trajeto">
-    <div class="relatorio">
-    `;
-
-    veiculosArr.forEach(v => {
-      const pontos = v.trail.getLatLngs();
-      const status = v.bloqueado ? '<span class="verm">BLOQUEADO</span>' : '<span class="verde">LIBERADO</span>';
-      html += `<h3>🚗 ${v.nome} (${v.chipId}) — ${status}</h3>`;
-      html += `<p>📍 Pontos: ${pontos.length} | 🅿️ Paradas: ${v.pingos.length}</p>`;
-      if (v.pingos.length > 0) {
-        html += '<table><tr><th>#</th><th>Horário</th><th>Duração</th><th>Localização</th><th>Google Maps</th></tr>';
-        v.pingos.forEach(p => {
-          const ll = p.marker.getLatLng();
-          const hora = p.horaBrasilia || '—';
-          html += `<tr><td>P${p.num}</td><td>${hora}</td><td>${p.mins} min</td><td>${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}</td><td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td></tr>`;
-        });
-        html += '</table>';
-      }
-    });
-
-    html += '</div></body></html>';
-
-    const blob = new Blob([html], {type:'text/html'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'trajeto_' + dataArq + '.html';
-    a.click();
-    URL.revokeObjectURL(url);
-
-    addLog('💾 Trajeto salvo com foto do mapa!', 'log-ok');
-
-  } catch (e) {
-    if (zoomControl) zoomControl.style.display = zoomDisplay || '';
-    if (attribution) attribution.style.display = attrDisplay || '';
-    console.error('Erro ao capturar mapa:', e);
-    addLog('❌ Erro ao capturar mapa: ' + e.message, 'log-err');
-    alert('Erro ao capturar o mapa. Veja o console para detalhes.');
-  }
+  }, 1000);
 };
 // ================================================================
 //  SIMULAR MODO FESTA
