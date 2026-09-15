@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Rastreador Veicular v2</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -1113,184 +1114,92 @@ window.desligarAlarme = function() {
 // ================================================================
 //  SALVAR MAPA
 // ================================================================
-window.salvarMapa = function() {
-  const data = new Date().toLocaleString('pt-BR');
-  const dataArq = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
+window.salvarMapa = async function() {
+  addLog('📸 Capturando mapa...', 'log-warn');
 
-  // ═══════════════════════════════════════════════════
-  //  1. COLETA DADOS
-  // ═══════════════════════════════════════════════════
-  const veiculosArr = Object.values(veiculos);
-  if (veiculosArr.length === 0) { alert('⚠️ Nenhum veículo para salvar!'); return; }
-
-  // ═══════════════════════════════════════════════════
-  //  2. CALCULA BOUNDS (min/max lat/lng)
-  // ═══════════════════════════════════════════════════
-  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
-  veiculosArr.forEach(v => {
-    v.trail.getLatLngs().forEach(p => {
-      if (p.lat < minLat) minLat = p.lat;
-      if (p.lat > maxLat) maxLat = p.lat;
-      if (p.lng < minLng) minLng = p.lng;
-      if (p.lng > maxLng) maxLng = p.lng;
-    });
-    v.pingos.forEach(p => {
-      const ll = p.marker.getLatLng();
-      if (ll.lat < minLat) minLat = ll.lat;
-      if (ll.lat > maxLat) maxLat = ll.lat;
-      if (ll.lng < minLng) minLng = ll.lng;
-      if (ll.lng > maxLng) maxLng = ll.lng;
-    });
-  });
-
-  if (minLat === Infinity) { alert('⚠️ Nenhum ponto para salvar!'); return; }
-
-  // Adiciona margem de 10%
-  const padLat = (maxLat - minLat) * 0.1 || 0.001;
-  const padLng = (maxLng - minLng) * 0.1 || 0.001;
-  minLat -= padLat; maxLat += padLat;
-  minLng -= padLng; maxLng += padLng;
-
-  // ═══════════════════════════════════════════════════
-  //  3. CRIA CANVAS E DESENHA O MAPA
-  // ═══════════════════════════════════════════════════
-  const W = 800, H = 600;
-  const canvas = document.createElement('canvas');
-  canvas.width = W; canvas.height = H;
-  const ctx = canvas.getContext('2d');
-
-  // Fundo escuro
-  ctx.fillStyle = '#0a1628';
-  ctx.fillRect(0, 0, W, H);
-
-  // Grid
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-  ctx.lineWidth = 1;
-  for (let i = 0; i <= 10; i++) {
-    const x = (W / 10) * i;
-    const y = (H / 10) * i;
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  // Garante que o mapa está centralizado em todos os veículos
+  const pts = Object.values(veiculos).filter(v => v.ultimaPos).map(v => v.ultimaPos);
+  if (pts.length > 0) {
+    if (pts.length === 1) map.setView(pts[0], 16);
+    else map.fitBounds(L.latLngBounds(pts), { padding: [40, 40] });
   }
 
-  // Função de conversão lat/lng → pixel
-  function toPixel(lat, lng) {
-    const x = ((lng - minLng) / (maxLng - minLng)) * W;
-    const y = H - ((lat - minLat) / (maxLat - minLat)) * H;
-    return { x, y };
+  // Aguarda o Leaflet redesenhar os tiles
+  await new Promise(r => setTimeout(r, 800));
+
+  const mapEl = document.getElementById('map');
+  if (!mapEl) { alert('⚠️ Mapa não encontrado!'); return; }
+
+  try {
+    // Captura o mapa como imagem
+    const canvas = await html2canvas(mapEl, {
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: '#111',
+      scale: 2,           // dobra a resolução
+      logging: false
+    });
+
+    const imgBase64 = canvas.toDataURL('image/png');
+
+    // ─── Monta o HTML do relatório ───
+    const data = new Date().toLocaleString('pt-BR');
+    const dataArq = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
+    const veiculosArr = Object.values(veiculos);
+
+    let html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Trajeto ${dataArq}</title>
+    <style>
+      body{font-family:system-ui;background:#111;color:#fff;margin:0;padding:16px;}
+      h2{color:#90caf9;}
+      .mapa{width:100%;max-width:900px;border-radius:12px;border:1px solid #333;display:block;margin:0 auto 16px;}
+      table{width:100%;border-collapse:collapse;margin-top:8px;}
+      th{background:#1565C0;color:#fff;padding:8px;text-align:left;font-size:13px;}
+      td{padding:6px 8px;border:1px solid #333;font-size:13px;}
+      tr:nth-child(even){background:#1a1a1a;}
+      .verde{color:#4caf50;font-weight:700;}
+      .verm{color:#ef5350;font-weight:700;}
+      a{color:#90caf9;}
+    </style></head><body>
+    <h2>🛡️ Rastreador — Trajeto salvo em ${data}</h2>
+    <img class="mapa" src="${imgBase64}" alt="Mapa do trajeto">
+    `;
+
+    veiculosArr.forEach(v => {
+      const pontos = v.trail.getLatLngs();
+      const status = v.bloqueado ? '<span class="verm">BLOQUEADO</span>' : '<span class="verde">LIBERADO</span>';
+      html += `<h3>🚗 ${v.nome} (${v.chipId}) — ${status}</h3>`;
+      html += `<p>📍 Pontos: ${pontos.length} | 🅿️ Paradas: ${v.pingos.length}</p>`;
+      if (v.pingos.length > 0) {
+        html += '<h4>🅿️ Paradas:</h4><table><tr><th>#</th><th>Duração</th><th>Localização</th><th>Google Maps</th></tr>';
+        v.pingos.forEach(p => {
+          const ll = p.marker.getLatLng();
+          html += `<tr><td>P${p.num}</td><td>${p.mins} min</td><td>${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}</td><td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td></tr>`;
+        });
+        html += '</table>';
+      }
+    });
+
+    html += '</body></html>';
+
+    // ─── Baixa o arquivo ───
+    const blob = new Blob([html], {type:'text/html'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'trajeto_' + dataArq + '.html';
+    a.click();
+    URL.revokeObjectURL(url);
+
+    addLog('💾 Trajeto salvo com foto do mapa!', 'log-ok');
+
+  } catch (e) {
+    console.error('Erro ao capturar mapa:', e);
+    addLog('❌ Erro ao capturar mapa: ' + e.message, 'log-err');
+    alert('Erro ao capturar o mapa. Veja o console para detalhes.');
   }
-
-  // Desenha cada veículo
-  veiculosArr.forEach(v => {
-    const pontos = v.trail.getLatLngs();
-    if (pontos.length < 2) return;
-
-    // Trajeto (linha azul)
-    ctx.strokeStyle = v.bloqueado ? '#c62828' : '#1565C0';
-    ctx.lineWidth = 4;
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    pontos.forEach((p, i) => {
-      const px = toPixel(p.lat, p.lng);
-      if (i === 0) ctx.moveTo(px.x, px.y);
-      else ctx.lineTo(px.x, px.y);
-    });
-    ctx.stroke();
-
-    // Marcador de início (verde)
-    const ini = toPixel(pontos[0].lat, pontos[0].lng);
-    ctx.fillStyle = '#4caf50';
-    ctx.beginPath(); ctx.arc(ini.x, ini.y, 8, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
-
-    // Marcador de fim (vermelho)
-    const fim = toPixel(pontos[pontos.length - 1].lat, pontos[pontos.length - 1].lng);
-    ctx.fillStyle = '#f44336';
-    ctx.beginPath(); ctx.arc(fim.x, fim.y, 8, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
-
-    // Pingos (paradas)
-    v.pingos.forEach(p => {
-      const ll = p.marker.getLatLng();
-      const px = toPixel(ll.lat, ll.lng);
-      // Pino laranja
-      ctx.fillStyle = '#FF6B00';
-      ctx.beginPath();
-      ctx.arc(px.x, px.y, 14, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
-      // Número
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 12px Arial';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('P' + p.num, px.x, px.y);
-      // Minutos abaixo
-      ctx.fillStyle = '#FF6B00';
-      ctx.font = 'bold 10px Arial';
-      ctx.fillText(p.mins + 'min', px.x, px.y + 22);
-    });
-  });
-
-  // Rótulo de coordenadas
-  ctx.fillStyle = 'rgba(255,255,255,0.5)';
-  ctx.font = '10px monospace';
-  ctx.textAlign = 'left';
-  ctx.fillText('Lat: ' + minLat.toFixed(4) + ' a ' + maxLat.toFixed(4), 10, H - 10);
-  ctx.fillText('Lng: ' + minLng.toFixed(4) + ' a ' + maxLng.toFixed(4), 10, H - 25);
-
-  // ═══════════════════════════════════════════════════
-  //  4. GERA HTML COM IMAGEM EMBUTIDA
-  // ═══════════════════════════════════════════════════
-  const imgBase64 = canvas.toDataURL('image/png');
-
-  let html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Trajeto ${dataArq}</title>
-  <style>
-    body{font-family:system-ui;background:#111;color:#fff;margin:0;padding:16px;}
-    h2{color:#90caf9;}
-    .mapa{width:100%;max-width:800px;border-radius:12px;border:1px solid #333;display:block;margin:0 auto 16px;}
-    table{width:100%;border-collapse:collapse;margin-top:8px;}
-    th{background:#1565C0;color:#fff;padding:8px;text-align:left;font-size:13px;}
-    td{padding:6px 8px;border:1px solid #333;font-size:13px;}
-    tr:nth-child(even){background:#1a1a1a;}
-    .verde{color:#4caf50;font-weight:700;}
-    .verm{color:#ef5350;font-weight:700;}
-    a{color:#90caf9;}
-  </style></head><body>
-  <h2>🛡️ Rastreador — Trajeto salvo em ${data}</h2>
-  <img class="mapa" src="${imgBase64}" alt="Mapa do trajeto">
-  `;
-
-  veiculosArr.forEach(v => {
-    const pontos = v.trail.getLatLngs();
-    const status = v.bloqueado ? '<span class="verm">BLOQUEADO</span>' : '<span class="verde">LIBERADO</span>';
-    html += `<h3>🚗 ${v.nome} (${v.chipId}) — ${status}</h3>`;
-    html += `<p>📍 Pontos: ${pontos.length} | 🅿️ Paradas: ${v.pingos.length}</p>`;
-    if (v.pingos.length > 0) {
-      html += '<h4>🅿️ Paradas:</h4><table><tr><th>#</th><th>Duração</th><th>Localização</th><th>Google Maps</th></tr>';
-      v.pingos.forEach((p, i) => {
-        const ll = p.marker.getLatLng();
-        html += `<tr><td>P${p.num}</td><td>${p.mins} min</td><td>${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}</td><td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td></tr>`;
-      });
-      html += '</table>';
-    }
-  });
-
-  html += '</body></html>';
-
-  const blob = new Blob([html], {type:'text/html'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'trajeto_' + dataArq + '.html';
-  a.click();
-  URL.revokeObjectURL(url);
-  addLog('💾 Trajeto salvo (imagem + relatório)!', 'log-ok');
 };
-
 // ================================================================
 //  SIMULAR MODO FESTA
 // ================================================================
