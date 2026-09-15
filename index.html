@@ -196,10 +196,10 @@
 const USUARIOS = { 'admin': '8912', 'cicrano': '0123', 'zerruela': '3412' };
 const BROKER_WSS = 'wss://5e7c95681b9f45068546a87087ed9e2c.s1.eu.hivemq.cloud/mqtt';
 const BROKER_PORT = 8884;
-const PARADA_VEL = 8.0;          // ← AUMENTADO para 8.0 km/h
-const PARADA_MIN_MS = 360000;    // 6 minutos
-const RAIO_PINGO_M = 70;         // Raio de 70 metros
-const RAIO_FESTA_M = 5.0;  // ← Raio real do Modo Festa (50 metros)
+const PARADA_VEL = 8.0;
+const PARADA_MIN_MS = 360000;
+const RAIO_PINGO_M = 70;
+const RAIO_FESTA_M = 5.0;  // ← 5 metros na bancada (mude para 50 em produção)
 
 let pinBuffer = '';
 let usuarioId = '';
@@ -221,11 +221,9 @@ let alarmeOsc = null;
 let alarmeGain = null;
 let alarmeInterval = null;
 
-// ⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️
-// ⬇️  NOVO: BANCO DE DADOS LOCAL (IndexedDB)                    ⬇️
-// ⬇️  Persistência do Modo Festa entre reinícios              ⬇️
-// ⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️
-
+// ================================================================
+//  BANCO DE DADOS LOCAL (IndexedDB)
+// ================================================================
 const DB_NAME = 'telematic_db';
 const DB_VERSION = 1;
 const STORE_NAME = 'config';
@@ -281,10 +279,6 @@ async function removerConfig(chave) {
     request.onerror = (event) => reject(event.target.error);
   });
 }
-
-// ⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️
-// ⬆️  FIM DO BANCO DE DADOS LOCAL                              ⬆️
-// ⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️
 
 // ================================================================
 //  LOGIN
@@ -349,7 +343,6 @@ window.iniciarApp = function() {
   tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
   window.conectarMQTT();
 
-  // ⬅️ NOVO: restaura o Modo Festa após o mapa estar pronto
   restaurarModoFesta();
 };
 
@@ -522,18 +515,13 @@ function atualizarVeiculoTopbar(chipId) {
 }
 
 // ================================================================
-//  PROCESSAR GPS - VERSÃO FINAL
+//  PROCESSAR GPS
 // ================================================================
 window.processarGPS = function(chipId, d) {
     const v = obterVeiculo(chipId);
     if (!v) return;
     
-    // ══════════════════════════════════════════════════════════════
-    //  FILTRO DE MÉDIA MÓVEL DA VELOCIDADE (10 leituras)
-    // ══════════════════════════════════════════════════════════════
-    
     if (!v.velBuffer) v.velBuffer = [];
-    
     if (d.spd !== undefined && d.spd <= 20) {
         v.velBuffer.push(d.spd);
         if (v.velBuffer.length > 10) v.velBuffer.shift();
@@ -573,17 +561,10 @@ window.processarGPS = function(chipId, d) {
     }
     v.trail.addLatLng(pos);
 
-    // ══════════════════════════════════════════════════════════════
-    //  LÓGICA DE PARADA COM MÉDIA DA DISTÂNCIA
-    // ══════════════════════════════════════════════════════════════
-    
     const agora = Date.now();
     const elTempo = document.getElementById('pTempoParada');
     
-    // ── VEÍCULO PARADO (média ≤ PARADA_VEL) ──────────────────
     if (v.vel <= PARADA_VEL) {
-        // ── VEÍCULO PARADO ──────────────────────────────────────
-        
         if (!v.paradaInicio) {
             v.paradaInicio = agora;
             v.paradaPos = pos;
@@ -591,12 +572,8 @@ window.processarGPS = function(chipId, d) {
         }
         
         const tempoParado = agora - v.paradaInicio;
-        const minutosTotais = Math.floor(tempoParado / 60000);
         
         if (tempoParado >= PARADA_MIN_MS) {
-            // ── JÁ PASSOU 6 MINUTOS ──────────────────────────────
-            
-            // Procura o pingo ativo (o mais recente que ainda está contando)
             let pingoAtivo = null;
             for (let i = v.pingos.length - 1; i >= 0; i--) {
                 if (v.pingos[i].tempoDentro) {
@@ -606,7 +583,6 @@ window.processarGPS = function(chipId, d) {
             }
             
             if (!pingoAtivo) {
-                // ── VERIFICA SE JÁ EXISTE UM PINGO PRÓXIMO ──────
                 let pingoProximo = null;
                 for (let p of v.pingos) {
                     if (p.marker) {
@@ -619,19 +595,14 @@ window.processarGPS = function(chipId, d) {
                 }
                 
                 if (pingoProximo) {
-                    // ── PINGO EXISTENTE: REATIVA A CONTAGEM ────
                     pingoProximo.tempoDentro = agora;
                     pingoProximo.mins = 0;
-                    pingoProximo.distBuffer = [];  // ← Limpa o buffer de distância
-                    
+                    pingoProximo.distBuffer = [];
                     const novoIcone = criarIconePingo(pingoProximo.num, 0);
                     pingoProximo.marker.setIcon(novoIcone);
-                    
-                    console.log('▶️ P' + pingoProximo.num + ' REATIVADO (veículo voltou ao raio)');
+                    console.log('▶️ P' + pingoProximo.num + ' REATIVADO');
                     addLog('▶️ P' + pingoProximo.num + ' reativado', 'log-warn');
-                    
                 } else {
-                    // ── CRIA UM NOVO PINGO ──────────────────────
                     v.contador = (v.contador || 0) + 1;
                     const icone = criarIconePingo(v.contador, 0);
                     const marker = L.marker(pos, { icon: icone, zIndexOffset: 100 }).addTo(map);
@@ -642,31 +613,26 @@ window.processarGPS = function(chipId, d) {
                         lat: pos.lat,
                         lng: pos.lng,
                         tempoDentro: agora,
-                        distBuffer: []  // ← Inicializa o buffer de distância
+                        distBuffer: []
                     });
                     v.paradaCirculo = marker;
-                    
                     console.log('🅿️ PINGO P' + v.contador + ' CRIADO');
                     addLog('🅿️ P' + v.contador + ' criado', 'log-warn');
                 }
             }
             
-            // ── ATUALIZA O CRONO 2 (se pingo ativo) ────────────
             if (pingoAtivo) {
                 const tempoDentro = agora - pingoAtivo.tempoDentro;
                 pingoAtivo.mins = Math.floor(tempoDentro / 60000);
                 const novoIcone = criarIconePingo(pingoAtivo.num, pingoAtivo.mins);
                 pingoAtivo.marker.setIcon(novoIcone);
-                
                 if (elTempo) {
                     elTempo.textContent = '⏱️ ' + pingoAtivo.mins + ' min';
                     elTempo.className = 'ativo';
                     elTempo.style.display = 'inline-block';
                 }
             }
-            
         } else {
-            // ── AINDA NÃO PASSOU 6 MINUTOS ──────────────────────
             if (elTempo) {
                 const segundos = Math.floor(tempoParado / 1000);
                 const minutos = Math.floor(segundos / 60);
@@ -676,13 +642,7 @@ window.processarGPS = function(chipId, d) {
                 elTempo.style.display = 'inline-block';
             }
         }
-        
     } else {
-        // ══════════════════════════════════════════════════════════
-        //  VEÍCULO EM MOVIMENTO - VERIFICA DISTÂNCIA MÉDIA
-        // ══════════════════════════════════════════════════════════
-        
-        // Procura o pingo ativo
         let pingoAtivo = null;
         for (let i = v.pingos.length - 1; i >= 0; i--) {
             if (v.pingos[i].tempoDentro) {
@@ -692,42 +652,24 @@ window.processarGPS = function(chipId, d) {
         }
         
         if (pingoAtivo) {
-            // ── CALCULA DISTÂNCIA INSTANTÂNEA ───────────────────
             const posPingo = L.latLng(pingoAtivo.lat, pingoAtivo.lng);
             const distanciaInstantanea = map.distance(posPingo, pos);
-            
-            // ── ADICIONA AO BUFFER (MÉDIA MÓVEL) ─────────────────
             if (!pingoAtivo.distBuffer) pingoAtivo.distBuffer = [];
             pingoAtivo.distBuffer.push(distanciaInstantanea);
             if (pingoAtivo.distBuffer.length > 5) pingoAtivo.distBuffer.shift();
-            
-            // ── CALCULA A MÉDIA ──────────────────────────────────
             const distanciaMedia = pingoAtivo.distBuffer.reduce((a, b) => a + b, 0) / pingoAtivo.distBuffer.length;
             
-            console.log('📏 P' + pingoAtivo.num + ' | Dist. inst: ' + distanciaInstantanea.toFixed(1) + 'm | Média(5): ' + distanciaMedia.toFixed(1) + 'm | Raio: ' + RAIO_PINGO_M + 'm');
-            
-            // ── VERIFICA SE A MÉDIA ULTRAPASSOU O RAIO ──────────
             if (distanciaMedia > RAIO_PINGO_M) {
-                // ── CONGELA O PINGO ──────────────────────────────
                 pingoAtivo.tempoDentro = null;
                 v.paradaCirculo = null;
-                
-                console.log('⏹️ P' + pingoAtivo.num + ' CONGELADO em ' + pingoAtivo.mins + 'min (média: ' + distanciaMedia.toFixed(1) + 'm)');
+                console.log('⏹️ P' + pingoAtivo.num + ' CONGELADO');
                 addLog('⏹️ P' + pingoAtivo.num + ' congelado em ' + pingoAtivo.mins + 'min', 'log-ok');
-                
-                if (elTempo) {
-                    elTempo.className = '';
-                    elTempo.style.display = 'none';
-                }
+                if (elTempo) { elTempo.className = ''; elTempo.style.display = 'none'; }
             } else {
-                // ── DENTRO DO RAIO: CONTINUA CONTANDO ───────────
                 const tempoDentro = agora - pingoAtivo.tempoDentro;
                 pingoAtivo.mins = Math.floor(tempoDentro / 60000);
                 const novoIcone = criarIconePingo(pingoAtivo.num, pingoAtivo.mins);
                 pingoAtivo.marker.setIcon(novoIcone);
-                
-                console.log('✅ P' + pingoAtivo.num + ' DENTRO do raio - continuando (' + pingoAtivo.mins + 'min)');
-                
                 if (elTempo) {
                     elTempo.textContent = '⏱️ ' + pingoAtivo.mins + ' min';
                     elTempo.className = 'ativo';
@@ -736,7 +678,6 @@ window.processarGPS = function(chipId, d) {
             }
         }
         
-        // Reseta a parada (mas NÃO o pingo ativo)
         v.paradaInicio = null;
         v.paradaPos = null;
     }
@@ -748,7 +689,7 @@ window.processarGPS = function(chipId, d) {
     }
 };
 
- // ================================================================
+// ================================================================
 //  PROCESSAR STATUS
 // ================================================================
 window.processarStatus = function(chipId, d) {
@@ -867,17 +808,11 @@ window.toggleModoFesta = function() {
   if (!modoFestaAtivo) {
     window.cmd(ativoId, 'ATIVAR_MODO_FESTA');
     const v = veiculos[ativoId];
-    if (v && v.ultimaPos) circuloFesta = L.circle(v.ultimaPos, { 
-  color: '#f9a825', 
-  fillColor: '#f9a825', 
-  fillOpacity: 0.15, 
-  radius: RAIO_FESTA_M
-}).addTo(map);
+    if (v && v.ultimaPos) circuloFesta = L.circle(v.ultimaPos, { color: '#f9a825', fillColor: '#f9a825', fillOpacity: 0.15, radius: RAIO_FESTA_M }).addTo(map);
     document.getElementById('btnFesta').classList.add('ativo');
     document.getElementById('btnFesta').textContent = '🛡️Ativo';
     modoFestaAtivo = true;
 
-    // ⬅️ NOVO: salva no IndexedDB
     salvarConfig('modoFestaAtivo', true);
     salvarConfig('modoFestaChipId', ativoId);
     console.log('💾 Modo Festa salvo no banco (chipId: ' + ativoId + ')');
@@ -889,7 +824,6 @@ window.toggleModoFesta = function() {
     document.getElementById('btnFesta').textContent = '🛡️Festa';
     modoFestaAtivo = false;
 
-    // ⬅️ NOVO: remove do IndexedDB
     removerConfig('modoFestaAtivo');
     removerConfig('modoFestaChipId');
     console.log('🗑️ Modo Festa removido do banco');
@@ -903,7 +837,6 @@ window.ativarAlertaMovimento = function(chipId, d) {
     document.getElementById('btnFesta').textContent = '🛡️Festa';
     modoFestaAtivo = false;
 
-    // ⬅️ NOVO: remove do IndexedDB (o alerta cancelou o modo festa)
     removerConfig('modoFestaAtivo');
     removerConfig('modoFestaChipId');
     console.log('🗑️ Modo Festa removido do banco (alerta de movimento)');
@@ -911,16 +844,15 @@ window.ativarAlertaMovimento = function(chipId, d) {
     window.tocarAlarmeNavegador();
     setBadge('pStatus', '🚨 FURTO', 'badge-err');
     
-    // ✅ SUBSTITUÍDO (sem popup):
     addLog('🔊 Clique no ⏹ para parar a sirene', 'log-warn');
     
     map.setView(pos, 15);
     addLog('🚨 ALERTA DE FURTO DETECTADO!', 'log-err');
 };
 
-// ⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️
-// ⬇️  NOVO: RESTAURAR MODO FESTA AO INICIAR                    ⬇️
-// ⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️
+// ================================================================
+//  RESTAURAR MODO FESTA AO INICIAR
+// ================================================================
 async function restaurarModoFesta() {
   try {
     const ativo = await lerConfig('modoFestaAtivo', false);
@@ -929,26 +861,23 @@ async function restaurarModoFesta() {
     if (ativo && chipIdSalvo) {
       console.log('🔄 Modo Festa estava ativo. Restaurando...');
 
-      // Aguarda o veículo ser criado (pode levar alguns segundos até o MQTT conectar)
       let tentativas = 0;
       const intervalo = setInterval(() => {
         tentativas++;
         const v = veiculos[chipIdSalvo];
 
         if (v && v.ultimaPos) {
-          // Veículo já tem posição: restaura o círculo
           clearInterval(intervalo);
           ativoId = chipIdSalvo;
           modoFestaAtivo = true;
 
           if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
-          circuloFesta = L.circle(v.ultimaPos, { color: '#f9a825', fillColor: '#f9a825', fillOpacity: 0.15, radius: 0.1 }).addTo(map);
+          circuloFesta = L.circle(v.ultimaPos, { color: '#f9a825', fillColor: '#f9a825', fillOpacity: 0.15, radius: RAIO_FESTA_M }).addTo(map);
 
           document.getElementById('btnFesta').classList.add('ativo');
           document.getElementById('btnFesta').textContent = '🛡️Ativo';
           document.getElementById('panelNome').textContent = '🚗 ' + v.nome + ' (' + chipIdSalvo + ')';
 
-          // Seleciona o veículo na lista
           document.querySelectorAll('.veiculo-btn').forEach(b => b.classList.remove('ativo'));
           const btn = document.getElementById('vbtn_' + chipIdSalvo);
           if (btn) btn.classList.add('ativo');
@@ -957,7 +886,6 @@ async function restaurarModoFesta() {
           console.log('✅ Modo Festa restaurado com sucesso para ' + chipIdSalvo);
 
         } else if (tentativas > 60) {
-          // 60 tentativas × 500ms = 30s sem o veículo aparecer
           clearInterval(intervalo);
           console.warn('⚠️ Veículo ' + chipIdSalvo + ' não apareceu. Modo Festa não restaurado.');
           addLog('⚠️ Modo Festa não pôde ser restaurado', 'log-warn');
@@ -972,9 +900,58 @@ async function restaurarModoFesta() {
     console.error('Erro ao restaurar Modo Festa:', erro);
   }
 }
-// ⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️
-// ⬆️  FIM DA RESTAURAÇÃO                                       ⬆️
-// ⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️⬆️
+
+// ================================================================
+//  REFRESH AUTOMÁTICO DO MODO FESTA APÓS RECONEXÃO
+// ================================================================
+window.addEventListener('online', async () => {
+    console.log('🌐 Conexão de rede restabelecida.');
+
+    const estavaAtivo = await lerConfig('modoFestaAtivo', false);
+    const chipIdSalvo = await lerConfig('modoFestaChipId', null);
+
+    if (estavaAtivo && chipIdSalvo) {
+        console.log('🔄 Modo Festa estava ativo. Forçando refresh...');
+        addLog('🌐 Rede voltou. Reativando Modo Festa...', 'log-warn');
+
+        if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
+        document.getElementById('btnFesta').classList.remove('ativo');
+        document.getElementById('btnFesta').textContent = '🛡️Festa';
+        modoFestaAtivo = false;
+
+        if (mqttClient && mqttClient.connected) {
+            window.cmd(chipIdSalvo, 'DESATIVAR_MODO_FESTA');
+            console.log('📤 Comando DESATIVAR enviado ao veículo.');
+        }
+
+        setTimeout(() => {
+            if (mqttClient && mqttClient.connected) {
+                window.cmd(chipIdSalvo, 'ATIVAR_MODO_FESTA');
+                console.log('📤 Comando ATIVAR enviado ao veículo.');
+
+                const v = veiculos[chipIdSalvo];
+                if (v && v.ultimaPos) {
+                    circuloFesta = L.circle(v.ultimaPos, {
+                        color: '#f9a825',
+                        fillColor: '#f9a825',
+                        fillOpacity: 0.15,
+                        radius: RAIO_FESTA_M
+                    }).addTo(map);
+                }
+
+                document.getElementById('btnFesta').classList.add('ativo');
+                document.getElementById('btnFesta').textContent = '🛡️Ativo';
+                modoFestaAtivo = true;
+
+                addLog('🔄 Modo Festa reativado automaticamente', 'log-ok');
+                console.log('✅ Modo Festa reativado com sucesso.');
+            } else {
+                console.warn('⚠️ MQTT não conectado, não foi possível reativar o Modo Festa.');
+                addLog('⚠️ Falha ao reativar Modo Festa (MQTT offline)', 'log-err');
+            }
+        }, 1500);
+    }
+});
 
 // ================================================================
 //  PÂNICO
@@ -992,6 +969,10 @@ window.ativarPanico = function(chipId, origem = 'mqtt') {
     if (segsRestantes > 0) timer.textContent = '(' + segsRestantes + 's)';
     else { clearInterval(panicoTimer); panicoCancelavel = false; timer.textContent = '(Confirmado)'; }
   }, 1000);
+
+  // Toca a sirene imediatamente ao ativar o pânico
+  window.tocarAlarmeNavegador();
+  addLog('🚨 PÂNICO ATIVADO (origem: ' + origem + ')', 'log-err');
 };
 
 window.cancelarPanico = function() {
@@ -1001,6 +982,7 @@ window.cancelarPanico = function() {
   document.getElementById('panicWidget').style.display = 'none';
   document.getElementById('panicBanner').style.display = 'none';
   if (panicoChipId) window.cmd(panicoChipId, 'PANICO_CANCELADO');
+  window.desligarAlarme();
 };
 
 window.confirmarTesteD8 = function() { document.getElementById('modalTesteD8').style.display = 'flex'; };
@@ -1012,12 +994,9 @@ window.executarTesteD8 = function() {
   window.ativarPanico(ativoId, 'manual');
 };
 
-// ═══════════════════════════════════════════════════
-//  SIRENE FRANCESA - VERSÃO DEFINITIVA
-//  880Hz ↔ 440Hz (alternância seca com setInterval)
-//  Loop infinito + botão ⏹ para parar
-// ═══════════════════════════════════════════════════
-
+// ================================================================
+//  SIRENE FRANCESA
+// ================================================================
 window.__sirene = window.__sirene || {
     ativa: false,
     interval: null,
@@ -1119,6 +1098,7 @@ window.desligarAlarme = function() {
     
     console.log('✅ Sirene desligada');
 };
+
 // ================================================================
 //  SALVAR MAPA
 // ================================================================
@@ -1143,7 +1123,7 @@ window.salvarMapa = function() {
     }
   });
   const trailData = Object.values(veiculos).map(v => ({ nome: v.nome, chipId: v.chipId, pontos: v.trail.getLatLngs().map(p => [p.lat, p.lng]), pingos: v.pingos.map(p => ({ ll: p.marker.getLatLng(), mins: p.mins })), bloqueado: v.bloqueado }));
-  resumo += `</div><script>const dados = ${JSON.stringify(trailData)};const m = L.map('mapaExport');L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap © CartoDB'}).addTo(m);const bounds = [];dados.forEach(v => {if (v.pontos.length > 0) {L.polyline(v.pontos, {color:'#1565C0',weight:3,opacity:0.8}).addTo(m);v.pontos.forEach(p => bounds.push(p));}v.pingos.forEach(p => {const svg = \`<svg xmlns="http://www.w3.org/2000/svg" width="44" height="58" viewBox="0 0 60 80"><path d="M30 0 C13 0 0 13 0 30 C0 47 30 80 30 80 C30 80 60 47 60 30 C60 13 47 0 30 0Z" fill="#FF6B00" stroke="#CC5500" stroke-width="1.5"/><circle cx="30" cy="28" r="17" fill="white" opacity="0.95"/><text x="30" y="24" text-anchor="middle" font-family="system-ui" font-size="9" font-weight="700" fill="#CC5500">🅿️</text><text x="30" y="36" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="700" fill="#CC5500">\${p.mins}min</text></svg>\`;L.marker([p.ll.lat, p.ll.lng], {icon: L.divIcon({className:'',html:svg,iconSize:[44,58],iconAnchor:[22,58]})}).addTo(m);bounds.push([p.ll.lat, p.ll.lng]);});});if (bounds.length > 0) m.fitBounds(bounds, {padding:[30,30]});<\/script></body></html>`;
+  resumo += `</div><script>const dados = ${JSON.stringify(trailData)};const m = L.map('mapaExport');L.tileLayer('https://tiles.openfreemap.org/styles/positron/{z}/{x}/{y}.png',{attribution:'© OpenFreeMap © OpenMapTiles © OpenStreetMap contributors'}).addTo(m);const bounds = [];dados.forEach(v => {if (v.pontos.length > 0) {L.polyline(v.pontos, {color:'#1565C0',weight:3,opacity:0.8}).addTo(m);v.pontos.forEach(p => bounds.push(p));}v.pingos.forEach(p => {const svg = \`<svg xmlns="http://www.w3.org/2000/svg" width="44" height="58" viewBox="0 0 60 80"><path d="M30 0 C13 0 0 13 0 30 C0 47 30 80 30 80 C30 80 60 47 60 30 C60 13 47 0 30 0Z" fill="#FF6B00" stroke="#CC5500" stroke-width="1.5"/><circle cx="30" cy="28" r="17" fill="white" opacity="0.95"/><text x="30" y="24" text-anchor="middle" font-family="system-ui" font-size="9" font-weight="700" fill="#CC5500">🅿️</text><text x="30" y="36" text-anchor="middle" font-family="system-ui" font-size="10" font-weight="700" fill="#CC5500">\${p.mins}min</text></svg>\`;L.marker([p.ll.lat, p.ll.lng], {icon: L.divIcon({className:'',html:svg,iconSize:[44,58],iconAnchor:[22,58]})}).addTo(m);bounds.push([p.ll.lat, p.ll.lng]);});});if (bounds.length > 0) m.fitBounds(bounds, {padding:[30,30]});<\/script></body></html>`;
   const blob = new Blob([resumo], {type:'text/html'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1162,7 +1142,7 @@ window.simularModoFesta = function() {
   const v = window.veiculos[window.ativoId];
   if (!v || !v.ultimaPos) { alert('⚠️ Veículo sem posição!'); return; }
   if (window.circuloFesta) { window.circuloFesta.remove(); window.circuloFesta = null; }
-  window.circuloFesta = L.circle(v.ultimaPos, { color: '#f9a825', fillColor: '#f9a825', fillOpacity: 0.15, radius: 50 }).addTo(window.map);
+  window.circuloFesta = L.circle(v.ultimaPos, { color: '#f9a825', fillColor: '#f9a825', fillOpacity: 0.15, radius: RAIO_FESTA_M }).addTo(window.map);
   document.getElementById('btnFesta').classList.add('ativo');
   document.getElementById('btnFesta').textContent = '🛡️ Ativo';
   window.modoFestaAtivo = true;
@@ -1187,7 +1167,10 @@ console.log('🚀 Rastreador Veicular v2');
 console.log('✅ PARADA_VEL =', PARADA_VEL, 'km/h');
 console.log('✅ PARADA_MIN_MS =', PARADA_MIN_MS/60000, 'min');
 console.log('✅ RAIO_PINGO_M =', RAIO_PINGO_M, 'm');
+console.log('✅ RAIO_FESTA_M =', RAIO_FESTA_M, 'm');
 console.log('✅ IndexedDB: persistência do Modo Festa ativa');
+console.log('✅ Refresh automático do Modo Festa após reconexão');
+console.log('✅ Pânico via D2: aguardando MQTT {"motivo":"panico"}');
 </script>
 </body>
 </html>
