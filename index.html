@@ -616,6 +616,12 @@ window.processarGPS = function(chipId, d) {
         v.marker.setLatLng(pos);
         v.marker.setIcon(mkIcon(cor));
     }
+ // Dentro do processarGPS, antes de v.trail.addLatLng(pos):
+const DIST_MINIMA_TRAIL = 5; // metros
+if (!v.ultimoPontoTrail || v.ultimaPos.distanceTo(pos) > DIST_MINIMA_TRAIL) {
+  v.trail.addLatLng(pos);
+  v.ultimoPontoTrail = pos;
+}
     v.trail.addLatLng(pos);
 
     const agora = Date.now();
