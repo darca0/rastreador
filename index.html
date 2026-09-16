@@ -578,10 +578,11 @@ window.processarGPS = function(chipId, d) {
     const v = obterVeiculo(chipId);
     if (!v) return;
     
+    // ── BUFFER DA VELOCIDADE (5 leituras) ──
     if (!v.velBuffer) v.velBuffer = [];
     if (d.spd !== undefined && d.spd <= 20) {
         v.velBuffer.push(d.spd);
-        if (v.velBuffer.length > 10) v.velBuffer.shift();
+        if (v.velBuffer.length > 5) v.velBuffer.shift();
     }
     
     let velMedia = 0;
@@ -616,35 +617,80 @@ window.processarGPS = function(chipId, d) {
         v.marker.setLatLng(pos);
         v.marker.setIcon(mkIcon(cor));
     }
-// Dentro do processarGPS, ANTES de v.trail.addLatLng(pos):
-const emMovimento = v.vel > PARADA_VEL;
-const temPingoAtivo = v.pingos.some(p => p.tempoDentro);
 
-if (emMovimento || !temPingoAtivo) {
-  v.trail.addLatLng(pos);
-}
+    // ── FILTRO DA LINHA AZUL ──
+    const emMovimento = v.vel > PARADA_VEL;
+    const temPingoAtivo = v.pingos.some(p => p.tempoDentro);
+    if (emMovimento || !temPingoAtivo) {
+        v.trail.addLatLng(pos);
+    }
+
     const agora = Date.now();
     const elTempo = document.getElementById('pTempoParada');
-    
-    if (v.vel <= PARADA_VEL) {
-        if (!v.paradaInicio) {
-            v.paradaInicio = agora;
-            v.paradaPos = pos;
-            console.log('▶️ Parada iniciada');
+
+    // ══════════════════════════════════════════════════════════════
+    //  LÓGICA DO PINGO
+    // ══════════════════════════════════════════════════════════════
+
+    // 1. Procura o pingo ativo
+    let pingoAtivo = null;
+    for (let i = v.pingos.length - 1; i >= 0; i--) {
+        if (v.pingos[i].tempoDentro) {
+            pingoAtivo = v.pingos[i];
+            break;
         }
+    }
+
+    if (pingoAtivo) {
+        // ── TEM PINGO ATIVO: verificar se continua contando ──
+        const posPingo = L.latLng(pingoAtivo.lat, pingoAtivo.lng);
+        const distanciaInstantanea = map.distance(posPingo, pos);
         
-        const tempoParado = agora - v.paradaInicio;
-        
-        if (tempoParado >= PARADA_MIN_MS) {
-            let pingoAtivo = null;
-            for (let i = v.pingos.length - 1; i >= 0; i--) {
-                if (v.pingos[i].tempoDentro) {
-                    pingoAtivo = v.pingos[i];
-                    break;
-                }
+        // ── BUFFER DA DISTÂNCIA (10 leituras) ──
+        if (!pingoAtivo.distBuffer) pingoAtivo.distBuffer = [];
+        pingoAtivo.distBuffer.push(distanciaInstantanea);
+        if (pingoAtivo.distBuffer.length > 10) pingoAtivo.distBuffer.shift();
+        const distanciaMedia = pingoAtivo.distBuffer.reduce((a, b) => a + b, 0) / pingoAtivo.distBuffer.length;
+
+        // Duas condições para CONGELAR
+        const velocidadeAlta = v.vel > PARADA_VEL;
+        const distante = distanciaMedia > RAIO_PINGO_M;
+
+        if (velocidadeAlta && distante) {
+            // ── CONGELA O PINGO ──
+            pingoAtivo.tempoDentro = null;
+            v.paradaCirculo = null;
+            console.log('⏹️ P' + pingoAtivo.num + ' CONGELADO em ' + pingoAtivo.mins + 'min');
+            addLog('⏹️ P' + pingoAtivo.num + ' congelado em ' + pingoAtivo.mins + 'min', 'log-ok');
+            if (elTempo) { elTempo.className = ''; elTempo.style.display = 'none'; }
+            v.paradaInicio = null;
+            v.paradaPos = null;
+        } else {
+            // ── CONTINUA CONTANDO (com os 6 min iniciais) ──
+            const tempoDentro = agora - pingoAtivo.tempoDentro;
+            pingoAtivo.mins = 6 + Math.floor(tempoDentro / 60000);
+            const novoIcone = criarIconePingo(pingoAtivo.num, pingoAtivo.mins);
+            pingoAtivo.marker.setIcon(novoIcone);
+            if (elTempo) {
+                elTempo.textContent = '⏱️ ' + pingoAtivo.mins + ' min';
+                elTempo.className = 'ativo';
+                elTempo.style.display = 'inline-block';
             }
-            
-            if (!pingoAtivo) {
+        }
+    } else {
+        // ── NÃO TEM PINGO ATIVO: verificar se precisa criar ──
+        if (v.vel <= PARADA_VEL) {
+            if (!v.paradaInicio) {
+                v.paradaInicio = agora;
+                v.paradaPos = pos;
+                console.log('▶️ Parada iniciada');
+            }
+
+            const tempoParado = agora - v.paradaInicio;
+
+            if (tempoParado >= PARADA_MIN_MS) {
+                // ── JÁ PASSOU 6 MINUTOS: criar ou reativar pingo ──
+                
                 let pingoProximo = null;
                 for (let p of v.pingos) {
                     if (p.marker) {
@@ -655,26 +701,28 @@ if (emMovimento || !temPingoAtivo) {
                         }
                     }
                 }
-                
+
                 if (pingoProximo) {
+                    // ── REATIVA PINGO EXISTENTE ──
                     pingoProximo.tempoDentro = agora;
-                    pingoProximo.mins = 0;
+                    pingoProximo.mins = 6;
                     pingoProximo.distBuffer = [];
-                    const novoIcone = criarIconePingo(pingoProximo.num, 0);
+                    const novoIcone = criarIconePingo(pingoProximo.num, 6);
                     pingoProximo.marker.setIcon(novoIcone);
                     console.log('▶️ P' + pingoProximo.num + ' REATIVADO');
                     addLog('▶️ P' + pingoProximo.num + ' reativado', 'log-warn');
                 } else {
+                    // ── CRIA NOVO PINGO ──
                     v.contador = (v.contador || 0) + 1;
                     const numPingo = v.contador;
                     gerarIconePingo(numPingo).then(png => {
                         if (png) iconesPNG.pingos[numPingo] = png;
-                        const icone = criarIconePingo(numPingo, 0);
+                        const icone = criarIconePingo(numPingo, 6);
                         const marker = L.marker(pos, { icon: icone, zIndexOffset: 100 }).addTo(map);
                         v.pingos.push({
                             marker: marker,
                             num: numPingo,
-                            mins: 0,
+                            mins: 6,
                             lat: pos.lat,
                             lng: pos.lng,
                             tempoDentro: agora,
@@ -686,67 +734,22 @@ if (emMovimento || !temPingoAtivo) {
                         addLog('🅿️ P' + numPingo + ' criado', 'log-warn');
                     });
                 }
-            }
-            
-            if (pingoAtivo) {
-                const tempoDentro = agora - pingoAtivo.tempoDentro;
-                pingoAtivo.mins = Math.floor(tempoDentro / 60000);
-                const novoIcone = criarIconePingo(pingoAtivo.num, pingoAtivo.mins);
-                pingoAtivo.marker.setIcon(novoIcone);
+            } else {
+                // ── AINDA NÃO PASSOU 6 MINUTOS ──
                 if (elTempo) {
-                    elTempo.textContent = '⏱️ ' + pingoAtivo.mins + ' min';
+                    const segundos = Math.floor(tempoParado / 1000);
+                    const minutos = Math.floor(segundos / 60);
+                    const segs = segundos % 60;
+                    elTempo.textContent = '⏱️ ' + String(minutos).padStart(2, '0') + ':' + String(segs).padStart(2, '0');
                     elTempo.className = 'ativo';
                     elTempo.style.display = 'inline-block';
                 }
             }
         } else {
-            if (elTempo) {
-                const segundos = Math.floor(tempoParado / 1000);
-                const minutos = Math.floor(segundos / 60);
-                const segs = segundos % 60;
-                elTempo.textContent = '⏱️ ' + String(minutos).padStart(2, '0') + ':' + String(segs).padStart(2, '0');
-                elTempo.className = 'ativo';
-                elTempo.style.display = 'inline-block';
-            }
+            // Veículo em movimento: só reseta o cronômetro 1
+            v.paradaInicio = null;
+            v.paradaPos = null;
         }
-    } else {
-        let pingoAtivo = null;
-        for (let i = v.pingos.length - 1; i >= 0; i--) {
-            if (v.pingos[i].tempoDentro) {
-                pingoAtivo = v.pingos[i];
-                break;
-            }
-        }
-        
-        if (pingoAtivo) {
-            const posPingo = L.latLng(pingoAtivo.lat, pingoAtivo.lng);
-            const distanciaInstantanea = map.distance(posPingo, pos);
-            if (!pingoAtivo.distBuffer) pingoAtivo.distBuffer = [];
-            pingoAtivo.distBuffer.push(distanciaInstantanea);
-            if (pingoAtivo.distBuffer.length > 5) pingoAtivo.distBuffer.shift();
-            const distanciaMedia = pingoAtivo.distBuffer.reduce((a, b) => a + b, 0) / pingoAtivo.distBuffer.length;
-            
-            if (distanciaMedia > RAIO_PINGO_M) {
-                pingoAtivo.tempoDentro = null;
-                v.paradaCirculo = null;
-                console.log('⏹️ P' + pingoAtivo.num + ' CONGELADO');
-                addLog('⏹️ P' + pingoAtivo.num + ' congelado em ' + pingoAtivo.mins + 'min', 'log-ok');
-                if (elTempo) { elTempo.className = ''; elTempo.style.display = 'none'; }
-            } else {
-                const tempoDentro = agora - pingoAtivo.tempoDentro;
-                pingoAtivo.mins = Math.floor(tempoDentro / 60000);
-                const novoIcone = criarIconePingo(pingoAtivo.num, pingoAtivo.mins);
-                pingoAtivo.marker.setIcon(novoIcone);
-                if (elTempo) {
-                    elTempo.textContent = '⏱️ ' + pingoAtivo.mins + ' min';
-                    elTempo.className = 'ativo';
-                    elTempo.style.display = 'inline-block';
-                }
-            }
-        }
-        
-        v.paradaInicio = null;
-        v.paradaPos = null;
     }
 
     atualizarBotaoLista(chipId);
