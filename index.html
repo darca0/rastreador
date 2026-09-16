@@ -620,7 +620,7 @@ window.processarGPS = function(chipId, d) {
 
     // ── FILTRO DA LINHA AZUL ──
     const emMovimento = v.vel > PARADA_VEL;
-    const temPingoAtivo = v.pingos.some(p => p.tempoDentro);
+    const temPingoAtivo = v.pingos.some(p => p.tempoDentro !== null && p.tempoDentro !== undefined);
     if (emMovimento || !temPingoAtivo) {
         v.trail.addLatLng(pos);
     }
@@ -629,67 +629,87 @@ window.processarGPS = function(chipId, d) {
     const elTempo = document.getElementById('pTempoParada');
 
     // ══════════════════════════════════════════════════════════════
-    //  LÓGICA DO PINGO
+    //  LÓGICA DO PINGO - DOIS CRONÔMETROS
+    //  Cronômetro 1: v.paradaInicio → conta 6 min para criar o pingo
+    //  Cronômetro 2: pingo.tempoDentro → conta o tempo de permanência
     // ══════════════════════════════════════════════════════════════
 
     // 1. Procura o pingo ativo
     let pingoAtivo = null;
     for (let i = v.pingos.length - 1; i >= 0; i--) {
-        if (v.pingos[i].tempoDentro) {
+        if (v.pingos[i].tempoDentro !== null && v.pingos[i].tempoDentro !== undefined) {
             pingoAtivo = v.pingos[i];
             break;
         }
     }
 
     if (pingoAtivo) {
-        // ── TEM PINGO ATIVO: verificar se continua contando ──
+        // ══════════════════════════════════════════════
+        //  TEM PINGO ATIVO → CRONÔMETRO 2 ESTÁ RODANDO
+        // ══════════════════════════════════════════════
+        
+        // ── CRONÔMETRO 2: tempo desde a criação do pingo ──
+        const tempoCrono2 = agora - pingoAtivo.tempoDentro;
+        const minsCrono2 = Math.floor(tempoCrono2 / 60000);
+        
+        // ── TEMPO TOTAL = 6 (crono 1) + tempo crono 2 ──
+        pingoAtivo.mins = 6 + minsCrono2;
+        
+        // Atualiza o ícone
+        const novoIcone = criarIconePingo(pingoAtivo.num, pingoAtivo.mins);
+        pingoAtivo.marker.setIcon(novoIcone);
+        
+        // Atualiza o painel
+        if (elTempo) {
+            elTempo.textContent = '⏱️ ' + pingoAtivo.mins + ' min';
+            elTempo.className = 'ativo';
+            elTempo.style.display = 'inline-block';
+        }
+        
+        // ── VERIFICA SE DEVE CONGELAR ──
         const posPingo = L.latLng(pingoAtivo.lat, pingoAtivo.lng);
         const distanciaInstantanea = map.distance(posPingo, pos);
         
-        // ── BUFFER DA DISTÂNCIA (10 leituras) ──
+        // Buffer 10 para distância
         if (!pingoAtivo.distBuffer) pingoAtivo.distBuffer = [];
         pingoAtivo.distBuffer.push(distanciaInstantanea);
         if (pingoAtivo.distBuffer.length > 10) pingoAtivo.distBuffer.shift();
         const distanciaMedia = pingoAtivo.distBuffer.reduce((a, b) => a + b, 0) / pingoAtivo.distBuffer.length;
-
-        // Duas condições para CONGELAR
+        
         const velocidadeAlta = v.vel > PARADA_VEL;
         const distante = distanciaMedia > RAIO_PINGO_M;
-
+        
         if (velocidadeAlta && distante) {
-            // ── CONGELA O PINGO ──
+            // ── CONGELA O PINGO (salva o tempo total) ──
             pingoAtivo.tempoDentro = null;
             v.paradaCirculo = null;
             console.log('⏹️ P' + pingoAtivo.num + ' CONGELADO em ' + pingoAtivo.mins + 'min');
             addLog('⏹️ P' + pingoAtivo.num + ' congelado em ' + pingoAtivo.mins + 'min', 'log-ok');
             if (elTempo) { elTempo.className = ''; elTempo.style.display = 'none'; }
+            
+            // Reseta o cronômetro 1 (o veículo saiu de verdade)
             v.paradaInicio = null;
             v.paradaPos = null;
-        } else {
-            // ── CONTINUA CONTANDO (com os 6 min iniciais) ──
-            const tempoDentro = agora - pingoAtivo.tempoDentro;
-            pingoAtivo.mins = 6 + Math.floor(tempoDentro / 60000);
-            const novoIcone = criarIconePingo(pingoAtivo.num, pingoAtivo.mins);
-            pingoAtivo.marker.setIcon(novoIcone);
-            if (elTempo) {
-                elTempo.textContent = '⏱️ ' + pingoAtivo.mins + ' min';
-                elTempo.className = 'ativo';
-                elTempo.style.display = 'inline-block';
-            }
         }
     } else {
-        // ── NÃO TEM PINGO ATIVO: verificar se precisa criar ──
+        // ══════════════════════════════════════════════
+        //  NÃO TEM PINGO ATIVO → CRONÔMETRO 1 ESTÁ RODANDO
+        // ══════════════════════════════════════════════
+        
         if (v.vel <= PARADA_VEL) {
+            // ── CRONÔMETRO 1: conta 6 min para criar o pingo ──
             if (!v.paradaInicio) {
                 v.paradaInicio = agora;
                 v.paradaPos = pos;
-                console.log('▶️ Parada iniciada');
+                console.log('▶️ Cronômetro 1 iniciado');
             }
 
             const tempoParado = agora - v.paradaInicio;
 
             if (tempoParado >= PARADA_MIN_MS) {
-                // ── JÁ PASSOU 6 MINUTOS: criar ou reativar pingo ──
+                // ── CRONÔMETRO 1 COMPLETOU 6 MIN ──
+                // Agora cria (ou reativa) o pingo
+                // O cronômetro 2 vai começar a rodar a partir de agora
                 
                 let pingoProximo = null;
                 for (let p of v.pingos) {
@@ -704,12 +724,12 @@ window.processarGPS = function(chipId, d) {
 
                 if (pingoProximo) {
                     // ── REATIVA PINGO EXISTENTE ──
-                    pingoProximo.tempoDentro = agora;
+                    pingoProximo.tempoDentro = agora;   // ← cronômetro 2 começa aqui
                     pingoProximo.mins = 6;
                     pingoProximo.distBuffer = [];
                     const novoIcone = criarIconePingo(pingoProximo.num, 6);
                     pingoProximo.marker.setIcon(novoIcone);
-                    console.log('▶️ P' + pingoProximo.num + ' REATIVADO');
+                    console.log('▶️ P' + pingoProximo.num + ' REATIVADO (crono 2 iniciado)');
                     addLog('▶️ P' + pingoProximo.num + ' reativado', 'log-warn');
                 } else {
                     // ── CRIA NOVO PINGO ──
@@ -725,17 +745,17 @@ window.processarGPS = function(chipId, d) {
                             mins: 6,
                             lat: pos.lat,
                             lng: pos.lng,
-                            tempoDentro: agora,
+                            tempoDentro: agora,   // ← cronômetro 2 começa aqui
                             horaBrasilia: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
                             distBuffer: []
                         });
                         v.paradaCirculo = marker;
-                        console.log('🅿️ PINGO P' + numPingo + ' CRIADO');
+                        console.log('🅿️ PINGO P' + numPingo + ' CRIADO (crono 2 iniciado)');
                         addLog('🅿️ P' + numPingo + ' criado', 'log-warn');
                     });
                 }
             } else {
-                // ── AINDA NÃO PASSOU 6 MINUTOS ──
+                // ── CRONÔMETRO 1 AINDA CONTANDO ──
                 if (elTempo) {
                     const segundos = Math.floor(tempoParado / 1000);
                     const minutos = Math.floor(segundos / 60);
@@ -746,7 +766,7 @@ window.processarGPS = function(chipId, d) {
                 }
             }
         } else {
-            // Veículo em movimento: só reseta o cronômetro 1
+            // Veículo em movimento antes dos 6 min → reseta cronômetro 1
             v.paradaInicio = null;
             v.paradaPos = null;
         }
@@ -758,7 +778,6 @@ window.processarGPS = function(chipId, d) {
         atualizarVeiculoTopbar(chipId);
     }
 };
-
 // ================================================================
 //  PROCESSAR STATUS
 // ================================================================
