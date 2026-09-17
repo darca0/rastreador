@@ -621,19 +621,25 @@ window.processarGPS = function(chipId, d) {
         v.marker.setIcon(mkIcon(cor));
     }
 
-    // ── FILTRO DA LINHA AZUL + MEDIDOR DE KM ──
-    const emMovimento = v.vel > PARADA_VEL;
-    const temPingoAtivo = v.pingos.some(p => p.tempoDentro !== null && p.tempoDentro !== undefined);
-    if (emMovimento || !temPingoAtivo) {
-        // ── MEDIDOR DE QUILOMETRAGEM ──
-        if (v.ultimoPontoKm) {
-            const dist = v.ultimoPontoKm.distanceTo(pos);   // metros
-            v.kmTotal += dist;
-        }
-        v.ultimoPontoKm = pos;
-        
-        v.trail.addLatLng(pos);
+   // ── FILTRO DA LINHA AZUL ──
+const emMovimento = v.vel > PARADA_VEL;
+const temPingoAtivo = v.pingos.some(p => p.tempoDentro !== null && p.tempoDentro !== undefined);
+if (emMovimento || !temPingoAtivo) {
+    v.trail.addLatLng(pos);
+}
+
+// ── MEDIDOR DE QUILOMETRAGEM (DISTÂNCIA PERCORRIDA COM FILTRO 15M) ──
+// Só conta a distância se o veículo se moveu mais de 15m do último ponto contado
+// (evita a oscilação do GPS quando parado)
+if (v.ultimoPontoKm) {
+    const dist = v.ultimoPontoKm.distanceTo(pos);
+    if (dist > 15) {                    // ← filtro de 15 metros
+        v.kmTotal += dist;
+        v.ultimoPontoKm = pos;          // só atualiza quando conta
     }
+} else {
+    v.ultimoPontoKm = pos;              // primeira leitura
+}
 
     const agora = Date.now();
     const elTempo = document.getElementById('pTempoParada');
