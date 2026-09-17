@@ -168,6 +168,7 @@
     <span class="info-pill" id="pSat">0 sat</span>
     <span class="info-pill" id="pRssi">— dBm</span>
     <span class="info-pill" id="pAlt">— m</span>
+    <span class="info-pill" id="pKm">0.00 km</span>
     <span id="pTempoParada">⏱️ 00:00</span>
     <span class="badge-sm badge-off" id="pStatus">Aguardando</span>
   </div>
@@ -530,7 +531,9 @@ function obterVeiculo(chipId) {
       paradaPos: null,
       paradaCirculo: null,
       pingos: [],
-      contador: 0
+      contador: 0,
+      kmTotal: 0,          // ← NOVO: quilometragem total
+      ultimoPontoKm: null  // ← NOVO: último ponto usado para calcular km
     };
     adicionarBotao(chipId);
     atualizarContagem();
@@ -618,10 +621,17 @@ window.processarGPS = function(chipId, d) {
         v.marker.setIcon(mkIcon(cor));
     }
 
-    // ── FILTRO DA LINHA AZUL ──
+    // ── FILTRO DA LINHA AZUL + MEDIDOR DE KM ──
     const emMovimento = v.vel > PARADA_VEL;
     const temPingoAtivo = v.pingos.some(p => p.tempoDentro !== null && p.tempoDentro !== undefined);
     if (emMovimento || !temPingoAtivo) {
+        // ── MEDIDOR DE QUILOMETRAGEM ──
+        if (v.ultimoPontoKm) {
+            const dist = v.ultimoPontoKm.distanceTo(pos);   // metros
+            v.kmTotal += dist;
+        }
+        v.ultimoPontoKm = pos;
+        
         v.trail.addLatLng(pos);
     }
 
@@ -648,18 +658,13 @@ window.processarGPS = function(chipId, d) {
         //  TEM PINGO ATIVO → CRONÔMETRO 2 ESTÁ RODANDO
         // ══════════════════════════════════════════════
         
-        // ── CRONÔMETRO 2: tempo desde a criação do pingo ──
         const tempoCrono2 = agora - pingoAtivo.tempoDentro;
         const minsCrono2 = Math.floor(tempoCrono2 / 60000);
-        
-        // ── TEMPO TOTAL = 6 (crono 1) + tempo crono 2 ──
         pingoAtivo.mins = 6 + minsCrono2;
         
-        // Atualiza o ícone
         const novoIcone = criarIconePingo(pingoAtivo.num, pingoAtivo.mins);
         pingoAtivo.marker.setIcon(novoIcone);
         
-        // Atualiza o painel
         if (elTempo) {
             elTempo.textContent = '⏱️ ' + pingoAtivo.mins + ' min';
             elTempo.className = 'ativo';
@@ -670,7 +675,6 @@ window.processarGPS = function(chipId, d) {
         const posPingo = L.latLng(pingoAtivo.lat, pingoAtivo.lng);
         const distanciaInstantanea = map.distance(posPingo, pos);
         
-        // Buffer 10 para distância
         if (!pingoAtivo.distBuffer) pingoAtivo.distBuffer = [];
         pingoAtivo.distBuffer.push(distanciaInstantanea);
         if (pingoAtivo.distBuffer.length > 10) pingoAtivo.distBuffer.shift();
@@ -680,14 +684,11 @@ window.processarGPS = function(chipId, d) {
         const distante = distanciaMedia > RAIO_PINGO_M;
         
         if (velocidadeAlta && distante) {
-            // ── CONGELA O PINGO (salva o tempo total) ──
             pingoAtivo.tempoDentro = null;
             v.paradaCirculo = null;
             console.log('⏹️ P' + pingoAtivo.num + ' CONGELADO em ' + pingoAtivo.mins + 'min');
             addLog('⏹️ P' + pingoAtivo.num + ' congelado em ' + pingoAtivo.mins + 'min', 'log-ok');
             if (elTempo) { elTempo.className = ''; elTempo.style.display = 'none'; }
-            
-            // Reseta o cronômetro 1 (o veículo saiu de verdade)
             v.paradaInicio = null;
             v.paradaPos = null;
         }
@@ -697,7 +698,6 @@ window.processarGPS = function(chipId, d) {
         // ══════════════════════════════════════════════
         
         if (v.vel <= PARADA_VEL) {
-            // ── CRONÔMETRO 1: conta 6 min para criar o pingo ──
             if (!v.paradaInicio) {
                 v.paradaInicio = agora;
                 v.paradaPos = pos;
@@ -707,10 +707,6 @@ window.processarGPS = function(chipId, d) {
             const tempoParado = agora - v.paradaInicio;
 
             if (tempoParado >= PARADA_MIN_MS) {
-                // ── CRONÔMETRO 1 COMPLETOU 6 MIN ──
-                // Agora cria (ou reativa) o pingo
-                // O cronômetro 2 vai começar a rodar a partir de agora
-                
                 let pingoProximo = null;
                 for (let p of v.pingos) {
                     if (p.marker) {
@@ -723,16 +719,14 @@ window.processarGPS = function(chipId, d) {
                 }
 
                 if (pingoProximo) {
-                    // ── REATIVA PINGO EXISTENTE ──
-                    pingoProximo.tempoDentro = agora;   // ← cronômetro 2 começa aqui
+                    pingoProximo.tempoDentro = agora;
                     pingoProximo.mins = 6;
                     pingoProximo.distBuffer = [];
                     const novoIcone = criarIconePingo(pingoProximo.num, 6);
                     pingoProximo.marker.setIcon(novoIcone);
-                    console.log('▶️ P' + pingoProximo.num + ' REATIVADO (crono 2 iniciado)');
+                    console.log('▶️ P' + pingoProximo.num + ' REATIVADO');
                     addLog('▶️ P' + pingoProximo.num + ' reativado', 'log-warn');
                 } else {
-                    // ── CRIA NOVO PINGO ──
                     v.contador = (v.contador || 0) + 1;
                     const numPingo = v.contador;
                     gerarIconePingo(numPingo).then(png => {
@@ -745,17 +739,16 @@ window.processarGPS = function(chipId, d) {
                             mins: 6,
                             lat: pos.lat,
                             lng: pos.lng,
-                            tempoDentro: agora,   // ← cronômetro 2 começa aqui
+                            tempoDentro: agora,
                             horaBrasilia: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
                             distBuffer: []
                         });
                         v.paradaCirculo = marker;
-                        console.log('🅿️ PINGO P' + numPingo + ' CRIADO (crono 2 iniciado)');
+                        console.log('🅿️ PINGO P' + numPingo + ' CRIADO');
                         addLog('🅿️ P' + numPingo + ' criado', 'log-warn');
                     });
                 }
             } else {
-                // ── CRONÔMETRO 1 AINDA CONTANDO ──
                 if (elTempo) {
                     const segundos = Math.floor(tempoParado / 1000);
                     const minutos = Math.floor(segundos / 60);
@@ -766,7 +759,6 @@ window.processarGPS = function(chipId, d) {
                 }
             }
         } else {
-            // Veículo em movimento antes dos 6 min → reseta cronômetro 1
             v.paradaInicio = null;
             v.paradaPos = null;
         }
@@ -778,6 +770,7 @@ window.processarGPS = function(chipId, d) {
         atualizarVeiculoTopbar(chipId);
     }
 };
+
 // ================================================================
 //  PROCESSAR STATUS
 // ================================================================
@@ -814,6 +807,10 @@ function atualizarPainel(chipId) {
   document.getElementById('pSat').textContent = v.sat + ' sat';
   document.getElementById('pRssi').textContent = (v.rssi || '—') + ' dBm';
   document.getElementById('pAlt').textContent = v.alt ? v.alt.toFixed(0) + ' m' : '— m';
+  
+  // ── QUILOMETRAGEM ──
+  const km = (v.kmTotal / 1000).toFixed(2);
+  document.getElementById('pKm').textContent = km + ' km';
   
   const st = document.getElementById('pStatus');
   const bB = document.getElementById('btnBlock');
@@ -1220,24 +1217,16 @@ window.desligarAlarme = function() {
 window.salvarMapa = function() {
   addLog('📸 Preparando captura...', 'log-warn');
 
-  // ══════════════════════════════════════════════════════════════
-  //  1. COLETA TODOS OS PONTOS (trajeto + pingos + posição atual)
-  // ══════════════════════════════════════════════════════════════
   const todosPontos = [];
   
   Object.values(veiculos).forEach(v => {
-    // Pontos do trajeto completo (do início ao fim)
     const trail = v.trail.getLatLngs();
     if (trail && trail.length > 0) {
       trail.forEach(p => todosPontos.push(p));
     }
-    
-    // Pingos (todos)
     v.pingos.forEach(p => {
       if (p.marker) todosPontos.push(p.marker.getLatLng());
     });
-    
-    // Posição atual do veículo
     if (v.ultimaPos) todosPontos.push(v.ultimaPos);
   });
 
@@ -1248,55 +1237,41 @@ window.salvarMapa = function() {
     return;
   }
 
-  // ══════════════════════════════════════════════════════════════
-  //  2. CALCULA OS LIMITES (bounds) DE TODOS OS PONTOS
-  // ══════════════════════════════════════════════════════════════
   const bounds = L.latLngBounds(todosPontos);
   
   console.log('📍 Bounds calculados:');
   console.log('   SW:', bounds.getSouthWest());
   console.log('   NE:', bounds.getNorthEast());
 
-  // ══════════════════════════════════════════════════════════════
-  //  3. ENQUADRA O MAPA (fitBounds) — SEM animação
-  // ══════════════════════════════════════════════════════════════
   map.fitBounds(bounds, { 
-    padding: [60, 60],   // margem generosa
+    padding: [60, 60],
     animate: false,
     maxZoom: 16
   });
 
-  // ══════════════════════════════════════════════════════════════
-  //  4. AGUARDA O MAPA TERMINAR DE REDESENHAR
-  //     Usa um contador de tentativas em vez do evento moveend
-  // ══════════════════════════════════════════════════════════════
   let tentativas = 0;
-  const MAX_TENTATIVAS = 20;   // 20 × 500ms = 10s
+  const MAX_TENTATIVAS = 20;
   
   const verificarTiles = setInterval(() => {
     tentativas++;
     
-    // Verifica se os tiles carregaram
     const tilesCarregados = document.querySelectorAll('.leaflet-tile-loaded').length;
     const tilesTotal = document.querySelectorAll('.leaflet-tile').length;
     
     console.log(`🔍 Tentativa ${tentativas}: ${tilesCarregados}/${tilesTotal} tiles carregados`);
     
-    // Se todos os tiles carregaram (ou se já passou muitas tentativas), captura
     if ((tilesTotal > 0 && tilesCarregados >= tilesTotal) || tentativas >= MAX_TENTATIVAS) {
       clearInterval(verificarTiles);
       
       console.log('✅ Tiles carregados! Iniciando captura...');
       addLog('✅ Mapa pronto. Capturando...', 'log-warn');
       
-      // Esconde controles
       const zoomControl = document.querySelector('.leaflet-control-zoom');
       const attribution = document.querySelector('.leaflet-control-attribution');
       let zoomDisplay = '', attrDisplay = '';
       if (zoomControl) { zoomDisplay = zoomControl.style.display; zoomControl.style.display = 'none'; }
       if (attribution) { attrDisplay = attribution.style.display; attribution.style.display = 'none'; }
       
-      // Pequena espera extra para garantir
       setTimeout(() => {
         leafletImage(map, function(err, canvas) {
           if (zoomControl) zoomControl.style.display = zoomDisplay || '';
@@ -1345,8 +1320,9 @@ window.salvarMapa = function() {
           veiculosArr.forEach(v => {
             const pontos = v.trail.getLatLngs();
             const status = v.bloqueado ? '<span class="verm">BLOQUEADO</span>' : '<span class="verde">LIBERADO</span>';
+            const km = (v.kmTotal / 1000).toFixed(2);
             html += `<h3>🚗 ${v.nome} (${v.chipId}) — ${status}</h3>`;
-            html += `<p>📍 Pontos: ${pontos.length} | 🅿️ Paradas: ${v.pingos.length}</p>`;
+            html += `<p>📍 Pontos: ${pontos.length} | 🅿️ Paradas: ${v.pingos.length} | 🛣️ Distância: ${km} km</p>`;
             if (v.pingos.length > 0) {
               html += '<table><tr><th>#</th><th>Horário</th><th>Duração</th><th>Localização</th><th>Google Maps</th></tr>';
               v.pingos.forEach(p => {
@@ -1374,7 +1350,7 @@ window.salvarMapa = function() {
     }
   }, 500);
 };
- 
+
 // ================================================================
 //  SIMULAR MODO FESTA
 // ================================================================
@@ -1414,6 +1390,7 @@ console.log('✅ Refresh automático do Modo Festa após reconexão');
 console.log('✅ Pânico via D2: aguardando MQTT {"motivo":"panico"}');
 console.log('✅ Pânico silencioso para botão físico');
 console.log('✅ Ícones em PNG (compatível com leaflet-image)');
+console.log('✅ Medidor de quilometragem ativo');
 </script>
 </body>
 </html>
