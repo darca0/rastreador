@@ -621,24 +621,25 @@ window.processarGPS = function(chipId, d) {
         v.marker.setIcon(mkIcon(cor));
     }
 
-   // ── FILTRO DA LINHA AZUL ──
+// ── FILTRO DA LINHA AZUL ──
 const emMovimento = v.vel > PARADA_VEL;
 const temPingoAtivo = v.pingos.some(p => p.tempoDentro !== null && p.tempoDentro !== undefined);
 if (emMovimento || !temPingoAtivo) {
     v.trail.addLatLng(pos);
 }
 
-// ── MEDIDOR DE QUILOMETRAGEM (DISTÂNCIA PERCORRIDA COM FILTRO 15M) ──
-// Só conta a distância se o veículo se moveu mais de 15m do último ponto contado
-// (evita a oscilação do GPS quando parado)
-if (v.ultimoPontoKm) {
+// ── MEDIDOR DE QUILOMETRAGEM (DESLOCAMENTO REAL > 100m) ──
+// Só conta se:
+//   1. O veículo está em movimento (vel > 8 km/h)
+//   2. A distância desde o último ponto âncora > 100m
+if (v.ultimoPontoKm && emMovimento) {
     const dist = v.ultimoPontoKm.distanceTo(pos);
-    if (dist > 15) {                    // ← filtro de 15 metros
+    if (dist > 100) {
         v.kmTotal += dist;
-        v.ultimoPontoKm = pos;          // só atualiza quando conta
+        v.ultimoPontoKm = pos;
     }
-} else {
-    v.ultimoPontoKm = pos;              // primeira leitura
+} else if (emMovimento) {
+    v.ultimoPontoKm = pos;
 }
 
     const agora = Date.now();
