@@ -1220,18 +1220,48 @@ window.desligarAlarme = function() {
 window.salvarMapa = function() {
   addLog('📸 Capturando mapa...', 'log-warn');
 
-  const pts = Object.values(veiculos).filter(v => v.ultimaPos).map(v => v.ultimaPos);
-  if (pts.length > 0) {
-    if (pts.length === 1) map.setView(pts[0], 16, { animate: false });
-    else map.fitBounds(L.latLngBounds(pts), { padding: [40, 40], animate: false });
+  // ══════════════════════════════════════════════════════════════
+  //  COLETA TODOS OS PONTOS (trajeto + pingos + posições atuais)
+  // ══════════════════════════════════════════════════════════════
+  const todosPontos = [];
+  
+  Object.values(veiculos).forEach(v => {
+    // Pontos do trajeto
+    v.trail.getLatLngs().forEach(p => todosPontos.push(p));
+    
+    // Pingos
+    v.pingos.forEach(p => {
+      if (p.marker) todosPontos.push(p.marker.getLatLng());
+    });
+    
+    // Posição atual do veículo
+    if (v.ultimaPos) todosPontos.push(v.ultimaPos);
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  //  ENQUADRA TODOS OS PONTOS NO MAPA
+  // ══════════════════════════════════════════════════════════════
+  if (todosPontos.length > 0) {
+    if (todosPontos.length === 1) {
+      map.setView(todosPontos[0], 16, { animate: false });
+    } else {
+      const bounds = L.latLngBounds(todosPontos);
+      map.fitBounds(bounds, { 
+        padding: [50, 50],   // margem de 50px ao redor
+        animate: false,
+        maxZoom: 17          // limita o zoom máximo
+      });
+    }
   }
 
+  // Esconde os controles do Leaflet
   const zoomControl = document.querySelector('.leaflet-control-zoom');
   const attribution = document.querySelector('.leaflet-control-attribution');
   let zoomDisplay = '', attrDisplay = '';
   if (zoomControl) { zoomDisplay = zoomControl.style.display; zoomControl.style.display = 'none'; }
   if (attribution) { attrDisplay = attribution.style.display; attribution.style.display = 'none'; }
 
+  // Aguarda o Leaflet redesenhar os tiles
   setTimeout(() => {
     leafletImage(map, function(err, canvas) {
       if (zoomControl) zoomControl.style.display = zoomDisplay || '';
@@ -1305,9 +1335,8 @@ window.salvarMapa = function() {
 
       addLog('💾 Trajeto salvo!', 'log-ok');
     });
-  }, 1000);
+  }, 1500);   // ← aumentei de 1000 para 1500ms para dar tempo dos tiles carregarem
 };
-
 // ================================================================
 //  SIMULAR MODO FESTA
 // ================================================================
