@@ -1218,18 +1218,21 @@ window.desligarAlarme = function() {
 //  SALVAR MAPA
 // ================================================================
 window.salvarMapa = function() {
-  addLog('📸 Capturando mapa...', 'log-warn');
+  addLog('📸 Preparando captura...', 'log-warn');
 
   // ══════════════════════════════════════════════════════════════
-  //  COLETA TODOS OS PONTOS (trajeto + pingos + posições atuais)
+  //  1. COLETA TODOS OS PONTOS (trajeto + pingos + posição atual)
   // ══════════════════════════════════════════════════════════════
   const todosPontos = [];
   
   Object.values(veiculos).forEach(v => {
-    // Pontos do trajeto
-    v.trail.getLatLngs().forEach(p => todosPontos.push(p));
+    // Pontos do trajeto completo (do início ao fim)
+    const trail = v.trail.getLatLngs();
+    if (trail && trail.length > 0) {
+      trail.forEach(p => todosPontos.push(p));
+    }
     
-    // Pingos
+    // Pingos (todos)
     v.pingos.forEach(p => {
       if (p.marker) todosPontos.push(p.marker.getLatLng());
     });
@@ -1238,105 +1241,140 @@ window.salvarMapa = function() {
     if (v.ultimaPos) todosPontos.push(v.ultimaPos);
   });
 
-  // ══════════════════════════════════════════════════════════════
-  //  ENQUADRA TODOS OS PONTOS NO MAPA
-  // ══════════════════════════════════════════════════════════════
-  if (todosPontos.length > 0) {
-    if (todosPontos.length === 1) {
-      map.setView(todosPontos[0], 16, { animate: false });
-    } else {
-      const bounds = L.latLngBounds(todosPontos);
-      map.fitBounds(bounds, { 
-        padding: [50, 50],   // margem de 50px ao redor
-        animate: false,
-        maxZoom: 17          // limita o zoom máximo
-      });
-    }
+  console.log('📍 Total de pontos para enquadrar:', todosPontos.length);
+
+  if (todosPontos.length === 0) {
+    alert('⚠️ Nenhum ponto para salvar!');
+    return;
   }
 
-  // Esconde os controles do Leaflet
-  const zoomControl = document.querySelector('.leaflet-control-zoom');
-  const attribution = document.querySelector('.leaflet-control-attribution');
-  let zoomDisplay = '', attrDisplay = '';
-  if (zoomControl) { zoomDisplay = zoomControl.style.display; zoomControl.style.display = 'none'; }
-  if (attribution) { attrDisplay = attribution.style.display; attribution.style.display = 'none'; }
+  // ══════════════════════════════════════════════════════════════
+  //  2. CALCULA OS LIMITES (bounds) DE TODOS OS PONTOS
+  // ══════════════════════════════════════════════════════════════
+  const bounds = L.latLngBounds(todosPontos);
+  
+  console.log('📍 Bounds calculados:');
+  console.log('   SW:', bounds.getSouthWest());
+  console.log('   NE:', bounds.getNorthEast());
 
-  // Aguarda o Leaflet redesenhar os tiles
-  setTimeout(() => {
-    leafletImage(map, function(err, canvas) {
-      if (zoomControl) zoomControl.style.display = zoomDisplay || '';
-      if (attribution) attribution.style.display = attrDisplay || '';
+  // ══════════════════════════════════════════════════════════════
+  //  3. ENQUADRA O MAPA (fitBounds) — SEM animação
+  // ══════════════════════════════════════════════════════════════
+  map.fitBounds(bounds, { 
+    padding: [60, 60],   // margem generosa
+    animate: false,
+    maxZoom: 16
+  });
 
-      if (err) {
-        console.error('Erro leaflet-image:', err);
-        addLog('❌ Erro: ' + err, 'log-err');
-        alert('Erro ao capturar o mapa: ' + err);
-        return;
-      }
+  // ══════════════════════════════════════════════════════════════
+  //  4. AGUARDA O MAPA TERMINAR DE REDESENHAR
+  //     Usa um contador de tentativas em vez do evento moveend
+  // ══════════════════════════════════════════════════════════════
+  let tentativas = 0;
+  const MAX_TENTATIVAS = 20;   // 20 × 500ms = 10s
+  
+  const verificarTiles = setInterval(() => {
+    tentativas++;
+    
+    // Verifica se os tiles carregaram
+    const tilesCarregados = document.querySelectorAll('.leaflet-tile-loaded').length;
+    const tilesTotal = document.querySelectorAll('.leaflet-tile').length;
+    
+    console.log(`🔍 Tentativa ${tentativas}: ${tilesCarregados}/${tilesTotal} tiles carregados`);
+    
+    // Se todos os tiles carregaram (ou se já passou muitas tentativas), captura
+    if ((tilesTotal > 0 && tilesCarregados >= tilesTotal) || tentativas >= MAX_TENTATIVAS) {
+      clearInterval(verificarTiles);
+      
+      console.log('✅ Tiles carregados! Iniciando captura...');
+      addLog('✅ Mapa pronto. Capturando...', 'log-warn');
+      
+      // Esconde controles
+      const zoomControl = document.querySelector('.leaflet-control-zoom');
+      const attribution = document.querySelector('.leaflet-control-attribution');
+      let zoomDisplay = '', attrDisplay = '';
+      if (zoomControl) { zoomDisplay = zoomControl.style.display; zoomControl.style.display = 'none'; }
+      if (attribution) { attrDisplay = attribution.style.display; attribution.style.display = 'none'; }
+      
+      // Pequena espera extra para garantir
+      setTimeout(() => {
+        leafletImage(map, function(err, canvas) {
+          if (zoomControl) zoomControl.style.display = zoomDisplay || '';
+          if (attribution) attribution.style.display = attrDisplay || '';
 
-      const imgBase64 = canvas.toDataURL('image/png');
-      const data = new Date().toLocaleString('pt-BR');
-      const dataArq = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
-      const veiculosArr = Object.values(veiculos);
+          if (err) {
+            console.error('Erro leaflet-image:', err);
+            addLog('❌ Erro: ' + err, 'log-err');
+            alert('Erro ao capturar o mapa: ' + err);
+            return;
+          }
 
-      let html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width,initial-scale=1">
-      <title>Trajeto ${dataArq}</title>
-      <style>
-        * { box-sizing: border-box; }
-        body{font-family:system-ui;background:#111;color:#fff;margin:0;padding:0;}
-        .header{padding:16px 20px;}
-        .header h2{color:#90caf9;margin:0 0 4px 0;font-size:20px;}
-        .header p{color:#888;font-size:12px;margin:0;}
-        .mapa{width:100vw;height:auto;display:block;border-top:1px solid #333;border-bottom:1px solid #333;margin:0;}
-        .relatorio{padding:16px 20px;}
-        h3{color:#fff;font-size:16px;margin:16px 0 8px 0;}
-        table{width:100%;border-collapse:collapse;margin-top:8px;}
-        th{background:#1565C0;color:#fff;padding:10px;text-align:left;font-size:13px;}
-        td{padding:8px 10px;border:1px solid #333;font-size:13px;}
-        tr:nth-child(even){background:#1a1a1a;}
-        .verde{color:#4caf50;font-weight:700;}
-        .verm{color:#ef5350;font-weight:700;}
-        a{color:#90caf9;}
-      </style></head><body>
-      <div class="header">
-        <h2>🛡️ Rastreador — Trajeto salvo em ${data}</h2>
-        <p>Horário de Brasília</p>
-      </div>
-      <img class="mapa" src="${imgBase64}" alt="Mapa do trajeto">
-      <div class="relatorio">
-      `;
+          const imgBase64 = canvas.toDataURL('image/png');
+          const data = new Date().toLocaleString('pt-BR');
+          const dataArq = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
+          const veiculosArr = Object.values(veiculos);
 
-      veiculosArr.forEach(v => {
-        const pontos = v.trail.getLatLngs();
-        const status = v.bloqueado ? '<span class="verm">BLOQUEADO</span>' : '<span class="verde">LIBERADO</span>';
-        html += `<h3>🚗 ${v.nome} (${v.chipId}) — ${status}</h3>`;
-        html += `<p>📍 Pontos: ${pontos.length} | 🅿️ Paradas: ${v.pingos.length}</p>`;
-        if (v.pingos.length > 0) {
-          html += '<table><tr><th>#</th><th>Horário</th><th>Duração</th><th>Localização</th><th>Google Maps</th></tr>';
-          v.pingos.forEach(p => {
-            const ll = p.marker.getLatLng();
-            const hora = p.horaBrasilia || '—';
-            html += `<tr><td>P${p.num}</td><td>${hora}</td><td>${p.mins} min</td><td>${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}</td><td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td></tr>`;
+          let html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width,initial-scale=1">
+          <title>Trajeto ${dataArq}</title>
+          <style>
+            * { box-sizing: border-box; }
+            body{font-family:system-ui;background:#111;color:#fff;margin:0;padding:0;}
+            .header{padding:16px 20px;}
+            .header h2{color:#90caf9;margin:0 0 4px 0;font-size:20px;}
+            .header p{color:#888;font-size:12px;margin:0;}
+            .mapa{width:100vw;height:auto;display:block;border-top:1px solid #333;border-bottom:1px solid #333;margin:0;}
+            .relatorio{padding:16px 20px;}
+            h3{color:#fff;font-size:16px;margin:16px 0 8px 0;}
+            table{width:100%;border-collapse:collapse;margin-top:8px;}
+            th{background:#1565C0;color:#fff;padding:10px;text-align:left;font-size:13px;}
+            td{padding:8px 10px;border:1px solid #333;font-size:13px;}
+            tr:nth-child(even){background:#1a1a1a;}
+            .verde{color:#4caf50;font-weight:700;}
+            .verm{color:#ef5350;font-weight:700;}
+            a{color:#90caf9;}
+          </style></head><body>
+          <div class="header">
+            <h2>🛡️ Rastreador — Trajeto salvo em ${data}</h2>
+            <p>Horário de Brasília</p>
+          </div>
+          <img class="mapa" src="${imgBase64}" alt="Mapa do trajeto">
+          <div class="relatorio">
+          `;
+
+          veiculosArr.forEach(v => {
+            const pontos = v.trail.getLatLngs();
+            const status = v.bloqueado ? '<span class="verm">BLOQUEADO</span>' : '<span class="verde">LIBERADO</span>';
+            html += `<h3>🚗 ${v.nome} (${v.chipId}) — ${status}</h3>`;
+            html += `<p>📍 Pontos: ${pontos.length} | 🅿️ Paradas: ${v.pingos.length}</p>`;
+            if (v.pingos.length > 0) {
+              html += '<table><tr><th>#</th><th>Horário</th><th>Duração</th><th>Localização</th><th>Google Maps</th></tr>';
+              v.pingos.forEach(p => {
+                const ll = p.marker.getLatLng();
+                const hora = p.horaBrasilia || '—';
+                html += `<tr><td>P${p.num}</td><td>${hora}</td><td>${p.mins} min</td><td>${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}</td><td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td></tr>`;
+              });
+              html += '</table>';
+            }
           });
-          html += '</table>';
-        }
-      });
 
-      html += '</div></body></html>';
+          html += '</div></body></html>';
 
-      const blob = new Blob([html], {type:'text/html'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'trajeto_' + dataArq + '.html';
-      a.click();
-      URL.revokeObjectURL(url);
+          const blob = new Blob([html], {type:'text/html'});
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'trajeto_' + dataArq + '.html';
+          a.click();
+          URL.revokeObjectURL(url);
 
-      addLog('💾 Trajeto salvo!', 'log-ok');
-    });
-  }, 1500);   // ← aumentei de 1000 para 1500ms para dar tempo dos tiles carregarem
+          addLog('💾 Trajeto salvo!', 'log-ok');
+        });
+      }, 500);
+    }
+  }, 500);
 };
+ 
 // ================================================================
 //  SIMULAR MODO FESTA
 // ================================================================
