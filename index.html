@@ -628,17 +628,27 @@ if (emMovimento || !temPingoAtivo) {
     v.trail.addLatLng(pos);
 }
 
-// ── MEDIDOR DE QUILOMETRAGEM (DESLOCAMENTO REAL > 100m) ──
+// ── MEDIDOR DE QUILOMETRAGEM (VERSÃO REFORÇADA) ──
+// Contador de leituras consecutivas em movimento
+if (v.vel > 15) {   // ← threshold mais alto (15 km/h)
+    v.contadorMovimento = (v.contadorMovimento || 0) + 1;
+} else {
+    v.contadorMovimento = 0;
+}
+
+// Só considera "em movimento real" se tiver 5 leituras consecutivas acima de 15 km/h
+const emMovimentoReal = v.contadorMovimento >= 5;
+
 // Só conta se:
-//   1. O veículo está em movimento (vel > 8 km/h)
+//   1. O veículo está em movimento REAL (5 leituras > 15 km/h)
 //   2. A distância desde o último ponto âncora > 100m
-if (v.ultimoPontoKm && emMovimento) {
+if (v.ultimoPontoKm && emMovimentoReal) {
     const dist = v.ultimoPontoKm.distanceTo(pos);
     if (dist > 100) {
         v.kmTotal += dist;
         v.ultimoPontoKm = pos;
     }
-} else if (emMovimento) {
+} else if (emMovimentoReal) {
     v.ultimoPontoKm = pos;
 }
 
