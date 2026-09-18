@@ -1301,7 +1301,42 @@ window.salvarMapa = function() {
             alert('Erro ao capturar o mapa: ' + err);
             return;
           }
+// ══════════════════════════════════════════════════════════════
+//  DESENHA AS POLYLINES POR CIMA DO CANVAS
+// ══════════════════════════════════════════════════════════════
+const ctx = canvas.getContext('2d');
+const largura = canvas.width;
+const altura = canvas.height;
 
+const mapBounds = map.getBounds();
+const ne = mapBounds.getNorthEast();
+const sw = mapBounds.getSouthWest();
+
+function latLngParaPixel(lat, lng) {
+    const x = ((lng - sw.lng) / (ne.lng - sw.lng)) * largura;
+    const y = ((ne.lat - lat) / (ne.lat - sw.lat)) * altura;
+    return { x, y };
+}
+
+Object.values(veiculos).forEach(v => {
+    const pontos = v.trail.getLatLngs();
+    if (pontos.length < 2) return;
+    
+    ctx.beginPath();
+    ctx.strokeStyle = '#1565C0';
+    ctx.lineWidth = 3 * (canvas.width / map.getSize().x);
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    
+    pontos.forEach((p, i) => {
+        const px = latLngParaPixel(p.lat, p.lng);
+        if (i === 0) ctx.moveTo(px.x, px.y);
+        else ctx.lineTo(px.x, px.y);
+    });
+    
+    ctx.stroke();
+});
+// ══════════════════════════════════════════════════════════════
           const imgBase64 = canvas.toDataURL('image/png');
           const data = new Date().toLocaleString('pt-BR');
           const dataArq = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
