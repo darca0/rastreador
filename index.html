@@ -977,6 +977,7 @@ window.ativarAlertaMovimento = function(chipId, d) {
 // ================================================================
 //  RESTAURAR MODO FESTA AO INICIAR
 // ================================================================
+
 async function restaurarModoFesta() {
   try {
     const ativo = await lerConfig('modoFestaAtivo', false);
@@ -996,35 +997,31 @@ async function restaurarModoFesta() {
           modoFestaAtivo = true;
 
           if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
-          circuloFesta = L.circle(v.ultimaPos, { color: '#f9a825', fillColor: '#f9a825', fillOpacity: 0.15, radius: RAIO_FESTA_M }).addTo(map);
+          circuloFesta = L.circle(v.ultimaPos, { ... }).addTo(map);
 
           document.getElementById('btnFesta').classList.add('ativo');
           document.getElementById('btnFesta').textContent = '🛡️Ativo';
-          document.getElementById('panelNome').textContent = '🚗 ' + v.nome + ' (' + chipIdSalvo + ')';
 
-          document.querySelectorAll('.veiculo-btn').forEach(b => b.classList.remove('ativo'));
-          const btn = document.getElementById('vbtn_' + chipIdSalvo);
-          if (btn) btn.classList.add('ativo');
+          // ⬇️ NOVO: Reenvia o comando ATIVAR_MODO_FESTA para o ESP
+          if (mqttClient && mqttClient.connected) {
+            window.cmd(chipIdSalvo, 'ATIVAR_MODO_FESTA');
+            console.log('📤 Comando ATIVAR_MODO_FESTA reenviado ao ESP');
+            addLog('🔄 Modo Festa reativado no veículo', 'log-ok');
+          }
 
           addLog('🔄 Modo Festa restaurado', 'log-ok');
           console.log('✅ Modo Festa restaurado com sucesso para ' + chipIdSalvo);
-
         } else if (tentativas > 60) {
           clearInterval(intervalo);
-          console.warn('⚠️ Veículo ' + chipIdSalvo + ' não apareceu. Modo Festa não restaurado.');
-          addLog('⚠️ Modo Festa não pôde ser restaurado', 'log-warn');
           removerConfig('modoFestaAtivo');
           removerConfig('modoFestaChipId');
         }
       }, 500);
-    } else {
-      console.log('ℹ️ Modo Festa não estava ativo.');
     }
   } catch (erro) {
     console.error('Erro ao restaurar Modo Festa:', erro);
   }
 }
-
 // ================================================================
 //  REFRESH AUTOMÁTICO DO MODO FESTA APÓS RECONEXÃO
 // ================================================================
