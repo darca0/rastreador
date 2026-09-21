@@ -955,23 +955,36 @@ window.toggleModoFesta = function() {
 };
 
 window.ativarAlertaMovimento = function(chipId, d) {
-    const pos = L.latLng(d.lat, d.lng);
+    // ── Valida as coordenadas ──
+    const lat = parseFloat(d.lat);
+    const lng = parseFloat(d.lng);
+    const posValida = (lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng));
+    
+    // ── Remove o círculo do Modo Festa ──
     if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
     document.getElementById('btnFesta').classList.remove('ativo');
     document.getElementById('btnFesta').textContent = '🛡️Festa';
     modoFestaAtivo = false;
 
+    // ── Remove do IndexedDB ──
     removerConfig('modoFestaAtivo');
     removerConfig('modoFestaChipId');
     console.log('🗑️ Modo Festa removido do banco (alerta de movimento)');
 
+    // ── Toca a sirene ──
     window.tocarAlarmeNavegador();
     setBadge('pStatus', '🚨 FURTO', 'badge-err');
     
     addLog('🔊 Clique no ⏹ para parar a sirene', 'log-warn');
     
-    map.setView(pos, 15);
-    addLog('🚨 ALERTA DE FURTO DETECTADO!', 'log-err');
+    // ── Só centraliza se a posição for válida ──
+    if (posValida) {
+        map.setView(L.latLng(lat, lng), 15);
+        addLog('🚨 ALERTA DE FURTO DETECTADO!', 'log-err');
+    } else {
+        addLog('🚨 ALERTA DE FURTO! (GPS perdido — mapa não centralizado)', 'log-warn');
+        console.log('⚠️ Posição inválida (GPS perdido): lat=' + lat + ' lng=' + lng);
+    }
 };
 
 // ================================================================
