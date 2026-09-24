@@ -165,7 +165,7 @@
 </div>
 
 <div id="sireneBanner" class="alertaBanner sirene">
-  🚨 SIRENE DO VEÍCULO DISPAROU!
+  🚨 ALARME DO VEÍCULO DISPAROU!
   <button onclick="window.fecharBannerSirene()">Fechar</button>
   <button onclick="window.centralizarAtivo()">Ver no mapa</button>
 </div>
@@ -183,7 +183,7 @@
 </div>
 <div id="sireneWidget" onclick="window.fecharBannerSirene()">
   <div id="sireneDot"></div>
-  <span id="sireneTxt">SIRENE</span>
+  <span id="sireneTxt">ALARME</span>
 </div>
 <div id="jammerWidget" onclick="window.cancelarAlertaJammer()">
   <div id="jammerDot"></div>
@@ -938,7 +938,7 @@ window.ativarAlertaMovimento = function(chipId, d) {
 //  ALERTA DE SIRENE (mesmo estilo do pânico)
 // ================================================================
 window.ativarAlertaSirene = function(chipId, d) {
-    console.log('🚨 SIRENE DISPAROU!', d);
+    console.log('🚨 ALARME DISPAROU!', d);
     sireneChipId = chipId;
 
     // Mostra o banner
@@ -949,10 +949,10 @@ window.ativarAlertaSirene = function(chipId, d) {
     window.tocarAlarmeNavegador();
 
     // Atualiza o badge
-    setBadge('pStatus', '🚨 SIRENE', 'badge-err');
+    setBadge('pStatus', '🚨 ALARME', 'badge-err');
 
     // Log
-    addLog('🚨 SIRENE DO VEÍCULO DISPAROU!', 'log-err');
+    addLog('🚨 ALARME DO VEÍCULO DISPAROU!', 'log-err');
 
     // Vibra (celular)
     if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
