@@ -224,6 +224,17 @@
 
 <div id="modalSeguranca"><div class="modal-box"><h3 style="color:#fff; font-size:16px; margin-bottom:6px;">🔒 Autenticação</h3><p style="color:#aaa; font-size:11px; margin-bottom:12px;">Digite usuário e senha para bloquear:</p><input type="text" id="segUser" placeholder="Usuário" autofocus><input type="password" id="segPass" placeholder="Senha"><div class="modal-btns"><button class="btn-confirm" onclick="window.confirmarBloqueio()">Confirmar</button><button class="btn-cancel" onclick="window.fecharModalSeguranca()">Cancelar</button></div></div></div>
 
+ <!-- Modal de confirmação do Modo Festa -->
+<div id="modalFesta" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
+  <div class="modal-box" style="border:1px solid #f9a825;">
+    <strong style="color:#f9a825;">🛡️ Desativar Modo Festa?</strong>
+    <p>O veículo <b>não será mais monitorado</b>. Se ele se mover, você não receberá alerta.</p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="window.fecharModalFesta()">Cancelar</button>
+      <button style="background:#f9a825; color:#111; font-weight:700;" onclick="window.confirmarDesativarFesta()">Desativar</button>
+    </div>
+  </div>
+</div>
 <script>
 // ================================================================
 //  CONFIGURAÇÃO
@@ -895,6 +906,7 @@ window.centralizarTodos = function() {
 window.toggleModoFesta = function() {
   if (!ativoId) return;
   if (!modoFestaAtivo) {
+    // ── ATIVAR ──
     const v = veiculos[ativoId];
     if (!v || !v.ultimaPos) { alert('⚠️ Aguarde o GPS fixar antes de ativar o Modo Festa.'); return; }
     window.cmd(ativoId, 'ATIVAR_MODO_FESTA');
@@ -906,16 +918,25 @@ window.toggleModoFesta = function() {
     salvarConfig('modoFestaChipId', ativoId);
     addLog('🛡️ Modo Festa ATIVADO (50m)', 'log-ok');
   } else {
-    if (!confirm('⚠️ Desativar o Modo Festa? O veículo não será mais monitorado.')) return;
-    window.cmd(ativoId, 'DESATIVAR_MODO_FESTA');
-    if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
-    document.getElementById('btnFesta').classList.remove('ativo');
-    document.getElementById('btnFesta').textContent = '🛡️Festa';
-    modoFestaAtivo = false;
-    removerConfig('modoFestaAtivo');
-    removerConfig('modoFestaChipId');
-    addLog('🛡️ Modo Festa DESATIVADO', 'log-warn');
+    // ── DESATIVAR: abre o modal bonito ──
+    document.getElementById('modalFesta').style.display = 'flex';
   }
+};
+
+window.fecharModalFesta = function() {
+  document.getElementById('modalFesta').style.display = 'none';
+};
+
+window.confirmarDesativarFesta = function() {
+  document.getElementById('modalFesta').style.display = 'none';
+  window.cmd(ativoId, 'DESATIVAR_MODO_FESTA');
+  if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
+  document.getElementById('btnFesta').classList.remove('ativo');
+  document.getElementById('btnFesta').textContent = '🛡️Festa';
+  modoFestaAtivo = false;
+  removerConfig('modoFestaAtivo');
+  removerConfig('modoFestaChipId');
+  addLog('🛡️ Modo Festa DESATIVADO', 'log-warn');
 };
 
 window.ativarAlertaMovimento = function(chipId, d) {
