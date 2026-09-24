@@ -1265,6 +1265,16 @@ console.log('✅ Pingo laranja corrigido');
 console.log('✅ Modo Festa com confirmação');
 console.log('✅ Banner de sirene (mesmo estilo do pânico)');
 console.log('✅ Alerta jammer integrado');
+ // ══════════════════════════════════════════════════
+//  REGISTRO DO SERVICE WORKER (obrigatório para PWA)
+// ══════════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/rastreador/sw.js')
+      .then(reg => console.log('✅ SW registrado:', reg.scope))
+      .catch(err => console.log('❌ Erro SW:', err));
+  });
+}
 </script>
 </body>
 </html>
