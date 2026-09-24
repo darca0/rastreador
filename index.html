@@ -72,11 +72,26 @@
   #pTempoParada { background:#1a1a1a; border:1px solid #f9a825; border-radius:5px; padding:1px 4px; font-size:7px; color:#f9a825; white-space:nowrap; display:none; }
   #pTempoParada.ativo { display:inline-block; animation:blink 1s infinite; }
 
-  #panicWidget { display:none; position:fixed; top:3px; right:50px; z-index:9998; align-items:center; gap:3px; background:rgba(0,0,0,0.7); border:1px solid #c62828; border-radius:14px; padding:2px 6px; cursor:pointer; }
-  #panicDot { width:7px; height:7px; border-radius:50%; background:#ff0000; box-shadow:0 0 4px #ff0000; animation:panicoLed 0.4s infinite alternate; flex-shrink:0; }
+  /* ── BANNERS DE ALERTA (mesmo estilo para pânico, sirene e jammer) ── */
+  .alertaBanner { display:none; position:fixed; top:0; left:0; right:0; z-index:9997; color:#fff; text-align:center; padding:6px 10px; font-weight:700; font-size:11px; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+  .alertaBanner.panico  { background:#b71c1c; }
+  .alertaBanner.sirene  { background:#b71c1c; }
+  .alertaBanner.jammer  { background:#d84315; }
+  .alertaBanner button { background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; padding:2px 8px; border-radius:10px; font-size:10px; margin-left:8px; cursor:pointer; font-weight:700; }
+  .alertaBanner button:active { background:rgba(255,255,255,0.4); }
+
+  /* Widget lateral (LED piscando) */
+  #panicWidget, #sireneWidget, #jammerWidget { display:none; position:fixed; top:30px; right:6px; z-index:9998; align-items:center; gap:3px; background:rgba(0,0,0,0.75); border-radius:14px; padding:2px 6px; cursor:pointer; }
+  #panicWidget  { border:1px solid #c62828; }
+  #sireneWidget { border:1px solid #c62828; }
+  #jammerWidget { border:1px solid #d84315; }
+  #panicDot, #sireneDot, #jammerDot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  #panicDot, #sireneDot { background:#ff0000; box-shadow:0 0 4px #ff0000; animation:panicoLed 0.4s infinite alternate; }
+  #jammerDot { background:#ff6600; box-shadow:0 0 4px #ff6600; animation:panicoLed 0.4s infinite alternate; }
   @keyframes panicoLed { from{opacity:1;} to{opacity:0.2;} }
-  #panicTxt { font-size:8px; font-weight:700; color:#ff6666; }
-  #panicBanner { display:none; position:fixed; top:0; left:0; right:0; z-index:9997; background:#b71c1c; color:#fff; text-align:center; padding:3px; font-weight:700; font-size:10px; }
+  #panicTxt, #sireneTxt, #jammerTxt { font-size:8px; font-weight:700; }
+  #panicTxt, #sireneTxt { color:#ff6666; }
+  #jammerTxt { color:#ffaa66; }
 
   #btnTodos { position:absolute; top:70px; right:5px; z-index:999; background:rgba(0,0,0,0.7); border:1px solid #444; color:#fff; padding:3px 6px; border-radius:14px; font-size:8px; cursor:pointer; display:none; }
 
@@ -103,7 +118,7 @@
   <h1>🛡️ Rastreador</h1>
   <p>Digite seu usuário e PIN:</p>
   <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:80%; max-width:300px;">
-    <input type="text" id="inputUsuario" placeholder="Usuário (admin, cicrano, zerruela)">
+    <input type="text" id="inputUsuario" placeholder="Usuário">
     <div id="pinDisplay">
       <div class="pin-dot" id="dot0"></div>
       <div class="pin-dot" id="dot1"></div>
@@ -113,18 +128,10 @@
     <div id="loginError"></div>
   </div>
   <div class="numpad">
-    <button onclick="window.pin('1')">1</button>
-    <button onclick="window.pin('2')">2</button>
-    <button onclick="window.pin('3')">3</button>
-    <button onclick="window.pin('4')">4</button>
-    <button onclick="window.pin('5')">5</button>
-    <button onclick="window.pin('6')">6</button>
-    <button onclick="window.pin('7')">7</button>
-    <button onclick="window.pin('8')">8</button>
-    <button onclick="window.pin('9')">9</button>
-    <button onclick="window.pin('del')">⌫</button>
-    <button onclick="window.pin('0')">0</button>
-    <button onclick="window.pin('del')">✕</button>
+    <button onclick="window.pin('1')">1</button><button onclick="window.pin('2')">2</button><button onclick="window.pin('3')">3</button>
+    <button onclick="window.pin('4')">4</button><button onclick="window.pin('5')">5</button><button onclick="window.pin('6')">6</button>
+    <button onclick="window.pin('7')">7</button><button onclick="window.pin('8')">8</button><button onclick="window.pin('9')">9</button>
+    <button onclick="window.pin('del')">⌫</button><button onclick="window.pin('0')">0</button><button onclick="window.pin('del')">✕</button>
   </div>
   <button onclick="window.loginComUsuario()" style="padding:12px 40px; border-radius:12px; border:none; background:#1565C0; color:#fff; font-size:16px; font-weight:700; cursor:pointer; margin-top:8px;">Entrar</button>
 </div>
@@ -132,16 +139,16 @@
 <div id="topbar">
   <div class="linha1">
     <span style="font-size:12px; font-weight:700;">🛡️</span>
-    <span id="nomeUsuario" style="font-size:10px; color:#4caf50; font-weight:700;"></span>
-    <span class="badge badge-off" id="mqttBadge" style="font-size:8px; padding:1px 5px;">Conectando</span>
-    <button onclick="window.conectarMQTT()" style="font-size:13px; padding:1px 4px;">🔌</button>
-    <button onclick="window.nextMapStyle()" id="mapStyleBtn" style="font-size:12px; padding:1px 4px;">🛰</button>
-    <span class="badge badge-off" id="veiculosBadge" style="font-size:7px; padding:1px 5px; margin-left:auto;">0 veículos</span>
+    <span id="nomeUsuario"></span>
+    <span class="badge badge-off" id="mqttBadge">Conectando</span>
+    <button onclick="window.conectarMQTT()">🔌</button>
+    <button onclick="window.nextMapStyle()" id="mapStyleBtn">🛰</button>
+    <span class="badge badge-off" id="veiculosBadge" style="margin-left:auto;">0 veículos</span>
   </div>
   <div class="linha2">
     <span id="veiculoAtivoNome" style="font-size:10px; font-weight:700; color:#90caf9;">Aguardando...</span>
     <span id="relogioLocal" style="font-size:10px; color:#00ff41; font-family:'Courier New',monospace; margin-left:auto;">🕐 --:--:--</span>
-    <button onclick="window.salvarMapa()" style="font-size:11px; padding:1px 6px;">💾</button>
+    <button onclick="window.salvarMapa()">💾</button>
     <span style="font-size:9px; color:#aaa; font-family:'Courier New',monospace; opacity:0.7;">by darca</span>
   </div>
 </div>
@@ -150,11 +157,37 @@
   <span id="semVeiculos" style="color:#555; font-size:11px;">Aguardando veículos...</span>
 </div>
 
-<div id="panicBanner">🚨 PÂNICO ATIVADO! <span id="panicTimer"></span></div>
+<!-- ═══ BANNERS DE ALERTA (mesmo estilo) ═══ -->
+<div id="panicBanner" class="alertaBanner panico">
+  🚨 PÂNICO ATIVADO! <span id="panicTimer"></span>
+  <button onclick="window.cancelarPanico()">Cancelar</button>
+  <button onclick="window.centralizarAtivo()">Ver no mapa</button>
+</div>
+
+<div id="sireneBanner" class="alertaBanner sirene">
+  🚨 SIRENE DO VEÍCULO DISPAROU!
+  <button onclick="window.fecharBannerSirene()">Fechar</button>
+  <button onclick="window.centralizarAtivo()">Ver no mapa</button>
+</div>
+
+<div id="jammerBanner" class="alertaBanner jammer">
+  ⚠️ ALERTA JAMMER — Interferência detectada!
+  <button onclick="window.cancelarAlertaJammer()">Cancelar</button>
+</div>
+
+<!-- Widgets laterais (LEDs piscando) -->
 <div id="panicWidget" onclick="window.cancelarPanico()">
   <div id="panicDot"></div>
   <span id="panicTxt">PÂNICO</span>
   <span id="panicTimer" style="font-size:7px; color:#aaa;"></span>
+</div>
+<div id="sireneWidget" onclick="window.fecharBannerSirene()">
+  <div id="sireneDot"></div>
+  <span id="sireneTxt">SIRENE</span>
+</div>
+<div id="jammerWidget" onclick="window.cancelarAlertaJammer()">
+  <div id="jammerDot"></div>
+  <span id="jammerTxt">JAMMER</span>
 </div>
 
 <div id="map"></div>
@@ -198,7 +231,7 @@
 const USUARIOS = { 'admin': '8912', 'cicrano': '0123', 'zerruela': '3412' };
 const BROKER_WSS = 'wss://5e7c95681b9f45068546a87087ed9e2c.s1.eu.hivemq.cloud/mqtt';
 const BROKER_PORT = 8884;
-const PARADA_VEL = 8.0;
+const PARADA_VEL = 5.0;
 const PARADA_MIN_MS = 360000;
 const RAIO_PINGO_M = 70.0;
 const RAIO_FESTA_M = 50.0;
@@ -215,6 +248,8 @@ let panicoAtivo = false;
 let panicoTimer = null;
 let panicoCancelavel = true;
 let panicoChipId = null;
+let sireneChipId = null;
+let jammerChipId = null;
 
 // -- SIRENE --
 let alarmeAtivo = false;
@@ -283,14 +318,9 @@ async function removerConfig(chave) {
 }
 
 // ================================================================
-//  GERADOR DE ÍCONES PNG (para o leaflet-image funcionar)
+//  GERADOR DE ÍCONES PNG
 // ================================================================
-const iconesPNG = {
-  veiculoVerde: null,
-  veiculoAmarelo: null,
-  veiculoVermelho: null,
-  pingos: {}
-};
+const iconesPNG = { veiculoVerde: null, veiculoAmarelo: null, veiculoVermelho: null, pingos: {} };
 
 function svgParaPNG(svgString, largura, altura) {
   return new Promise((resolve) => {
@@ -299,17 +329,13 @@ function svgParaPNG(svgString, largura, altura) {
     const url = URL.createObjectURL(svgBlob);
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      canvas.width = largura;
-      canvas.height = altura;
+      canvas.width = largura; canvas.height = altura;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, largura, altura);
       URL.revokeObjectURL(url);
       resolve(canvas.toDataURL('image/png'));
     };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      resolve(null);
-    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
     img.src = url;
   });
 }
@@ -440,6 +466,9 @@ window.conectarMQTT = function() {
       if (tipo === 'status' && data.motivo === 'panico') window.ativarPanico(chipId, 'mqtt', data);
       if (tipo === 'status' && data.motivo === 'panico_cancelado') window.cancelarPanico();
       if (tipo === 'status' && data.motivo === 'alerta_movimento') window.ativarAlertaMovimento(chipId, data);
+      if (tipo === 'status' && data.motivo === 'sirene_disparou') window.ativarAlertaSirene(chipId, data);
+      if (tipo === 'status' && data.motivo === 'alerta_jammer') window.ativarAlertaJammer(chipId, data);
+      if (tipo === 'status' && data.motivo === 'jammer_cancelado') window.cancelarAlertaJammer();
     } catch(e) {}
   });
 };
@@ -532,8 +561,8 @@ function obterVeiculo(chipId) {
       paradaCirculo: null,
       pingos: [],
       contador: 0,
-      kmTotal: 0,          // ← NOVO: quilometragem total
-      ultimoPontoKm: null  // ← NOVO: último ponto usado para calcular km
+      kmTotal: 0,
+      ultimoPontoKm: null
     };
     adicionarBotao(chipId);
     atualizarContagem();
@@ -580,23 +609,21 @@ function atualizarVeiculoTopbar(chipId) {
 window.processarGPS = function(chipId, d) {
     const v = obterVeiculo(chipId);
     if (!v) return;
-    
+
     // ── BUFFER DA VELOCIDADE (5 leituras) ──
     if (!v.velBuffer) v.velBuffer = [];
     if (d.spd !== undefined && d.spd <= 20) {
         v.velBuffer.push(d.spd);
         if (v.velBuffer.length > 5) v.velBuffer.shift();
     }
-    
     let velMedia = 0;
     if (v.velBuffer.length > 0) {
         const soma = v.velBuffer.reduce((acc, val) => acc + val, 0);
         velMedia = soma / v.velBuffer.length;
     }
-    
     v.vel = velMedia;
     v.velInstantanea = d.spd;
-    
+
     if (d.rssi !== undefined) v.rssi = d.rssi;
     if (d.sat !== undefined) v.sat = d.sat;
     if (d.alt !== undefined) v.alt = d.alt;
@@ -621,47 +648,26 @@ window.processarGPS = function(chipId, d) {
         v.marker.setIcon(mkIcon(cor));
     }
 
-// ── FILTRO DA LINHA AZUL ──
-const emMovimento = v.vel > PARADA_VEL;
-const temPingoAtivo = v.pingos.some(p => p.tempoDentro !== null && p.tempoDentro !== undefined);
-if (emMovimento || !temPingoAtivo) {
-    v.trail.addLatLng(pos);
-}
+    // Filtro da linha azul
+    const emMovimento = v.vel > PARADA_VEL;
+    const temPingoAtivo = v.pingos.some(p => p.tempoDentro !== null && p.tempoDentro !== undefined);
+    if (emMovimento || !temPingoAtivo) v.trail.addLatLng(pos);
 
-// ── MEDIDOR DE QUILOMETRAGEM (VERSÃO REFORÇADA) ──
-// Contador de leituras consecutivas em movimento
-if (v.vel > 15) {   // ← threshold mais alto (15 km/h)
-    v.contadorMovimento = (v.contadorMovimento || 0) + 1;
-} else {
-    v.contadorMovimento = 0;
-}
-
-// Só considera "em movimento real" se tiver 5 leituras consecutivas acima de 15 km/h
-const emMovimentoReal = v.contadorMovimento >= 5;
-
-// Só conta se:
-//   1. O veículo está em movimento REAL (5 leituras > 15 km/h)
-//   2. A distância desde o último ponto âncora > 100m
-if (v.ultimoPontoKm && emMovimentoReal) {
-    const dist = v.ultimoPontoKm.distanceTo(pos);
-    if (dist > 100) {
-        v.kmTotal += dist;
+    // Medidor de quilometragem
+    if (v.vel > 15) v.contadorMovimento = (v.contadorMovimento || 0) + 1;
+    else v.contadorMovimento = 0;
+    const emMovimentoReal = v.contadorMovimento >= 5;
+    if (v.ultimoPontoKm && emMovimentoReal) {
+        const dist = v.ultimoPontoKm.distanceTo(pos);
+        if (dist > 100) { v.kmTotal += dist; v.ultimoPontoKm = pos; }
+    } else if (emMovimentoReal) {
         v.ultimoPontoKm = pos;
     }
-} else if (emMovimentoReal) {
-    v.ultimoPontoKm = pos;
-}
 
     const agora = Date.now();
     const elTempo = document.getElementById('pTempoParada');
 
-    // ══════════════════════════════════════════════════════════════
-    //  LÓGICA DO PINGO - DOIS CRONÔMETROS
-    //  Cronômetro 1: v.paradaInicio → conta 6 min para criar o pingo
-    //  Cronômetro 2: pingo.tempoDentro → conta o tempo de permanência
-    // ══════════════════════════════════════════════════════════════
-
-    // 1. Procura o pingo ativo
+    // ── PINGO: Dois cronômetros ──
     let pingoAtivo = null;
     for (let i = v.pingos.length - 1; i >= 0; i--) {
         if (v.pingos[i].tempoDentro !== null && v.pingos[i].tempoDentro !== undefined) {
@@ -671,77 +677,50 @@ if (v.ultimoPontoKm && emMovimentoReal) {
     }
 
     if (pingoAtivo) {
-        // ══════════════════════════════════════════════
-        //  TEM PINGO ATIVO → CRONÔMETRO 2 ESTÁ RODANDO
-        // ══════════════════════════════════════════════
-        
+        // Cronômetro 2 rodando
         const tempoCrono2 = agora - pingoAtivo.tempoDentro;
         const minsCrono2 = Math.floor(tempoCrono2 / 60000);
         pingoAtivo.mins = 6 + minsCrono2;
-        
         const novoIcone = criarIconePingo(pingoAtivo.num, pingoAtivo.mins);
         pingoAtivo.marker.setIcon(novoIcone);
-        
-        if (elTempo) {
-            elTempo.textContent = '⏱️ ' + pingoAtivo.mins + ' min';
-            elTempo.className = 'ativo';
-            elTempo.style.display = 'inline-block';
-        }
-        
-        // ── VERIFICA SE DEVE CONGELAR ──
+        if (elTempo) { elTempo.textContent = '⏱️ ' + pingoAtivo.mins + ' min'; elTempo.className = 'ativo'; elTempo.style.display = 'inline-block'; }
+
         const posPingo = L.latLng(pingoAtivo.lat, pingoAtivo.lng);
         const distanciaInstantanea = map.distance(posPingo, pos);
-        
         if (!pingoAtivo.distBuffer) pingoAtivo.distBuffer = [];
         pingoAtivo.distBuffer.push(distanciaInstantanea);
         if (pingoAtivo.distBuffer.length > 10) pingoAtivo.distBuffer.shift();
         const distanciaMedia = pingoAtivo.distBuffer.reduce((a, b) => a + b, 0) / pingoAtivo.distBuffer.length;
-        
+
         const velocidadeAlta = v.vel > PARADA_VEL;
         const distante = distanciaMedia > RAIO_PINGO_M;
-        
         if (velocidadeAlta && distante) {
             pingoAtivo.tempoDentro = null;
             v.paradaCirculo = null;
-            console.log('⏹️ P' + pingoAtivo.num + ' CONGELADO em ' + pingoAtivo.mins + 'min');
             addLog('⏹️ P' + pingoAtivo.num + ' congelado em ' + pingoAtivo.mins + 'min', 'log-ok');
             if (elTempo) { elTempo.className = ''; elTempo.style.display = 'none'; }
             v.paradaInicio = null;
             v.paradaPos = null;
         }
     } else {
-        // ══════════════════════════════════════════════
-        //  NÃO TEM PINGO ATIVO → CRONÔMETRO 1 ESTÁ RODANDO
-        // ══════════════════════════════════════════════
-        
+        // Cronômetro 1 rodando
         if (v.vel <= PARADA_VEL) {
-            if (!v.paradaInicio) {
-                v.paradaInicio = agora;
-                v.paradaPos = pos;
-                console.log('▶️ Cronômetro 1 iniciado');
-            }
-
+            if (!v.paradaInicio) { v.paradaInicio = agora; v.paradaPos = pos; }
             const tempoParado = agora - v.paradaInicio;
-
             if (tempoParado >= PARADA_MIN_MS) {
                 let pingoProximo = null;
                 for (let p of v.pingos) {
                     if (p.marker) {
                         const dist = map.distance(p.marker.getLatLng(), pos);
-                        if (dist < RAIO_PINGO_M) {
-                            pingoProximo = p;
-                            break;
-                        }
+                        if (dist < RAIO_PINGO_M) { pingoProximo = p; break; }
                     }
                 }
-
                 if (pingoProximo) {
                     pingoProximo.tempoDentro = agora;
                     pingoProximo.mins = 6;
                     pingoProximo.distBuffer = [];
                     const novoIcone = criarIconePingo(pingoProximo.num, 6);
                     pingoProximo.marker.setIcon(novoIcone);
-                    console.log('▶️ P' + pingoProximo.num + ' REATIVADO');
                     addLog('▶️ P' + pingoProximo.num + ' reativado', 'log-warn');
                 } else {
                     v.contador = (v.contador || 0) + 1;
@@ -751,18 +730,14 @@ if (v.ultimoPontoKm && emMovimentoReal) {
                         const icone = criarIconePingo(numPingo, 6);
                         const marker = L.marker(pos, { icon: icone, zIndexOffset: 100 }).addTo(map);
                         v.pingos.push({
-                            marker: marker,
-                            num: numPingo,
-                            mins: 6,
-                            lat: pos.lat,
-                            lng: pos.lng,
+                            marker: marker, num: numPingo, mins: 6,
+                            lat: pos.lat, lng: pos.lng,
                             tempoDentro: agora,
-                            paradaInicio: v.paradaInicio,  // ← NOVO: horário em que o veículo parou
+                            paradaInicio: v.paradaInicio,
                             horaBrasilia: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
                             distBuffer: []
                         });
                         v.paradaCirculo = marker;
-                        console.log('🅿️ PINGO P' + numPingo + ' CRIADO');
                         addLog('🅿️ P' + numPingo + ' criado', 'log-warn');
                     });
                 }
@@ -777,8 +752,17 @@ if (v.ultimoPontoKm && emMovimentoReal) {
                 }
             }
         } else {
-            v.paradaInicio = null;
-            v.paradaPos = null;
+            // ⚠️ CORREÇÃO: NÃO zera se está a menos de 50m do ponto de parada
+            if (v.paradaPos) {
+                const distDoPonto = map.distance(v.paradaPos, pos);
+                if (distDoPonto > 50) {
+                    v.paradaInicio = null;
+                    v.paradaPos = null;
+                }
+            } else {
+                v.paradaInicio = null;
+                v.paradaPos = null;
+            }
         }
     }
 
@@ -807,7 +791,7 @@ window.processarStatus = function(chipId, d) {
 };
 
 // ================================================================
-//  ATUALIZAR PAINEL
+//  PAINEL
 // ================================================================
 function atualizarBotaoLista(chipId) {
   const v = veiculos[chipId];
@@ -825,18 +809,16 @@ function atualizarPainel(chipId) {
   document.getElementById('pSat').textContent = v.sat + ' sat';
   document.getElementById('pRssi').textContent = (v.rssi || '—') + ' dBm';
   document.getElementById('pAlt').textContent = v.alt ? v.alt.toFixed(0) + ' m' : '— m';
-  
-  // ── QUILOMETRAGEM ──
   const km = (v.kmTotal / 1000).toFixed(2);
   document.getElementById('pKm').textContent = km + ' km';
-  
+
   const st = document.getElementById('pStatus');
   const bB = document.getElementById('btnBlock');
   const bC = document.getElementById('btnCancel');
   const bU = document.getElementById('btnUnlock');
   const bn = document.getElementById('pendenteBanner');
   bB.style.display = 'none'; bC.style.display = 'none'; bU.style.display = 'none'; bn.style.display = 'none';
-  
+
   if (v.bloqueado) {
     st.textContent = 'Bloqueado'; st.className = 'badge-sm badge-err';
     bB.style.display = 'block'; bB.style.flex = '1';
@@ -858,16 +840,9 @@ function criarIconePingo(num, mins) {
   let png = iconesPNG.pingos[num];
   if (!png) {
     png = 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png';
-    gerarIconePingo(num).then(gerado => {
-      if (gerado) iconesPNG.pingos[num] = gerado;
-    });
+    gerarIconePingo(num).then(gerado => { if (gerado) iconesPNG.pingos[num] = gerado; });
   }
-  return L.icon({
-    iconUrl: png,
-    iconSize: [44, 58],
-    iconAnchor: [22, 58],
-    popupAnchor: [0, -58]
-  });
+  return L.icon({ iconUrl: png, iconSize: [44, 58], iconAnchor: [22, 58], popupAnchor: [0, -58] });
 }
 
 function corMarcador(v) {
@@ -881,20 +856,10 @@ function mkIcon(cor) {
   if (cor === '#c62828') png = iconesPNG.veiculoVermelho;
   else if (cor === '#f9a825') png = iconesPNG.veiculoAmarelo;
   else png = iconesPNG.veiculoVerde;
-
   if (!png) {
-    return L.icon({
-      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41]
-    });
+    return L.icon({ iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png', iconSize: [25, 41], iconAnchor: [12, 41] });
   }
-
-  return L.icon({
-    iconUrl: png,
-    iconSize: [22, 22],
-    iconAnchor: [11, 11]
-  });
+  return L.icon({ iconUrl: png, iconSize: [22, 22], iconAnchor: [11, 11] });
 }
 
 function atualizarContagem() {
@@ -930,168 +895,168 @@ window.centralizarTodos = function() {
 window.toggleModoFesta = function() {
   if (!ativoId) return;
   if (!modoFestaAtivo) {
-    window.cmd(ativoId, 'ATIVAR_MODO_FESTA');
     const v = veiculos[ativoId];
-    if (v && v.ultimaPos) circuloFesta = L.circle(v.ultimaPos, { color: '#f9a825', fillColor: '#f9a825', fillOpacity: 0.15, radius: RAIO_FESTA_M }).addTo(map);
+    if (!v || !v.ultimaPos) { alert('⚠️ Aguarde o GPS fixar antes de ativar o Modo Festa.'); return; }
+    window.cmd(ativoId, 'ATIVAR_MODO_FESTA');
+    circuloFesta = L.circle(v.ultimaPos, { color: '#f9a825', fillColor: '#f9a825', fillOpacity: 0.15, radius: RAIO_FESTA_M }).addTo(map);
     document.getElementById('btnFesta').classList.add('ativo');
     document.getElementById('btnFesta').textContent = '🛡️Ativo';
     modoFestaAtivo = true;
-
     salvarConfig('modoFestaAtivo', true);
     salvarConfig('modoFestaChipId', ativoId);
-    console.log('💾 Modo Festa salvo no banco (chipId: ' + ativoId + ')');
-
+    addLog('🛡️ Modo Festa ATIVADO (50m)', 'log-ok');
   } else {
+    if (!confirm('⚠️ Desativar o Modo Festa? O veículo não será mais monitorado.')) return;
     window.cmd(ativoId, 'DESATIVAR_MODO_FESTA');
     if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
     document.getElementById('btnFesta').classList.remove('ativo');
     document.getElementById('btnFesta').textContent = '🛡️Festa';
     modoFestaAtivo = false;
-
     removerConfig('modoFestaAtivo');
     removerConfig('modoFestaChipId');
-    console.log('🗑️ Modo Festa removido do banco');
+    addLog('🛡️ Modo Festa DESATIVADO', 'log-warn');
   }
 };
 
 window.ativarAlertaMovimento = function(chipId, d) {
-    // ── Valida as coordenadas ──
     const lat = parseFloat(d.lat);
     const lng = parseFloat(d.lng);
     const posValida = (lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng));
-    
-    // ── Remove o círculo do Modo Festa ──
     if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
     document.getElementById('btnFesta').classList.remove('ativo');
     document.getElementById('btnFesta').textContent = '🛡️Festa';
     modoFestaAtivo = false;
-
-    // ── Remove do IndexedDB ──
     removerConfig('modoFestaAtivo');
     removerConfig('modoFestaChipId');
-    console.log('🗑️ Modo Festa removido do banco (alerta de movimento)');
-
-    // ── Toca a sirene ──
     window.tocarAlarmeNavegador();
     setBadge('pStatus', '🚨 FURTO', 'badge-err');
-    
-    addLog('🔊 Clique no ⏹ para parar a sirene', 'log-warn');
-    
-    // ── Só centraliza se a posição for válida ──
-    if (posValida) {
-        map.setView(L.latLng(lat, lng), 15);
-        addLog('🚨 ALERTA DE FURTO DETECTADO!', 'log-err');
-    } else {
-        addLog('🚨 ALERTA DE FURTO! (GPS perdido — mapa não centralizado)', 'log-warn');
-        console.log('⚠️ Posição inválida (GPS perdido): lat=' + lat + ' lng=' + lng);
-    }
+    addLog('🚨 ALERTA DE FURTO DETECTADO!', 'log-err');
+    if (posValida) map.setView(L.latLng(lat, lng), 15);
 };
 
 // ================================================================
-//  RESTAURAR MODO FESTA AO INICIAR
+//  ALERTA DE SIRENE (mesmo estilo do pânico)
+// ================================================================
+window.ativarAlertaSirene = function(chipId, d) {
+    console.log('🚨 SIRENE DISPAROU!', d);
+    sireneChipId = chipId;
+
+    // Mostra o banner
+    document.getElementById('sireneBanner').style.display = 'block';
+    document.getElementById('sireneWidget').style.display = 'flex';
+
+    // Toca a sirene do navegador
+    window.tocarAlarmeNavegador();
+
+    // Atualiza o badge
+    setBadge('pStatus', '🚨 SIRENE', 'badge-err');
+
+    // Log
+    addLog('🚨 SIRENE DO VEÍCULO DISPAROU!', 'log-err');
+
+    // Vibra (celular)
+    if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
+
+    // Centraliza no veículo
+    const lat = parseFloat(d.lat);
+    const lng = parseFloat(d.lng);
+    if (lat && lng && lat !== 0 && lng !== 0) {
+        map.setView(L.latLng(lat, lng), 16);
+    }
+};
+
+window.fecharBannerSirene = function() {
+    document.getElementById('sireneBanner').style.display = 'none';
+    document.getElementById('sireneWidget').style.display = 'none';
+    window.desligarAlarme();
+    setBadge('pStatus', 'Liberado', 'badge-ok');
+    sireneChipId = null;
+    addLog('🔇 Alerta de sirene fechado', 'log-ok');
+};
+
+// ================================================================
+//  ALERTA DE JAMMER
+// ================================================================
+window.ativarAlertaJammer = function(chipId, d) {
+    console.log('⚠️ ALERTA JAMMER!', d);
+    jammerChipId = chipId;
+    document.getElementById('jammerBanner').style.display = 'block';
+    document.getElementById('jammerWidget').style.display = 'flex';
+    window.tocarAlarmeNavegador();
+    setBadge('pStatus', '⚠️ JAMMER', 'badge-warn');
+    addLog('⚠️ ALERTA JAMMER — Interferência!', 'log-err');
+    if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
+};
+
+window.cancelarAlertaJammer = function() {
+    document.getElementById('jammerBanner').style.display = 'none';
+    document.getElementById('jammerWidget').style.display = 'none';
+    window.desligarAlarme();
+    setBadge('pStatus', 'Liberado', 'badge-ok');
+    if (jammerChipId) window.cmd(jammerChipId, 'CANCELAR_JAMMER');
+    jammerChipId = null;
+    addLog('✅ Alerta jammer cancelado', 'log-ok');
+};
+
+// ================================================================
+//  RESTAURAR MODO FESTA
 // ================================================================
 async function restaurarModoFesta() {
   try {
     const ativo = await lerConfig('modoFestaAtivo', false);
     const chipIdSalvo = await lerConfig('modoFestaChipId', null);
-
     if (ativo && chipIdSalvo) {
-      console.log('🔄 Modo Festa estava ativo. Restaurando...');
-
       let tentativas = 0;
       const intervalo = setInterval(() => {
         tentativas++;
         const v = veiculos[chipIdSalvo];
-
         if (v && v.ultimaPos) {
           clearInterval(intervalo);
           ativoId = chipIdSalvo;
           modoFestaAtivo = true;
-
           if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
           circuloFesta = L.circle(v.ultimaPos, { color: '#f9a825', fillColor: '#f9a825', fillOpacity: 0.15, radius: RAIO_FESTA_M }).addTo(map);
-
           document.getElementById('btnFesta').classList.add('ativo');
           document.getElementById('btnFesta').textContent = '🛡️Ativo';
           document.getElementById('panelNome').textContent = '🚗 ' + v.nome + ' (' + chipIdSalvo + ')';
-
           document.querySelectorAll('.veiculo-btn').forEach(b => b.classList.remove('ativo'));
           const btn = document.getElementById('vbtn_' + chipIdSalvo);
           if (btn) btn.classList.add('ativo');
-
-          // ⬇️ NOVO: Reenvia o comando ATIVAR_MODO_FESTA para o ESP
           if (mqttClient && mqttClient.connected) {
             window.cmd(chipIdSalvo, 'ATIVAR_MODO_FESTA');
-            console.log('📤 Comando ATIVAR_MODO_FESTA reenviado ao ESP');
             addLog('🔄 Modo Festa reativado no veículo', 'log-ok');
           }
-
-          addLog('🔄 Modo Festa restaurado', 'log-ok');
-          console.log('✅ Modo Festa restaurado com sucesso para ' + chipIdSalvo);
-
         } else if (tentativas > 60) {
           clearInterval(intervalo);
-          console.warn('⚠️ Veículo ' + chipIdSalvo + ' não apareceu. Modo Festa não restaurado.');
-          addLog('⚠️ Modo Festa não pôde ser restaurado', 'log-warn');
           removerConfig('modoFestaAtivo');
           removerConfig('modoFestaChipId');
         }
       }, 500);
-    } else {
-      console.log('ℹ️ Modo Festa não estava ativo.');
     }
-  } catch (erro) {
-    console.error('Erro ao restaurar Modo Festa:', erro);
-  }
+  } catch (erro) { console.error('Erro ao restaurar Modo Festa:', erro); }
 }
 
 // ================================================================
-//  REFRESH AUTOMÁTICO DO MODO FESTA APÓS RECONEXÃO
+//  RECONEXÃO
 // ================================================================
 window.addEventListener('online', async () => {
-    console.log('🌐 Conexão de rede restabelecida.');
-
     const estavaAtivo = await lerConfig('modoFestaAtivo', false);
     const chipIdSalvo = await lerConfig('modoFestaChipId', null);
-
     if (estavaAtivo && chipIdSalvo) {
-        console.log('🔄 Modo Festa estava ativo. Forçando refresh...');
-        addLog('🌐 Rede voltou. Reativando Modo Festa...', 'log-warn');
-
         if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
         document.getElementById('btnFesta').classList.remove('ativo');
         document.getElementById('btnFesta').textContent = '🛡️Festa';
         modoFestaAtivo = false;
-
-        if (mqttClient && mqttClient.connected) {
-            window.cmd(chipIdSalvo, 'DESATIVAR_MODO_FESTA');
-            console.log('📤 Comando DESATIVAR enviado ao veículo.');
-        }
-
+        if (mqttClient && mqttClient.connected) window.cmd(chipIdSalvo, 'DESATIVAR_MODO_FESTA');
         setTimeout(() => {
             if (mqttClient && mqttClient.connected) {
                 window.cmd(chipIdSalvo, 'ATIVAR_MODO_FESTA');
-                console.log('📤 Comando ATIVAR enviado ao veículo.');
-
                 const v = veiculos[chipIdSalvo];
-                if (v && v.ultimaPos) {
-                    circuloFesta = L.circle(v.ultimaPos, {
-                        color: '#f9a825',
-                        fillColor: '#f9a825',
-                        fillOpacity: 0.15,
-                        radius: RAIO_FESTA_M
-                    }).addTo(map);
-                }
-
+                if (v && v.ultimaPos) circuloFesta = L.circle(v.ultimaPos, { color: '#f9a825', fillColor: '#f9a825', fillOpacity: 0.15, radius: RAIO_FESTA_M }).addTo(map);
                 document.getElementById('btnFesta').classList.add('ativo');
                 document.getElementById('btnFesta').textContent = '🛡️Ativo';
                 modoFestaAtivo = true;
-
-                addLog('🔄 Modo Festa reativado automaticamente', 'log-ok');
-                console.log('✅ Modo Festa reativado com sucesso.');
-            } else {
-                console.warn('⚠️ MQTT não conectado, não foi possível reativar o Modo Festa.');
-                addLog('⚠️ Falha ao reativar Modo Festa (MQTT offline)', 'log-err');
+                addLog('🔄 Modo Festa reativado', 'log-ok');
             }
         }, 1500);
     }
@@ -1103,8 +1068,8 @@ window.addEventListener('online', async () => {
 window.ativarPanico = function(chipId, origem = 'mqtt', dados = {}) {
   if (panicoAtivo) return;
   panicoAtivo = true; panicoCancelavel = true; panicoChipId = chipId;
-  document.getElementById('panicWidget').style.display = 'flex';
   document.getElementById('panicBanner').style.display = 'block';
+  document.getElementById('panicWidget').style.display = 'flex';
   let segsRestantes = 60;
   const timer = document.getElementById('panicTimer');
   timer.textContent = '(' + segsRestantes + 's)';
@@ -1113,15 +1078,12 @@ window.ativarPanico = function(chipId, origem = 'mqtt', dados = {}) {
     if (segsRestantes > 0) timer.textContent = '(' + segsRestantes + 's)';
     else { clearInterval(panicoTimer); panicoCancelavel = false; timer.textContent = '(Confirmado)'; }
   }, 1000);
-
   if (dados.origem === 'botao_fisico') {
     if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-    addLog('🚨 PÂNICO via botão físico (modo silencioso)', 'log-warn');
-    console.log('🔕 Pânico via botão físico — sirene NÃO tocada (modo silencioso)');
+    addLog('🚨 PÂNICO via botão físico', 'log-warn');
   } else {
     window.tocarAlarmeNavegador();
-    addLog('🚨 PÂNICO ATIVADO (com sirene)', 'log-err');
-    console.log('🔊 Pânico ativado com sirene (origem: ' + (dados.origem || origem) + ')');
+    addLog('🚨 PÂNICO ATIVADO', 'log-err');
   }
 };
 
@@ -1147,106 +1109,39 @@ window.executarTesteD8 = function() {
 // ================================================================
 //  SIRENE FRANCESA
 // ================================================================
-window.__sirene = window.__sirene || {
-    ativa: false,
-    interval: null,
-    osc: null,
-    ctx: null,
-    gain: null
-};
+window.__sirene = window.__sirene || { ativa: false, interval: null, osc: null, ctx: null, gain: null };
 
 window.tocarAlarmeNavegador = function() {
-    console.log('🚨 SIRENE FRANCESA INICIADA');
-    
-    if (window.__sirene.ativa) {
-        console.log('ℹ️ Sirene já está tocando');
-        return;
-    }
-    
+    if (window.__sirene.ativa) return;
     window.__sirene.ativa = true;
-    
     try {
         window.__sirene.ctx = new (window.AudioContext || window.webkitAudioContext)();
         if (window.__sirene.ctx.state === 'suspended') window.__sirene.ctx.resume();
-        
         window.__sirene.osc = window.__sirene.ctx.createOscillator();
         window.__sirene.gain = window.__sirene.ctx.createGain();
         window.__sirene.osc.connect(window.__sirene.gain);
         window.__sirene.gain.connect(window.__sirene.ctx.destination);
-        
         window.__sirene.osc.type = 'square';
         window.__sirene.osc.frequency.value = 880;
         window.__sirene.gain.gain.value = 0.3;
         window.__sirene.osc.start();
-        
-        console.log('🔊 Sirene iniciada!');
-        
         let usandoAlta = true;
-        let count = 0;
-        
         window.__sirene.interval = setInterval(() => {
-            if (!window.__sirene.ativa || !window.__sirene.osc) {
-                clearInterval(window.__sirene.interval);
-                return;
-            }
-            
-            count++;
+            if (!window.__sirene.ativa || !window.__sirene.osc) { clearInterval(window.__sirene.interval); return; }
             usandoAlta = !usandoAlta;
-            
-            if (usandoAlta) {
-                window.__sirene.osc.frequency.value = 880;
-                window.__sirene.gain.gain.value = 0.3;
-            } else {
-                window.__sirene.osc.frequency.value = 440;
-                window.__sirene.gain.gain.value = 0.2;
-            }
-            
-            if (count % 20 === 0) {
-                window.__sirene.gain.gain.value = 0;
-                setTimeout(() => {
-                    if (window.__sirene.ativa && window.__sirene.gain) {
-                        window.__sirene.gain.gain.value = 0.3;
-                    }
-                }, 200);
-            }
-            
+            window.__sirene.osc.frequency.value = usandoAlta ? 880 : 440;
+            window.__sirene.gain.gain.value = usandoAlta ? 0.3 : 0.2;
         }, 300);
-        
-    } catch(e) {
-        console.warn('⚠️ Erro na sirene:', e);
-        window.__sirene.ativa = false;
-    }
-    
-    if (navigator.vibrate) {
-        navigator.vibrate([500, 200, 500, 200, 500, 200, 1000]);
-    }
+    } catch(e) { window.__sirene.ativa = false; }
 };
 
 window.desligarAlarme = function() {
-    console.log('🔇 Desligando sirene...');
-    
     window.__sirene.ativa = false;
-    
-    if (window.__sirene.interval) {
-        clearInterval(window.__sirene.interval);
-        window.__sirene.interval = null;
-    }
-    
-    if (window.__sirene.osc) {
-        try { window.__sirene.osc.stop(); } catch(e) {}
-        window.__sirene.osc = null;
-    }
-    
-    if (window.__sirene.ctx) {
-        try { window.__sirene.ctx.close(); } catch(e) {}
-        window.__sirene.ctx = null;
-    }
-    
+    if (window.__sirene.interval) { clearInterval(window.__sirene.interval); window.__sirene.interval = null; }
+    if (window.__sirene.osc) { try { window.__sirene.osc.stop(); } catch(e) {} window.__sirene.osc = null; }
+    if (window.__sirene.ctx) { try { window.__sirene.ctx.close(); } catch(e) {} window.__sirene.ctx = null; }
     window.__sirene.gain = null;
-    
     if (navigator.vibrate) navigator.vibrate(0);
-    
-    console.log('✅ Sirene desligada');
 };
 
 // ================================================================
@@ -1254,161 +1149,83 @@ window.desligarAlarme = function() {
 // ================================================================
 window.salvarMapa = function() {
   addLog('📸 Preparando captura...', 'log-warn');
-
   const todosPontos = [];
-  
   Object.values(veiculos).forEach(v => {
     const trail = v.trail.getLatLngs();
-    if (trail && trail.length > 0) {
-      trail.forEach(p => todosPontos.push(p));
-    }
-    v.pingos.forEach(p => {
-      if (p.marker) todosPontos.push(p.marker.getLatLng());
-    });
+    if (trail && trail.length > 0) trail.forEach(p => todosPontos.push(p));
+    v.pingos.forEach(p => { if (p.marker) todosPontos.push(p.marker.getLatLng()); });
     if (v.ultimaPos) todosPontos.push(v.ultimaPos);
   });
-
-  console.log('📍 Total de pontos para enquadrar:', todosPontos.length);
-
-  if (todosPontos.length === 0) {
-    alert('⚠️ Nenhum ponto para salvar!');
-    return;
-  }
-
+  if (todosPontos.length === 0) { alert('⚠️ Nenhum ponto para salvar!'); return; }
   const bounds = L.latLngBounds(todosPontos);
-  
-  console.log('📍 Bounds calculados:');
-  console.log('   SW:', bounds.getSouthWest());
-  console.log('   NE:', bounds.getNorthEast());
-
-  map.fitBounds(bounds, { 
-    padding: [60, 60],
-    animate: false,
-    maxZoom: 16
-  });
-
+  map.fitBounds(bounds, { padding: [60, 60], animate: false, maxZoom: 16 });
   let tentativas = 0;
-  const MAX_TENTATIVAS = 20;
-  
   const verificarTiles = setInterval(() => {
     tentativas++;
-    
     const tilesCarregados = document.querySelectorAll('.leaflet-tile-loaded').length;
     const tilesTotal = document.querySelectorAll('.leaflet-tile').length;
-    
-    console.log(`🔍 Tentativa ${tentativas}: ${tilesCarregados}/${tilesTotal} tiles carregados`);
-    
-    if ((tilesTotal > 0 && tilesCarregados >= tilesTotal) || tentativas >= MAX_TENTATIVAS) {
+    if ((tilesTotal > 0 && tilesCarregados >= tilesTotal) || tentativas >= 20) {
       clearInterval(verificarTiles);
-      
-      console.log('✅ Tiles carregados! Iniciando captura...');
-      addLog('✅ Mapa pronto. Capturando...', 'log-warn');
-      
       const zoomControl = document.querySelector('.leaflet-control-zoom');
       const attribution = document.querySelector('.leaflet-control-attribution');
       let zoomDisplay = '', attrDisplay = '';
       if (zoomControl) { zoomDisplay = zoomControl.style.display; zoomControl.style.display = 'none'; }
       if (attribution) { attrDisplay = attribution.style.display; attribution.style.display = 'none'; }
-      
       setTimeout(() => {
         leafletImage(map, function(err, canvas) {
           if (zoomControl) zoomControl.style.display = zoomDisplay || '';
           if (attribution) attribution.style.display = attrDisplay || '';
-
-          if (err) {
-            console.error('Erro leaflet-image:', err);
-            addLog('❌ Erro: ' + err, 'log-err');
-            alert('Erro ao capturar o mapa: ' + err);
-            return;
+          if (err) { alert('Erro ao capturar o mapa: ' + err); return; }
+          const ctx = canvas.getContext('2d');
+          const largura = canvas.width, altura = canvas.height;
+          const mapBounds = map.getBounds();
+          const ne = mapBounds.getNorthEast();
+          const sw = mapBounds.getSouthWest();
+          function latLngParaPixel(lat, lng) {
+            const x = ((lng - sw.lng) / (ne.lng - sw.lng)) * largura;
+            const y = ((ne.lat - lat) / (ne.lat - sw.lat)) * altura;
+            return { x, y };
           }
-// ══════════════════════════════════════════════════════════════
-//  DESENHA AS POLYLINES POR CIMA DO CANVAS
-// ══════════════════════════════════════════════════════════════
-const ctx = canvas.getContext('2d');
-const largura = canvas.width;
-const altura = canvas.height;
-
-const mapBounds = map.getBounds();
-const ne = mapBounds.getNorthEast();
-const sw = mapBounds.getSouthWest();
-
-function latLngParaPixel(lat, lng) {
-    const x = ((lng - sw.lng) / (ne.lng - sw.lng)) * largura;
-    const y = ((ne.lat - lat) / (ne.lat - sw.lat)) * altura;
-    return { x, y };
-}
-
-Object.values(veiculos).forEach(v => {
-    const pontos = v.trail.getLatLngs();
-    if (pontos.length < 2) return;
-    
-    ctx.beginPath();
-    ctx.strokeStyle = '#1565C0';
-    ctx.lineWidth = 3 * (canvas.width / map.getSize().x);
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-    
-    pontos.forEach((p, i) => {
-        const px = latLngParaPixel(p.lat, p.lng);
-        if (i === 0) ctx.moveTo(px.x, px.y);
-        else ctx.lineTo(px.x, px.y);
-    });
-    
-    ctx.stroke();
-});
-// ══════════════════════════════════════════════════════════════
+          Object.values(veiculos).forEach(v => {
+            const pontos = v.trail.getLatLngs();
+            if (pontos.length < 2) return;
+            ctx.beginPath();
+            ctx.strokeStyle = '#1565C0';
+            ctx.lineWidth = 3 * (canvas.width / map.getSize().x);
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            pontos.forEach((p, i) => {
+              const px = latLngParaPixel(p.lat, p.lng);
+              if (i === 0) ctx.moveTo(px.x, px.y);
+              else ctx.lineTo(px.x, px.y);
+            });
+            ctx.stroke();
+          });
           const imgBase64 = canvas.toDataURL('image/png');
           const data = new Date().toLocaleString('pt-BR');
           const dataArq = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
-          const veiculosArr = Object.values(veiculos);
-
-          let html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width,initial-scale=1">
-          <title>Trajeto ${dataArq}</title>
-          <style>
-            * { box-sizing: border-box; }
-            body{font-family:system-ui;background:#111;color:#fff;margin:0;padding:0;}
-            .header{padding:16px 20px;}
-            .header h2{color:#90caf9;margin:0 0 4px 0;font-size:20px;}
-            .header p{color:#888;font-size:12px;margin:0;}
-            .mapa{width:100vw;height:auto;display:block;border-top:1px solid #333;border-bottom:1px solid #333;margin:0;}
-            .relatorio{padding:16px 20px;}
-            h3{color:#fff;font-size:16px;margin:16px 0 8px 0;}
-            table{width:100%;border-collapse:collapse;margin-top:8px;}
-            th{background:#1565C0;color:#fff;padding:10px;text-align:left;font-size:13px;}
-            td{padding:8px 10px;border:1px solid #333;font-size:13px;}
-            tr:nth-child(even){background:#1a1a1a;}
-            .verde{color:#4caf50;font-weight:700;}
-            .verm{color:#ef5350;font-weight:700;}
-            a{color:#90caf9;}
-          </style></head><body>
-          <div class="header">
-            <h2>🛡️ Rastreador — Trajeto salvo em ${data}</h2>
-            <p>Horário de Brasília</p>
-          </div>
-          <img class="mapa" src="${imgBase64}" alt="Mapa do trajeto">
-          <div class="relatorio">
-          `;
-
-          veiculosArr.forEach(v => {
-            const pontos = v.trail.getLatLngs();
-            const status = v.bloqueado ? '<span class="verm">BLOQUEADO</span>' : '<span class="verde">LIBERADO</span>';
+          let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Trajeto ${dataArq}</title>
+          <style>body{font-family:system-ui;background:#111;color:#fff;margin:0;padding:0;}
+          .header{padding:16px 20px;} h2{color:#90caf9;margin:0 0 4px 0;}
+          .mapa{width:100vw;height:auto;} table{width:100%;border-collapse:collapse;margin-top:8px;}
+          th{background:#1565C0;color:#fff;padding:10px;text-align:left;} td{padding:8px;border:1px solid #333;}
+          tr:nth-child(even){background:#1a1a1a;} a{color:#90caf9;}</style></head><body>
+          <div class="header"><h2>🛡️ Trajeto salvo em ${data}</h2></div>
+          <img class="mapa" src="${imgBase64}"><div style="padding:16px 20px;">`;
+          Object.values(veiculos).forEach(v => {
             const km = (v.kmTotal / 1000).toFixed(2);
-            html += `<h3>🚗 ${v.nome} (${v.chipId}) — ${status}</h3>`;
-            html += `<p>📍 Pontos: ${pontos.length} | 🅿️ Paradas: ${v.pingos.length} | 🛣️ Distância: ${km} km</p>`;
+            html += `<h3>🚗 ${v.nome} — ${v.bloqueado ? 'BLOQUEADO' : 'LIBERADO'}</h3>`;
+            html += `<p>Paradas: ${v.pingos.length} | Distância: ${km} km</p>`;
             if (v.pingos.length > 0) {
-              html += '<table><tr><th>#</th><th>Horário</th><th>Duração</th><th>Localização</th><th>Google Maps</th></tr>';
+              html += '<table><tr><th>#</th><th>Horário</th><th>Duração</th><th>Local</th></tr>';
               v.pingos.forEach(p => {
                 const ll = p.marker.getLatLng();
-                const hora = p.horaBrasilia || '—';
-                html += `<tr><td>P${p.num}</td><td>${hora}</td><td>${p.mins} min</td><td>${ll.lat.toFixed(6)}, ${ll.lng.toFixed(6)}</td><td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td></tr>`;
+                html += `<tr><td>P${p.num}</td><td>${p.horaBrasilia||'—'}</td><td>${p.mins} min</td><td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td></tr>`;
               });
               html += '</table>';
             }
           });
-
           html += '</div></body></html>';
-
           const blob = new Blob([html], {type:'text/html'});
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -1416,7 +1233,6 @@ Object.values(veiculos).forEach(v => {
           a.download = 'trajeto_' + dataArq + '.html';
           a.click();
           URL.revokeObjectURL(url);
-
           addLog('💾 Trajeto salvo!', 'log-ok');
         });
       }, 500);
@@ -1424,46 +1240,11 @@ Object.values(veiculos).forEach(v => {
   }, 500);
 };
 
-// ================================================================
-//  SIMULAR MODO FESTA
-// ================================================================
-window.simularModoFesta = function() {
-  if (!window.ativoId) { alert('⚠️ Selecione um veículo!'); return; }
-  const v = window.veiculos[window.ativoId];
-  if (!v || !v.ultimaPos) { alert('⚠️ Veículo sem posição!'); return; }
-  if (window.circuloFesta) { window.circuloFesta.remove(); window.circuloFesta = null; }
-  window.circuloFesta = L.circle(v.ultimaPos, { color: '#f9a825', fillColor: '#f9a825', fillOpacity: 0.15, radius: RAIO_FESTA_M }).addTo(window.map);
-  document.getElementById('btnFesta').classList.add('ativo');
-  document.getElementById('btnFesta').textContent = '🛡️ Ativo';
-  window.modoFestaAtivo = true;
-  setTimeout(() => {
-    const novaPos = L.latLng(v.ultimaPos.lat + 0.0005, v.ultimaPos.lng + 0.001);
-    if (typeof window.tocarAlarmeNavegador === 'function') window.tocarAlarmeNavegador();
-    if (window.circuloFesta) { window.circuloFesta.remove(); window.circuloFesta = null; }
-    document.getElementById('btnFesta').classList.remove('ativo');
-    document.getElementById('btnFesta').textContent = '🛡️Festa';
-    window.modoFestaAtivo = false;
-    if (v.marker) v.marker.setLatLng(novaPos);
-    v.ultimaPos = novaPos;
-    v.trail.addLatLng(novaPos);
-    window.map.setView(novaPos, 16);
-  }, 3000);
-};
-
-window.testarFesta = window.simularModoFesta;
-window.modoFesta = window.simularModoFesta;
-
-console.log('🚀 Rastreador Veicular v2');
-console.log('✅ PARADA_VEL =', PARADA_VEL, 'km/h');
-console.log('✅ PARADA_MIN_MS =', PARADA_MIN_MS/60000, 'min');
-console.log('✅ RAIO_PINGO_M =', RAIO_PINGO_M, 'm');
-console.log('✅ RAIO_FESTA_M =', RAIO_FESTA_M, 'm');
-console.log('✅ IndexedDB: persistência do Modo Festa ativa');
-console.log('✅ Refresh automático do Modo Festa após reconexão');
-console.log('✅ Pânico via D2: aguardando MQTT {"motivo":"panico"}');
-console.log('✅ Pânico silencioso para botão físico');
-console.log('✅ Ícones em PNG (compatível com leaflet-image)');
-console.log('✅ Medidor de quilometragem ativo');
+console.log('🚀 Rastreador Veicular v3');
+console.log('✅ Pingo laranja corrigido');
+console.log('✅ Modo Festa com confirmação');
+console.log('✅ Banner de sirene (mesmo estilo do pânico)');
+console.log('✅ Alerta jammer integrado');
 </script>
 </body>
 </html>
