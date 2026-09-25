@@ -13,77 +13,67 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #111; color: #fff; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-
   #loginScreen { position: fixed; inset: 0; background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; gap: 12px; padding: 20px; }
   #loginScreen h1 { font-size: 22px; font-weight: 700; }
-  #loginScreen p  { font-size: 13px; color: #888; }
   .pin-dot { width: 16px; height: 16px; border-radius: 50%; background: #333; border: 2px solid #555; display: inline-block; margin: 0 4px; transition: all 0.15s; }
   .pin-dot.filled { background: #1565C0; border-color: #1565C0; }
-  .pin-dot.error  { background: #b71c1c; border-color: #b71c1c; }
+  .pin-dot.error { background: #b71c1c; border-color: #b71c1c; }
   #pinDisplay { display: flex; gap: 12px; margin: 8px 0; justify-content: center; }
   .numpad { display: grid; grid-template-columns: repeat(3, 72px); gap: 10px; margin-top: 8px; }
   .numpad button { width: 72px; height: 72px; border-radius: 50%; background: #222; border: 1px solid #333; color: #fff; font-size: 24px; cursor: pointer; transition: all 0.1s; }
   .numpad button:active { background: #1565C0; transform: scale(0.95); }
   #loginError { color: #f44336; font-size: 13px; min-height: 18px; }
   #inputUsuario { width:100%; padding:12px; border-radius:8px; border:1px solid #444; background:#1a1a1a; color:#fff; font-size:16px; text-align:center; }
-
   #topbar { display:none; background: rgba(0,0,0,0.85); border-bottom: 1px solid #222; z-index: 1000; }
   #topbar .linha1 { display:flex; align-items:center; gap:4px; flex-wrap:nowrap; overflow-x:auto; padding:3px 6px; border-bottom:1px solid #222; white-space:nowrap; font-size:10px; }
   #topbar .linha2 { display:flex; align-items:center; gap:4px; flex-wrap:nowrap; overflow-x:auto; padding:3px 6px; white-space:nowrap; font-size:10px; }
   .badge { padding: 2px 6px; border-radius: 12px; font-size: 8px; font-weight: 600; border: 1px solid; white-space: nowrap; }
-  .badge-ok   { background: #2e7d3288; color: #a5d6a7; border-color: #2e7d32; }
-  .badge-err  { background: #c6282888; color: #ef9a9a; border-color: #c62828; }
+  .badge-ok { background: #2e7d3288; color: #a5d6a7; border-color: #2e7d32; }
+  .badge-err { background: #c6282888; color: #ef9a9a; border-color: #c62828; }
   .badge-warn { background: #f9a82588; color: #fff8e1; border-color: #f9a825; animation: blink 1s infinite; }
-  .badge-off  { background: #33333388; color: #888; border-color: #444; }
+  .badge-off { background: #33333388; color: #888; border-color: #444; }
   @keyframes blink { 50% { opacity: 0.5; } }
   #topbar button { background: #1a1a1a; border:1px solid #333; color:#fff; padding:1px 6px; border-radius:8px; font-size:11px; cursor:pointer; }
   #topbar button:active { background: #1565C0; }
   #nomeUsuario { font-size:10px; color:#4caf50; font-weight:700; }
   #veiculoAtivoNome { font-size:10px; font-weight:700; color:#90caf9; }
   #relogioLocal { font-size:10px; color:#00ff41; font-family:'Courier New',monospace; margin-left:auto; }
-
   #veiculosList { display:none; background:rgba(0,0,0,0.85); border-bottom:1px solid #222; overflow-x:auto; display:flex; gap:4px; padding:4px 6px; z-index:999; }
   .veiculo-btn { flex-shrink:0; padding:4px 10px; border-radius:16px; border:2px solid #333; background:#1a1a1a; color:#fff; font-size:10px; font-weight:600; cursor:pointer; white-space:nowrap; }
   .veiculo-btn.ativo { border-color:#1565C0; background:#1565C020; }
   #semVeiculos { color:#555; font-size:11px; padding:4px; }
-
   #map { flex: 1; }
-
   #panel { display:none; position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.88); padding:3px 6px; z-index:1000; border-top:1px solid #222; }
   #panelNome { font-size:9px; font-weight:700; color:#90caf9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:1px; }
   .info-row { display:flex; align-items:center; gap:2px; flex-wrap:nowrap; overflow-x:auto; margin-bottom:1px; }
   .info-pill { background:#1a1a1a; border:1px solid #333; border-radius:6px; padding:1px 4px; font-size:8px; color:#ccc; white-space:nowrap; }
   .badge-sm { font-size:7px; padding:1px 4px; border-radius:8px; border:1px solid; white-space:nowrap; }
-  .badge-sm.badge-ok   { background:#2e7d3288; color:#a5d6a7; border-color:#2e7d32; }
-  .badge-sm.badge-err  { background:#c6282888; color:#ef9a9a; border-color:#c62828; }
+  .badge-sm.badge-ok { background:#2e7d3288; color:#a5d6a7; border-color:#2e7d32; }
+  .badge-sm.badge-err { background:#c6282888; color:#ef9a9a; border-color:#c62828; }
   .badge-sm.badge-warn { background:#f9a82588; color:#fff8e1; border-color:#f9a825; animation:blink 1s infinite; }
-  .badge-sm.badge-off  { background:#33333388; color:#888; border-color:#444; }
+  .badge-sm.badge-off { background:#33333388; color:#888; border-color:#444; }
   .btn-row { display:flex; align-items:center; gap:2px; flex-wrap:nowrap; overflow-x:auto; }
   .btn-row button { padding:2px 4px; font-size:8px; border-radius:5px; border:none; cursor:pointer; white-space:nowrap; flex:1; min-width:28px; height:24px; font-weight:700; }
-  .btn-row .btn-block  { background:#c62828; color:#fff; display:none; }
+  .btn-row .btn-block { background:#c62828; color:#fff; display:none; }
   .btn-row .btn-cancel { background:#f9a825; color:#fff; display:none; }
   .btn-row .btn-unlock { background:#2e7d32; color:#fff; flex:2; font-size:9px; }
   .btn-row .btn-center { flex:0 0 24px; background:#1565C0; color:#fff; font-size:10px; }
-  .btn-row .btn-festa  { background:#333; color:#fff; border:1px solid #555; flex:1; font-size:7px; }
+  .btn-row .btn-festa { background:#333; color:#fff; border:1px solid #555; flex:1; font-size:7px; }
   .btn-row .btn-festa.ativo { background:#f9a825; color:#111; border-color:#f9a825; }
-  .btn-row .btn-d8     { flex:0 0 24px; background:#c62828; color:#fff; font-size:9px; padding:0; text-align:center; }
-  .btn-row .btn-aux    { background:#1565C0; color:#fff; flex:1; font-size:7px; }
-  .btn-row .btn-parar  { flex:0 0 24px; background:#c62828; color:#fff; font-size:10px; padding:0; text-align:center; font-weight:900; }
+  .btn-row .btn-d8 { flex:0 0 24px; background:#c62828; color:#fff; font-size:9px; padding:0; text-align:center; }
+  .btn-row .btn-aux { background:#1565C0; color:#fff; flex:1; font-size:7px; }
+  .btn-row .btn-parar { flex:0 0 24px; background:#c62828; color:#fff; font-size:10px; padding:0; text-align:center; font-weight:900; }
   #logBox { max-height:14px; overflow-y:auto; margin-top:1px; font-size:6px; color:#666; }
   #pTempoParada { background:#1a1a1a; border:1px solid #f9a825; border-radius:5px; padding:1px 4px; font-size:7px; color:#f9a825; white-space:nowrap; display:none; }
   #pTempoParada.ativo { display:inline-block; animation:blink 1s infinite; }
-
-  /* ── BANNERS DE ALERTA (mesmo estilo para pânico, sirene e jammer) ── */
   .alertaBanner { display:none; position:fixed; top:0; left:0; right:0; z-index:9997; color:#fff; text-align:center; padding:6px 10px; font-weight:700; font-size:11px; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
-  .alertaBanner.panico  { background:#b71c1c; }
-  .alertaBanner.sirene  { background:#b71c1c; }
-  .alertaBanner.jammer  { background:#d84315; }
+  .alertaBanner.panico { background:#b71c1c; }
+  .alertaBanner.sirene { background:#b71c1c; }
+  .alertaBanner.jammer { background:#d84315; }
   .alertaBanner button { background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; padding:2px 8px; border-radius:10px; font-size:10px; margin-left:8px; cursor:pointer; font-weight:700; }
   .alertaBanner button:active { background:rgba(255,255,255,0.4); }
-
-  /* Widget lateral (LED piscando) */
   #panicWidget, #sireneWidget, #jammerWidget { display:none; position:fixed; top:30px; right:6px; z-index:9998; align-items:center; gap:3px; background:rgba(0,0,0,0.75); border-radius:14px; padding:2px 6px; cursor:pointer; }
-  #panicWidget  { border:1px solid #c62828; }
+  #panicWidget { border:1px solid #c62828; }
   #sireneWidget { border:1px solid #c62828; }
   #jammerWidget { border:1px solid #d84315; }
   #panicDot, #sireneDot, #jammerDot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
@@ -93,10 +83,8 @@
   #panicTxt, #sireneTxt, #jammerTxt { font-size:8px; font-weight:700; }
   #panicTxt, #sireneTxt { color:#ff6666; }
   #jammerTxt { color:#ffaa66; }
-
   #btnTodos { position:absolute; top:70px; right:5px; z-index:999; background:rgba(0,0,0,0.7); border:1px solid #444; color:#fff; padding:3px 6px; border-radius:14px; font-size:8px; cursor:pointer; display:none; }
-
-  #modalAux, #modalTesteD8, #modalSeguranca { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; }
+  #modalAux, #modalTesteD8, #modalSeguranca, #modalFesta { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; }
   #modalAux.show { display:flex; }
   .modal-box { background:#1a1a1a; border:1px solid #1565C0; border-radius:14px; padding:16px; width:80%; max-width:320px; text-align:center; }
   .modal-box p { font-size:13px; color:#ccc; margin-bottom:12px; }
@@ -108,14 +96,14 @@
   #modalSeguranca input { width:100%; padding:8px; margin-bottom:8px; border-radius:6px; border:1px solid #444; background:#111; color:#fff; font-size:13px; }
   #modalSeguranca input:focus { outline:1px solid #1565C0; }
   .log-line { font-size:8px; color:#666; }
-  .log-ok   { color:#4caf50; }
-  .log-err  { color:#ef5350; }
+  .log-ok { color:#4caf50; }
+  .log-err { color:#ef5350; }
   .log-warn { color:#ffa726; }
 </style>
 </head>
 <body>
 <div id="loginScreen">
- <h1>🚗 GatewayConnectCar</h1>
+  <h1>🚗 GatewayConnectCar</h1>
   <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:80%; max-width:300px;">
     <input type="text" id="inputUsuario" placeholder="Usuário">
     <div id="pinDisplay">
@@ -134,7 +122,6 @@
   </div>
   <button onclick="window.loginComUsuario()" style="padding:12px 40px; border-radius:12px; border:none; background:#1565C0; color:#fff; font-size:16px; font-weight:700; cursor:pointer; margin-top:8px;">Entrar</button>
 </div>
-
 <div id="topbar">
   <div class="linha1">
     <span style="font-size:12px; font-weight:700;">🛡️</span>
@@ -151,30 +138,23 @@
     <span style="font-size:9px; color:#aaa; font-family:'Courier New',monospace; opacity:0.7;">by darca</span>
   </div>
 </div>
-
 <div id="veiculosList">
   <span id="semVeiculos" style="color:#555; font-size:11px;">Aguardando veículos...</span>
 </div>
-
-<!-- ═══ BANNERS DE ALERTA (mesmo estilo) ═══ -->
 <div id="panicBanner" class="alertaBanner panico">
   🚨 PÂNICO ATIVADO! <span id="panicTimer"></span>
   <button onclick="window.cancelarPanico()">Cancelar</button>
   <button onclick="window.centralizarAtivo()">Ver no mapa</button>
 </div>
-
 <div id="sireneBanner" class="alertaBanner sirene">
   🚨 ALARME DO VEÍCULO DISPAROU!
   <button onclick="window.fecharBannerSirene()">Fechar</button>
   <button onclick="window.centralizarAtivo()">Ver no mapa</button>
 </div>
-
 <div id="jammerBanner" class="alertaBanner jammer">
   ⚠️ ALERTA JAMMER — Interferência detectada!
   <button onclick="window.cancelarAlertaJammer()">Cancelar</button>
 </div>
-
-<!-- Widgets laterais (LEDs piscando) -->
 <div id="panicWidget" onclick="window.cancelarPanico()">
   <div id="panicDot"></div>
   <span id="panicTxt">PÂNICO</span>
@@ -188,10 +168,8 @@
   <div id="jammerDot"></div>
   <span id="jammerTxt">JAMMER</span>
 </div>
-
 <div id="map"></div>
 <button id="btnTodos" onclick="window.centralizarTodos()">⊕</button>
-
 <div id="panel">
   <div id="panelNome">Aguardando veículo...</div>
   <div id="pendenteBanner" style="display:none; background:#f9a825dd; border-radius:4px; padding:1px 6px; font-size:8px; font-weight:600; text-align:center; color:#fff; margin-bottom:1px;">🟡 Aguardando velocidade ≤ 8 km/h...</div>
@@ -206,7 +184,7 @@
   </div>
   <div class="btn-row">
     <button class="btn-center" onclick="window.centralizarAtivo()">◎</button>
-    <button class="btn-block"  id="btnBlock"  onclick="window.cmdAtivo('DESBLOQUEAR')" style="display:none;">🔴 Desbloquear</button>
+    <button class="btn-block" id="btnBlock" onclick="window.cmdAtivo('DESBLOQUEAR')" style="display:none;">🔴 Desbloquear</button>
     <button class="btn-cancel" id="btnCancel" onclick="window.cmdAtivo('CANCELAR_BLOQUEIO')" style="display:none;">🟡 Aguardando...</button>
     <button class="btn-unlock" id="btnUnlock" onclick="window.solicitarBloqueio()">🟢 Liberado</button>
     <button class="btn-aux" onclick="window.acionarAux()">🔓AUX</button>
@@ -216,14 +194,9 @@
   </div>
   <div id="logBox"></div>
 </div>
-
 <div id="modalAux"><div class="modal-box"><strong>🔓 Destravar Portas</strong><p>Enviar pulso de 2 segundos para destravamento de emergência?</p><div class="modal-btns"><button class="btn-cancel" onclick="window.fecharModal()">Cancelar</button><button class="btn-confirm" onclick="window.confirmarAux()">Confirmar</button></div></div></div>
-
 <div id="modalTesteD8"><div class="modal-box"><strong>🔧 Teste D8</strong><p>Simular pânico manualmente?</p><div class="modal-btns"><button class="btn-confirm" onclick="window.executarTesteD8()">Sim</button><button class="btn-cancel" onclick="window.fecharModalTesteD8()">Cancelar</button></div></div></div>
-
 <div id="modalSeguranca"><div class="modal-box"><h3 style="color:#fff; font-size:16px; margin-bottom:6px;">🔒 Autenticação</h3><p style="color:#aaa; font-size:11px; margin-bottom:12px;">Digite usuário e senha para bloquear:</p><input type="text" id="segUser" placeholder="Usuário" autofocus><input type="password" id="segPass" placeholder="Senha"><div class="modal-btns"><button class="btn-confirm" onclick="window.confirmarBloqueio()">Confirmar</button><button class="btn-cancel" onclick="window.fecharModalSeguranca()">Cancelar</button></div></div></div>
-
- <!-- Modal de confirmação do Modo Festa -->
 <div id="modalFesta" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
   <div class="modal-box" style="border:1px solid #f9a825;">
     <strong style="color:#f9a825;">🛡️ Desativar Modo Festa?</strong>
@@ -261,13 +234,6 @@ let panicoChipId = null;
 let sireneChipId = null;
 let jammerChipId = null;
 
-// -- SIRENE --
-let alarmeAtivo = false;
-let alarmeCtx = null;
-let alarmeOsc = null;
-let alarmeGain = null;
-let alarmeInterval = null;
-
 // ================================================================
 //  BANCO DE DADOS LOCAL (IndexedDB)
 // ================================================================
@@ -287,7 +253,7 @@ function abrirBanco() {
       }
     };
     request.onsuccess = (event) => { db = event.target.result; resolve(db); };
-    request.onerror = (event) => { console.error('Erro IndexedDB:', event.target.error); reject(event.target.error); };
+    request.onerror = (event) => { reject(event.target.error); };
   });
 }
 
@@ -295,8 +261,7 @@ async function salvarConfig(chave, valor) {
   const database = await abrirBanco();
   return new Promise((resolve, reject) => {
     const tx = database.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    const request = store.put({ chave, valor });
+    const request = tx.objectStore(STORE_NAME).put({ chave, valor });
     request.onsuccess = () => resolve(true);
     request.onerror = (event) => reject(event.target.error);
   });
@@ -306,8 +271,7 @@ async function lerConfig(chave, valorPadrao = null) {
   const database = await abrirBanco();
   return new Promise((resolve, reject) => {
     const tx = database.transaction(STORE_NAME, 'readonly');
-    const store = tx.objectStore(STORE_NAME);
-    const request = store.get(chave);
+    const request = tx.objectStore(STORE_NAME).get(chave);
     request.onsuccess = (event) => {
       const resultado = event.target.result;
       resolve(resultado ? resultado.valor : valorPadrao);
@@ -320,8 +284,7 @@ async function removerConfig(chave) {
   const database = await abrirBanco();
   return new Promise((resolve, reject) => {
     const tx = database.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    const request = store.delete(chave);
+    const request = tx.objectStore(STORE_NAME).delete(chave);
     request.onsuccess = () => resolve(true);
     request.onerror = (event) => reject(event.target.error);
   });
@@ -371,7 +334,6 @@ async function preCarregarIcones() {
   iconesPNG.veiculoVerde = await gerarIconeVeiculo('#2e7d32');
   iconesPNG.veiculoAmarelo = await gerarIconeVeiculo('#f9a825');
   iconesPNG.veiculoVermelho = await gerarIconeVeiculo('#c62828');
-  console.log('✅ Ícones PNG pré-carregados');
 }
 
 // ================================================================
@@ -565,6 +527,7 @@ function obterVeiculo(chipId) {
       vel: 0, sat: 0, rssi: 0, alt: 0,
       marker: null,
       trail: L.polyline([], { color: '#1565C0', weight: 3, opacity: 0.8 }).addTo(map),
+      velocidadesTrail: [],
       ultimaPos: null,
       paradaInicio: null,
       paradaPos: null,
@@ -620,7 +583,6 @@ window.processarGPS = function(chipId, d) {
     const v = obterVeiculo(chipId);
     if (!v) return;
 
-    // ── BUFFER DA VELOCIDADE (5 leituras) ──
     if (!v.velBuffer) v.velBuffer = [];
     if (d.spd !== undefined && d.spd <= 20) {
         v.velBuffer.push(d.spd);
@@ -658,12 +620,13 @@ window.processarGPS = function(chipId, d) {
         v.marker.setIcon(mkIcon(cor));
     }
 
-    // Filtro da linha azul
     const emMovimento = v.vel > PARADA_VEL;
     const temPingoAtivo = v.pingos.some(p => p.tempoDentro !== null && p.tempoDentro !== undefined);
-    if (emMovimento || !temPingoAtivo) v.trail.addLatLng(pos);
+    if (emMovimento || !temPingoAtivo) {
+        v.trail.addLatLng(pos);
+        v.velocidadesTrail.push(v.velInstantanea || v.vel || 0);
+    }
 
-    // Medidor de quilometragem
     if (v.vel > 15) v.contadorMovimento = (v.contadorMovimento || 0) + 1;
     else v.contadorMovimento = 0;
     const emMovimentoReal = v.contadorMovimento >= 5;
@@ -677,7 +640,6 @@ window.processarGPS = function(chipId, d) {
     const agora = Date.now();
     const elTempo = document.getElementById('pTempoParada');
 
-    // ── PINGO: Dois cronômetros ──
     let pingoAtivo = null;
     for (let i = v.pingos.length - 1; i >= 0; i--) {
         if (v.pingos[i].tempoDentro !== null && v.pingos[i].tempoDentro !== undefined) {
@@ -687,7 +649,6 @@ window.processarGPS = function(chipId, d) {
     }
 
     if (pingoAtivo) {
-        // Cronômetro 2 rodando
         const tempoCrono2 = agora - pingoAtivo.tempoDentro;
         const minsCrono2 = Math.floor(tempoCrono2 / 60000);
         pingoAtivo.mins = 6 + minsCrono2;
@@ -713,7 +674,6 @@ window.processarGPS = function(chipId, d) {
             v.paradaPos = null;
         }
     } else {
-        // Cronômetro 1 rodando
         if (v.vel <= PARADA_VEL) {
             if (!v.paradaInicio) { v.paradaInicio = agora; v.paradaPos = pos; }
             const tempoParado = agora - v.paradaInicio;
@@ -762,7 +722,6 @@ window.processarGPS = function(chipId, d) {
                 }
             }
         } else {
-            // ⚠️ CORREÇÃO: NÃO zera se está a menos de 50m do ponto de parada
             if (v.paradaPos) {
                 const distDoPonto = map.distance(v.paradaPos, pos);
                 if (distDoPonto > 50) {
@@ -905,7 +864,6 @@ window.centralizarTodos = function() {
 window.toggleModoFesta = function() {
   if (!ativoId) return;
   if (!modoFestaAtivo) {
-    // ── ATIVAR ──
     const v = veiculos[ativoId];
     if (!v || !v.ultimaPos) { alert('⚠️ Aguarde o GPS fixar antes de ativar o Modo Festa.'); return; }
     window.cmd(ativoId, 'ATIVAR_MODO_FESTA');
@@ -917,7 +875,6 @@ window.toggleModoFesta = function() {
     salvarConfig('modoFestaChipId', ativoId);
     addLog('🛡️ Modo Festa ATIVADO (50m)', 'log-ok');
   } else {
-    // ── DESATIVAR: abre o modal bonito ──
     document.getElementById('modalFesta').style.display = 'flex';
   }
 };
@@ -955,34 +912,20 @@ window.ativarAlertaMovimento = function(chipId, d) {
 };
 
 // ================================================================
-//  ALERTA DE SIRENE (mesmo estilo do pânico)
+//  ALERTA DE SIRENE
 // ================================================================
 window.ativarAlertaSirene = function(chipId, d) {
     console.log('🚨 ALARME DISPAROU!', d);
     sireneChipId = chipId;
-
-    // Mostra o banner
     document.getElementById('sireneBanner').style.display = 'block';
     document.getElementById('sireneWidget').style.display = 'flex';
-
-    // Toca a sirene do navegador
     window.tocarAlarmeNavegador();
-
-    // Atualiza o badge
     setBadge('pStatus', '🚨 ALARME', 'badge-err');
-
-    // Log
     addLog('🚨 ALARME DO VEÍCULO DISPAROU!', 'log-err');
-
-    // Vibra (celular)
     if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
-
-    // Centraliza no veículo
     const lat = parseFloat(d.lat);
     const lng = parseFloat(d.lng);
-    if (lat && lng && lat !== 0 && lng !== 0) {
-        map.setView(L.latLng(lat, lng), 16);
-    }
+    if (lat && lng && lat !== 0 && lng !== 0) map.setView(L.latLng(lat, lng), 16);
 };
 
 window.fecharBannerSirene = function() {
@@ -1056,9 +999,6 @@ async function restaurarModoFesta() {
   } catch (erro) { console.error('Erro ao restaurar Modo Festa:', erro); }
 }
 
-// ================================================================
-//  RECONEXÃO
-// ================================================================
 window.addEventListener('online', async () => {
     const estavaAtivo = await lerConfig('modoFestaAtivo', false);
     const chipIdSalvo = await lerConfig('modoFestaChipId', null);
@@ -1206,20 +1146,58 @@ window.salvarMapa = function() {
             const y = ((ne.lat - lat) / (ne.lat - sw.lat)) * altura;
             return { x, y };
           }
+          // ═══ DESENHA O TRAIL COLORIDO POR VELOCIDADE + VELOCIDADE MÁXIMA ═══
           Object.values(veiculos).forEach(v => {
             const pontos = v.trail.getLatLngs();
+            const vels = v.velocidadesTrail || [];
             if (pontos.length < 2) return;
-            ctx.beginPath();
-            ctx.strokeStyle = '#1565C0';
-            ctx.lineWidth = 3 * (canvas.width / map.getSize().x);
-            ctx.lineJoin = 'round';
-            ctx.lineCap = 'round';
-            pontos.forEach((p, i) => {
-              const px = latLngParaPixel(p.lat, p.lng);
-              if (i === 0) ctx.moveTo(px.x, px.y);
-              else ctx.lineTo(px.x, px.y);
-            });
-            ctx.stroke();
+            
+            for (let i = 1; i < pontos.length; i++) {
+              const vel = vels[i] || 0;
+              let cor;
+              if (vel < 20) cor = '#1565C0';
+              else if (vel < 40) cor = '#4caf50';
+              else if (vel < 60) cor = '#f9a825';
+              else if (vel < 80) cor = '#ff6f00';
+              else cor = '#c62828';
+              
+              const p1 = latLngParaPixel(pontos[i-1].lat, pontos[i-1].lng);
+              const p2 = latLngParaPixel(pontos[i].lat, pontos[i].lng);
+              
+              ctx.beginPath();
+              ctx.strokeStyle = cor;
+              ctx.lineWidth = 4 * (canvas.width / map.getSize().x);
+              ctx.lineJoin = 'round';
+              ctx.lineCap = 'round';
+              ctx.moveTo(p1.x, p1.y);
+              ctx.lineTo(p2.x, p2.y);
+              ctx.stroke();
+            }
+            
+            // Marca a velocidade máxima
+            if (vels.length > 0) {
+              const velMax = Math.max(...vels);
+              const idxMax = vels.indexOf(velMax);
+              const pontoMax = pontos[idxMax];
+              if (pontoMax) {
+                const px = latLngParaPixel(pontoMax.lat, pontoMax.lng);
+                ctx.beginPath();
+                ctx.arc(px.x, px.y, 18, 0, 2 * Math.PI);
+                ctx.fillStyle = '#c62828';
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 13px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(Math.round(velMax) + '', px.x, px.y);
+                ctx.fillStyle = '#c62828';
+                ctx.font = 'bold 10px Arial';
+                ctx.fillText('MÁX', px.x, px.y + 28);
+              }
+            }
           });
           const imgBase64 = canvas.toDataURL('image/png');
           const data = new Date().toLocaleString('pt-BR');
@@ -1228,42 +1206,50 @@ window.salvarMapa = function() {
           <style>body{font-family:system-ui;background:#111;color:#fff;margin:0;padding:0;}
           .header{padding:16px 20px;} h2{color:#90caf9;margin:0 0 4px 0;}
           .mapa{width:100vw;height:auto;} table{width:100%;border-collapse:collapse;margin-top:8px;}
-           th{background:#1565C0;color:#fff;padding:10px;text-align:center;}td{padding:8px;border:1px solid #333;text-align:center;}
+          th{background:#1565C0;color:#fff;padding:10px;text-align:center;}td{padding:8px;border:1px solid #333;text-align:center;}
           tr:nth-child(even){background:#1a1a1a;} a{color:#90caf9;}</style></head><body>
           <div class="header"><h2>🛡️ Trajeto salvo em ${data}</h2></div>
           <img class="mapa" src="${imgBase64}"><div style="padding:16px 20px;">`;
           Object.values(veiculos).forEach(v => {
             const km = (v.kmTotal / 1000).toFixed(2);
+            const vels = v.velocidadesTrail || [];
+            const velMax = vels.length > 0 ? Math.max(...vels) : 0;
+            const velMedia = vels.length > 0 ? (vels.reduce((a,b) => a+b, 0) / vels.length) : 0;
+            
             html += `<h3>🚗 ${v.nome} — ${v.bloqueado ? 'BLOQUEADO' : 'LIBERADO'}</h3>`;
-            html += `<p>Paradas: ${v.pingos.length} | Distância: ${km} km</p>`;
+            html += `<p style="text-align:center;">Paradas: <b>${v.pingos.length}</b> | Distância: <b>${km} km</b> | Vel. Máx: <b style="color:#ef5350">${velMax.toFixed(0)} km/h</b> | Vel. Média: <b>${velMedia.toFixed(0)} km/h</b></p>`;
             if (v.pingos.length > 0) {
-            html += '<table><tr><th>#</th><th>Horário (Pingo)</th><th>Horário (Parada)</th><th>Duração</th><th>Local</th></tr>';
-v.pingos.forEach(p => {
-  const ll = p.marker.getLatLng();
-  
-  // ⬇️ Calcula o horário da parada (hora do pingo - 6 min) ⬇️
-  let horaParada = '—';
-  if (p.horaBrasilia) {
-    const [hh, mm] = p.horaBrasilia.split(':').map(Number);
-    const data = new Date();
-    data.setHours(hh, mm - 6, 0, 0);  // subtrai 6 minutos
-    horaParada = String(data.getHours()).padStart(2, '0') + ':' + 
-                 String(data.getMinutes()).padStart(2, '0');
-  }
-  // ⬆️ Fim do cálculo ⬆️
-  
-  html += `<tr>
-    <td>P${p.num}</td>
-    <td>${p.horaBrasilia || '—'}</td>
-    <td>${horaParada}</td>
-    <td>${p.mins} min</td>
-    <td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td>
-  </tr>`;
-});  
+              html += '<table><tr><th>#</th><th>Horário (Pingo)</th><th>Horário (Parada)</th><th>Duração</th><th>Local</th></tr>';
+              v.pingos.forEach(p => {
+                const ll = p.marker.getLatLng();
+                let horaParada = '—';
+                if (p.horaBrasilia) {
+                  const partes = p.horaBrasilia.split(':');
+                  const hh = Number(partes[0]);
+                  const mm = Number(partes[1]);
+                  const dataTemp = new Date();
+                  dataTemp.setHours(hh, mm - 6, 0, 0);
+                  horaParada = String(dataTemp.getHours()).padStart(2, '0') + ':' + String(dataTemp.getMinutes()).padStart(2, '0');
+                }
+                html += `<tr><td>P${p.num}</td><td>${p.horaBrasilia || '—'}</td><td>${horaParada}</td><td>${p.mins} min</td><td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td></tr>`;
+              });
               html += '</table>';
             }
           });
-          html += '</div></body></html>';
+          html += `
+          <div style="padding:16px 20px;background:#1a1a1a;border-top:1px solid #333;">
+            <b style="color:#90caf9;font-size:14px;">📊 Legenda de velocidade:</b>
+            <div style="margin-top:10px;font-size:12px;color:#ccc;line-height:2;">
+              <span style="display:inline-block;width:24px;height:5px;background:#1565C0;margin-right:6px;vertical-align:middle;border-radius:3px;"></span> Até 20 km/h
+              <span style="display:inline-block;width:24px;height:5px;background:#4caf50;margin:0 6px 0 20px;vertical-align:middle;border-radius:3px;"></span> 20-40 km/h
+              <span style="display:inline-block;width:24px;height:5px;background:#f9a825;margin:0 6px 0 20px;vertical-align:middle;border-radius:3px;"></span> 40-60 km/h
+              <span style="display:inline-block;width:24px;height:5px;background:#ff6f00;margin:0 6px 0 20px;vertical-align:middle;border-radius:3px;"></span> 60-80 km/h
+              <span style="display:inline-block;width:24px;height:5px;background:#c62828;margin:0 6px 0 20px;vertical-align:middle;border-radius:3px;"></span> Acima de 80 km/h
+              <br>
+              <span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:#c62828;border:2px solid #fff;margin:6px 6px 0 0;vertical-align:middle;"></span> Ponto de velocidade máxima
+            </div>
+          </div>
+          </div></body></html>`;
           const blob = new Blob([html], {type:'text/html'});
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -1278,14 +1264,9 @@ v.pingos.forEach(p => {
   }, 500);
 };
 
-console.log('🚀 Rastreador Veicular v3');
-console.log('✅ Pingo laranja corrigido');
-console.log('✅ Modo Festa com confirmação');
-console.log('✅ Banner de sirene (mesmo estilo do pânico)');
-console.log('✅ Alerta jammer integrado');
- // ══════════════════════════════════════════════════
-//  REGISTRO DO SERVICE WORKER (obrigatório para PWA)
-// ══════════════════════════════════════════════════
+// ================================================================
+//  REGISTRO DO SERVICE WORKER
+// ================================================================
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/rastreador/sw.js')
@@ -1293,6 +1274,12 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.log('❌ Erro SW:', err));
   });
 }
+
+console.log('🚀 GatewayConnectCar v4');
+console.log('✅ Trail colorido por velocidade');
+console.log('✅ Velocidade máxima marcada no mapa');
+console.log('✅ Resumo com Vel. Máx e Média');
+console.log('✅ Legenda de cores');
 </script>
 </body>
 </html>
