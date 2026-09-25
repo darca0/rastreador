@@ -661,11 +661,8 @@ window.processarGPS = function(chipId, d) {
     // Filtro da linha azul
     const emMovimento = v.vel > PARADA_VEL;
     const temPingoAtivo = v.pingos.some(p => p.tempoDentro !== null && p.tempoDentro !== undefined);
-    if (emMovimento || !temPingoAtivo) {
-    v.trail.addLatLng(pos);
-    if (!v.velocidadesTrail) v.velocidadesTrail = [];
-    v.velocidadesTrail.push(v.velInstantanea || v.vel || 0);
-}
+    if (emMovimento || !temPingoAtivo) v.trail.addLatLng(pos);
+
     // Medidor de quilometragem
     if (v.vel > 15) v.contadorMovimento = (v.contadorMovimento || 0) + 1;
     else v.contadorMovimento = 0;
@@ -1209,67 +1206,19 @@ window.salvarMapa = function() {
             const y = ((ne.lat - lat) / (ne.lat - sw.lat)) * altura;
             return { x, y };
           }
-         Object.values(veiculos).forEach(v => {
-    const pontos = v.trail.getLatLngs();
-    const vels = v.velocidadesTrail || [];
-    if (pontos.length < 2) return;
-    
-    // ── DESENHA O TRAIL COLORIDO POR VELOCIDADE ──
-    for (let i = 1; i < pontos.length; i++) {
-        const vel = vels[i] || 0;
-        let cor;
-        
-        if (vel < 20) cor = '#1565C0';       // Azul — lento
-        else if (vel < 40) cor = '#4caf50';  // Verde — normal
-        else if (vel < 60) cor = '#f9a825';  // Amarelo — rápido
-        else if (vel < 80) cor = '#ff6f00';  // Laranja — muito rápido
-        else cor = '#c62828';                // Vermelho — excesso
-        
-        const p1 = latLngParaPixel(pontos[i-1].lat, pontos[i-1].lng);
-        const p2 = latLngParaPixel(pontos[i].lat, pontos[i].lng);
-        
-        ctx.beginPath();
-        ctx.strokeStyle = cor;
-        ctx.lineWidth = 4 * (canvas.width / map.getSize().x);
-        ctx.lineJoin = 'round';
-        ctx.lineCap = 'round';
-        ctx.moveTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
-        ctx.stroke();
-    }
-    
-    // ── MARCA A VELOCIDADE MÁXIMA COM CÍRCULO VERMELHO ──
-    if (vels.length > 0) {
-        const velMax = Math.max(...vels);
-        const idxMax = vels.indexOf(velMax);
-        const pontoMax = pontos[idxMax];
-        
-        if (pontoMax) {
-            const px = latLngParaPixel(pontoMax.lat, pontoMax.lng);
-            
-            // Círculo vermelho
+          Object.values(veiculos).forEach(v => {
+            const pontos = v.trail.getLatLngs();
+            if (pontos.length < 2) return;
             ctx.beginPath();
-            ctx.arc(px.x, px.y, 18, 0, 2 * Math.PI);
-            ctx.fillStyle = '#c62828';
-            ctx.fill();
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-            
-            // Número da velocidade no centro
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 13px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(Math.round(velMax) + '', px.x, px.y);
-            
-            // Etiqueta "MÁX" abaixo
-            ctx.fillStyle = '#c62828';
-            ctx.font = 'bold 10px Arial';
-            ctx.fillText('MÁX', px.x, px.y + 28);
-        }
-    }
-});
+            ctx.strokeStyle = '#1565C0';
+            ctx.lineWidth = 3 * (canvas.width / map.getSize().x);
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            pontos.forEach((p, i) => {
+              const px = latLngParaPixel(p.lat, p.lng);
+              if (i === 0) ctx.moveTo(px.x, px.y);
+              else ctx.lineTo(px.x, px.y);
+            });
             ctx.stroke();
           });
           const imgBase64 = canvas.toDataURL('image/png');
@@ -1286,16 +1235,7 @@ window.salvarMapa = function() {
           Object.values(veiculos).forEach(v => {
             const km = (v.kmTotal / 1000).toFixed(2);
             html += `<h3>🚗 ${v.nome} — ${v.bloqueado ? 'BLOQUEADO' : 'LIBERADO'}</h3>`;
-           const vels = v.velocidadesTrail || [];
-const velMax = vels.length > 0 ? Math.max(...vels) : 0;
-const velMedia = vels.length > 0 ? (vels.reduce((a,b) => a+b, 0) / vels.length) : 0;
-
-html += `<p style="text-align:center;">
-  Paradas: <b>${v.pingos.length}</b> | 
-  Distância: <b>${km} km</b> | 
-  Vel. Máx: <b style="color:#ef5350">${velMax.toFixed(0)} km/h</b> | 
-  Vel. Média: <b>${velMedia.toFixed(0)} km/h</b>
-</p>`;
+            html += `<p>Paradas: ${v.pingos.length} | Distância: ${km} km</p>`;
             if (v.pingos.length > 0) {
             html += '<table><tr><th>#</th><th>Horário (Pingo)</th><th>Horário (Parada)</th><th>Duração</th><th>Local</th></tr>';
 v.pingos.forEach(p => {
@@ -1323,20 +1263,7 @@ v.pingos.forEach(p => {
               html += '</table>';
             }
           });
-         html += `
-<div style="padding:16px 20px;background:#1a1a1a;border-top:1px solid #333;">
-  <b style="color:#90caf9;font-size:14px;">📊 Legenda de velocidade:</b>
-  <div style="margin-top:10px;font-size:12px;color:#ccc;line-height:2;">
-    <span style="display:inline-block;width:24px;height:5px;background:#1565C0;margin-right:6px;vertical-align:middle;border-radius:3px;"></span> Até 20 km/h
-    <span style="display:inline-block;width:24px;height:5px;background:#4caf50;margin:0 6px 0 20px;vertical-align:middle;border-radius:3px;"></span> 20-40 km/h
-    <span style="display:inline-block;width:24px;height:5px;background:#f9a825;margin:0 6px 0 20px;vertical-align:middle;border-radius:3px;"></span> 40-60 km/h
-    <span style="display:inline-block;width:24px;height:5px;background:#ff6f00;margin:0 6px 0 20px;vertical-align:middle;border-radius:3px;"></span> 60-80 km/h
-    <span style="display:inline-block;width:24px;height:5px;background:#c62828;margin:0 6px 0 20px;vertical-align:middle;border-radius:3px;"></span> Acima de 80 km/h
-    <br>
-    <span style="display:inline-block;width:16px;height:16px;border-radius:50%;background:#c62828;border:2px solid #fff;margin:6px 6px 0 0;vertical-align:middle;"></span> Ponto de velocidade máxima
-  </div>
-</div>
-</div></body></html>`;
+          html += '</div></body></html>';
           const blob = new Blob([html], {type:'text/html'});
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
