@@ -1237,11 +1237,29 @@ window.salvarMapa = function() {
             html += `<h3>🚗 ${v.nome} — ${v.bloqueado ? 'BLOQUEADO' : 'LIBERADO'}</h3>`;
             html += `<p>Paradas: ${v.pingos.length} | Distância: ${km} km</p>`;
             if (v.pingos.length > 0) {
-              html += '<table><tr><th>#</th><th>Horário</th><th>Duração</th><th>Local</th></tr>';
-              v.pingos.forEach(p => {
-                const ll = p.marker.getLatLng();
-                html += `<tr><td>P${p.num}</td><td>${p.horaBrasilia||'—'}</td><td>${p.mins} min</td><td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td></tr>`;
-              });
+            html += '<table><tr><th>#</th><th>Horário (Pingo)</th><th>Horário (Parada)</th><th>Duração</th><th>Local</th></tr>';
+v.pingos.forEach(p => {
+  const ll = p.marker.getLatLng();
+  
+  // ⬇️ Calcula o horário da parada (hora do pingo - 6 min) ⬇️
+  let horaParada = '—';
+  if (p.horaBrasilia) {
+    const [hh, mm] = p.horaBrasilia.split(':').map(Number);
+    const data = new Date();
+    data.setHours(hh, mm - 6, 0, 0);  // subtrai 6 minutos
+    horaParada = String(data.getHours()).padStart(2, '0') + ':' + 
+                 String(data.getMinutes()).padStart(2, '0');
+  }
+  // ⬆️ Fim do cálculo ⬆️
+  
+  html += `<tr>
+    <td>P${p.num}</td>
+    <td>${p.horaBrasilia || '—'}</td>
+    <td>${horaParada}</td>
+    <td>${p.mins} min</td>
+    <td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td>
+  </tr>`;
+});  
               html += '</table>';
             }
           });
