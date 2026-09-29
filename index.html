@@ -693,24 +693,33 @@ window.processarGPS = function(chipId, d) {
                     pingoProximo.marker.setIcon(novoIcone);
                     addLog('▶️ P' + pingoProximo.num + ' reativado', 'log-warn');
                 } else {
-                    v.contador = (v.contador || 0) + 1;
-                    const numPingo = v.contador;
-                    gerarIconePingo(numPingo).then(png => {
-                        if (png) iconesPNG.pingos[numPingo] = png;
-                        const icone = criarIconePingo(numPingo, 6);
-                        const marker = L.marker(pos, { icon: icone, zIndexOffset: 100 }).addTo(map);
-                        v.pingos.push({
-                            marker: marker, num: numPingo, mins: 6,
-                            lat: pos.lat, lng: pos.lng,
-                            tempoDentro: agora,
-                            paradaInicio: v.paradaInicio,
-                            horaBrasilia: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-                            distBuffer: []
-                        });
-                        v.paradaCirculo = marker;
-                        addLog('🅿️ P' + numPingo + ' criado', 'log-warn');
-                    });
-                }
+    v.contador = (v.contador || 0) + 1;
+    const numPingo = v.contador;
+    
+    // Cria o ícone imediatamente (com fallback se ainda não gerado)
+    const icone = criarIconePingo(numPingo, 6);
+    const marker = L.marker(pos, { icon: icone, zIndexOffset: 100 }).addTo(map);
+    
+    // ⚠️ CORREÇÃO: Adiciona o pingo ao array IMEDIATAMENTE (sincronamente)
+    v.pingos.push({
+        marker: marker, num: numPingo, mins: 6,
+        lat: pos.lat, lng: pos.lng,
+        tempoDentro: agora,
+        paradaInicio: v.paradaInicio,
+        horaBrasilia: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        distBuffer: []
+    });
+    v.paradaCirculo = marker;
+    addLog('🅿️ P' + numPingo + ' criado', 'log-warn');
+    
+    // Gera o ícone em segundo plano e atualiza o marcador quando pronto
+    gerarIconePingo(numPingo).then(png => {
+        if (png) {
+            iconesPNG.pingos[numPingo] = png;
+            marker.setIcon(criarIconePingo(numPingo, 6));
+        }
+    });
+}
             } else {
                 if (elTempo) {
                     const segundos = Math.floor(tempoParado / 1000);
