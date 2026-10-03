@@ -1096,182 +1096,193 @@ window.desligarAlarme = function() {
 };
 
 // ═══════════════════════════════════════════════════
-//  SALVAR MAPA
+//  SALVAR MAPA — HTML com Leaflet interativo
 // ═══════════════════════════════════════════════════
-window.salvarMapa = async function() {
-  if (typeof leafletImage !== 'function') {
-    window.uiAviso('Biblioteca leaflet-image não carregou. Recarregue a página.', '❌ Erro');
-    return;
-  }
+window.salvarMapa = function() {
+  // Coleta todos os pontos de todos os veículos
+  const dadosVeiculos = [];
+  let temAlgo = false;
 
-  const todosPontos = [];
   Object.values(veiculos).forEach(v => {
-    const trail = v.trail.getLatLngs();
-    if (trail && trail.length > 0) trail.forEach(p => todosPontos.push(p));
-    v.pingos.forEach(p => { if (p.marker) todosPontos.push(p.marker.getLatLng()); });
-    if (v.ultimaPos) todosPontos.push(v.ultimaPos);
+    const trail = v.trail.getLatLngs().map(p => [p.lat, p.lng]);
+    const pingos = v.pingos.map(p => {
+      const ll = p.marker.getLatLng();
+      return { lat: ll.lat, lng: ll.lng, num: p.num, mins: p.mins, hora: p.horaBrasilia || '—' };
+    });
+    const vels = v.velocidadesTrail || [];
+    const velMax = vels.length > 0 ? Math.max(...vels) : 0;
+    const velMedia = vels.length > 0 ? (vels.reduce((a,b) => a+b, 0) / vels.length) : 0;
+
+    if (trail.length > 0 || pingos.length > 0) temAlgo = true;
+
+    dadosVeiculos.push({
+      nome: v.nome,
+      chipId: v.chipId,
+      bloqueado: v.bloqueado,
+      km: (v.kmTotal / 1000).toFixed(2),
+      velMax: velMax.toFixed(0),
+      velMedia: velMedia.toFixed(0),
+      trail: trail,
+      vels: vels,
+      pingos: pingos,
+      ultimaPos: v.ultimaPos ? [v.ultimaPos.lat, v.ultimaPos.lng] : null
+    });
   });
 
-  if (todosPontos.length === 0) {
+  if (!temAlgo) {
     window.uiAviso('Nenhum ponto para salvar! Aguarde o GPS fixar e o veículo se mover.', '💾 Salvar');
     return;
   }
 
-  if (currentStyle !== 'map') {
-    currentStyle = 'map';
-    tileLayer.setUrl(TILES.map);
-    addLog('🛰 Trocado para modo Mapa', 'log-warn');
-    await new Promise(r => setTimeout(r, 1200));
-  }
+  const data = new Date().toLocaleString('pt-BR');
+  const dataArq = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
 
-  addLog('📸 Preparando captura...', 'log-warn');
-  const bounds = L.latLngBounds(todosPontos);
-  map.fitBounds(bounds, { padding: [60, 60], animate: false, maxZoom: 16 });
+  // Gera o HTML
+  let html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trajeto ${dataArq}</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
+<style>
+  body { font-family: system-ui, sans-serif; background: #111; color: #fff; margin: 0; padding: 0; }
+  .header { padding: 16px 20px; border-bottom: 1px solid #333; }
+  h1 { font-size: 18px; color: #90caf9; margin: 0 0 4px 0; }
+  .sub { font-size: 12px; color: #888; }
+  #mapa { width: 100%; height: 60vh; min-height: 400px; }
+  .info { padding: 16px 20px; }
+  .veiculo { margin-bottom: 20px; padding: 12px; background: #1a1a1a; border-radius: 10px; }
+  .veiculo h2 { font-size: 15px; margin: 0 0 8px 0; color: #90caf9; }
+  .veiculo .status { font-weight: 700; }
+  .verde { color: #4caf50; }
+  .verm { color: #ef5350; }
+  .stats { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; font-size: 13px; color: #ccc; }
+  .stats b { color: #fff; }
+  table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; }
+  th { background: #1565C0; color: #fff; padding: 8px; text-align: left; }
+  td { padding: 6px 8px; border: 1px solid #333; }
+  tr:nth-child(even) { background: #1a1a1a; }
+  a { color: #90caf9; }
+  .legenda { padding: 16px 20px; background: #0a0a0a; font-size: 12px; color: #ccc; line-height: 2; }
+  .linha-cor { display: inline-block; width: 24px; height: 5px; vertical-align: middle; margin-right: 6px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🛡️ Trajeto salvo em ${data}</h1>
+  <div class="sub">GatewayConnectCar</div>
+</div>
+<div id="mapa"></div>
+<div class="info">`;
 
-  await new Promise(r => setTimeout(r, 800));
-
-  let tentativas = 0;
-  const MAX_TENTATIVAS = 30;
-
-  const verificarTiles = setInterval(() => {
-    tentativas++;
-    const tilesCarregados = document.querySelectorAll('.leaflet-tile-loaded').length;
-    const tilesTotal = document.querySelectorAll('.leaflet-tile').length;
-    const tilesOk = (tilesTotal > 0 && tilesCarregados >= tilesTotal);
-
-    if (tilesOk || tentativas >= MAX_TENTATIVAS) {
-      clearInterval(verificarTiles);
-      addLog('📸 Capturando (' + tilesCarregados + '/' + tilesTotal + ' tiles)', 'log-warn');
-
-      const zoomControl = document.querySelector('.leaflet-control-zoom');
-      const attribution = document.querySelector('.leaflet-control-attribution');
-      let zoomDisplay = '', attrDisplay = '';
-      if (zoomControl) { zoomDisplay = zoomControl.style.display; zoomControl.style.display = 'none'; }
-      if (attribution) { attrDisplay = attribution.style.display; attribution.style.display = 'none'; }
-
-      setTimeout(() => {
-        try {
-          leafletImage(map, function(err, canvas) {
-            if (zoomControl) zoomControl.style.display = zoomDisplay || '';
-            if (attribution) attribution.style.display = attrDisplay || '';
-
-            if (err) {
-              addLog('❌ Erro ao capturar: ' + err, 'log-err');
-              window.uiAviso('Erro ao capturar: ' + err, '💾 Salvar');
-              return;
-            }
-            if (!canvas) {
-              addLog('❌ Canvas vazio', 'log-err');
-              window.uiAviso('Erro: canvas vazio. Tente de novo.', '💾 Salvar');
-              return;
-            }
-
-            const ctx = canvas.getContext('2d');
-            const largura = canvas.width, altura = canvas.height;
-            const mapBounds = map.getBounds();
-            const ne = mapBounds.getNorthEast();
-            const sw = mapBounds.getSouthWest();
-
-            function latLngParaPixel(lat, lng) {
-              const x = ((lng - sw.lng) / (ne.lng - sw.lng)) * largura;
-              const y = ((ne.lat - lat) / (ne.lat - sw.lat)) * altura;
-              return { x, y };
-            }
-
-            Object.values(veiculos).forEach(v => {
-              const pontos = v.trail.getLatLngs();
-              const vels = v.velocidadesTrail || [];
-              if (pontos.length < 2) return;
-              for (let i = 1; i < pontos.length; i++) {
-                const vel = vels[i] || 0;
-                const cor = (vel <= 80) ? '#1565C0' : '#c62828';
-                const corBorda = (vel <= 80) ? '#0d47a1' : '#8e0000';
-                const p1 = latLngParaPixel(pontos[i-1].lat, pontos[i-1].lng);
-                const p2 = latLngParaPixel(pontos[i].lat, pontos[i].lng);
-                ctx.beginPath();
-                ctx.strokeStyle = corBorda;
-                ctx.lineWidth = 7 * (canvas.width / map.getSize().x);
-                ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-                ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
-                ctx.beginPath();
-                ctx.strokeStyle = cor;
-                ctx.lineWidth = 4 * (canvas.width / map.getSize().x);
-                ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
-              }
-              if (vels.length > 0) {
-                const velMax = Math.max(...vels);
-                const idxMax = vels.indexOf(velMax);
-                const pontoMax = pontos[idxMax];
-                if (pontoMax) {
-                  const px = latLngParaPixel(pontoMax.lat, pontoMax.lng);
-                  const corMarcador = (velMax <= 80) ? '#1565C0' : '#c62828';
-                  ctx.beginPath();
-                  ctx.arc(px.x, px.y, 18, 0, 2 * Math.PI);
-                  ctx.fillStyle = corMarcador; ctx.fill();
-                  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3; ctx.stroke();
-                  ctx.fillStyle = '#ffffff';
-                  ctx.font = 'bold 13px Arial';
-                  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                  ctx.fillText(Math.round(velMax) + '', px.x, px.y);
-                  ctx.fillStyle = corMarcador;
-                  ctx.font = 'bold 10px Arial';
-                  ctx.fillText('MÁX', px.x, px.y + 28);
-                }
-              }
-            });
-
-            const imgBase64 = canvas.toDataURL('image/png');
-            const data = new Date().toLocaleString('pt-BR');
-            const dataArq = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
-            let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Trajeto ${dataArq}</title>
-            <style>body{font-family:system-ui;background:#111;color:#fff;margin:0;padding:0;}
-            .header{padding:16px 20px;} h2{color:#90caf9;margin:0 0 4px 0;}
-            .mapa{width:100vw;height:auto;} table{width:100%;border-collapse:collapse;margin-top:8px;}
-            th{background:#1565C0;color:#fff;padding:10px;text-align:center;}td{padding:8px;border:1px solid #333;text-align:center;}
-            tr:nth-child(even){background:#1a1a1a;} a{color:#90caf9;}</style></head><body>
-            <div class="header"><h2>🛡️ Trajeto salvo em ${data}</h2></div>
-            <img class="mapa" src="${imgBase64}"><div style="padding:16px 20px;">`;
-
-            Object.values(veiculos).forEach(v => {
-              const km = (v.kmTotal / 1000).toFixed(2);
-              const vels = v.velocidadesTrail || [];
-              const velMax = vels.length > 0 ? Math.max(...vels) : 0;
-              const velMedia = vels.length > 0 ? (vels.reduce((a,b) => a+b, 0) / vels.length) : 0;
-              html += `<h3>🚗 ${v.nome} — ${v.bloqueado ? 'BLOQUEADO' : 'LIBERADO'}</h3>`;
-              html += `<p style="text-align:center;">Paradas: <b>${v.pingos.length}</b> | Distância: <b>${km} km</b> | Vel. Máx: <b style="color:${velMax > 80 ? '#c62828' : '#1565C0'}">${velMax.toFixed(0)} km/h</b> | Vel. Média: <b>${velMedia.toFixed(0)} km/h</b></p>`;
-              if (v.pingos.length > 0) {
-                html += '<table><tr><th>#</th><th>Horário</th><th>Duração</th><th>Local</th></tr>';
-                v.pingos.forEach(p => {
-                  const ll = p.marker.getLatLng();
-                  html += `<tr><td>P${p.num}</td><td>${p.horaBrasilia || '—'}</td><td>${p.mins} min</td><td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td></tr>`;
-                });
-                html += '</table>';
-              }
-            });
-            html += `</div></body></html>`;
-
-            const blob = new Blob([html], {type:'text/html'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'trajeto_' + dataArq + '.html';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-            addLog('💾 Trajeto salvo!', 'log-ok');
-          });
-        } catch (e) {
-          if (zoomControl) zoomControl.style.display = zoomDisplay || '';
-          if (attribution) attribution.style.display = attrDisplay || '';
-          addLog('❌ Exceção: ' + e.message, 'log-err');
-          window.uiAviso('Erro inesperado: ' + e.message, '💾 Salvar');
-        }
-      }, 300);
+  dadosVeiculos.forEach(v => {
+    const statusCor = v.bloqueado ? 'verm' : 'verde';
+    const statusTxt = v.bloqueado ? 'BLOQUEADO' : 'LIBERADO';
+    html += `<div class="veiculo">
+      <h2>🚗 ${v.nome} — <span class="status ${statusCor}">${statusTxt}</span></h2>
+      <div class="stats">
+        <span>Paradas: <b>${v.pingos.length}</b></span>
+        <span>Distância: <b>${v.km} km</b></span>
+        <span>Vel. Máx: <b class="${v.velMax > 80 ? 'verm' : 'verde'}">${v.velMax} km/h</b></span>
+        <span>Vel. Média: <b>${v.velMedia} km/h</b></span>
+      </div>`;
+    if (v.pingos.length > 0) {
+      html += `<table>
+        <tr><th>#</th><th>Horário</th><th>Duração</th><th>Local</th></tr>`;
+      v.pingos.forEach(p => {
+        html += `<tr>
+          <td>P${p.num}</td>
+          <td>${p.hora}</td>
+          <td>${p.mins} min</td>
+          <td><a href="https://maps.google.com/?q=${p.lat},${p.lng}" target="_blank">Abrir no Google Maps</a></td>
+        </tr>`;
+      });
+      html += `</table>`;
     }
-  }, 500);
-};
+    html += `</div>`;
+  });
 
+  html += `</div>
+<div class="legenda">
+  <b style="color:#90caf9;">📊 Legenda de velocidade:</b><br>
+  <span class="linha-cor" style="background:#1565C0;"></span> Até 80 km/h
+  <span class="linha-cor" style="background:#c62828; margin-left:20px;"></span> Acima de 80 km/h
+</div>
+<script>
+  const dados = ${JSON.stringify(dadosVeiculos)};
+  const m = L.map('mapa', { zoomControl: true });
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: '© Esri'
+  }).addTo(m);
+  const todosPontos = [];
+  dados.forEach(v => {
+    // Desenha o trail com cor por velocidade
+    if (v.trail.length > 1) {
+      for (let i = 1; i < v.trail.length; i++) {
+        const vel = v.vels[i] || 0;
+        const cor = vel <= 80 ? '#1565C0' : '#c62828';
+        L.polyline([v.trail[i-1], v.trail[i]], {
+          color: cor, weight: 4, opacity: 0.9
+        }).addTo(m);
+      }
+      // Marcador da velocidade máxima
+      if (v.vels.length > 0) {
+        const velMax = Math.max(...v.vels);
+        const idxMax = v.vels.indexOf(velMax);
+        const pontoMax = v.trail[idxMax];
+        if (pontoMax) {
+          const cor = velMax <= 80 ? '#1565C0' : '#c62828';
+          L.circleMarker(pontoMax, {
+            radius: 14, color: '#fff', weight: 3, fillColor: cor, fillOpacity: 1
+          }).addTo(m).bindPopup('<b>Vel. Máx:</b> ' + Math.round(velMax) + ' km/h');
+        }
+      }
+      // Posição atual
+      if (v.ultimaPos) {
+        L.circleMarker(v.ultimaPos, {
+          radius: 8, color: '#2e7d32', fillColor: '#2e7d32', fillOpacity: 1, weight: 3
+        }).addTo(m).bindPopup('<b>' + v.nome + '</b><br>Posição atual');
+      }
+      v.trail.forEach(p => todosPontos.push(p));
+    }
+    // Pingos
+    v.pingos.forEach(p => {
+      const svg = \`<svg xmlns="http://www.w3.org/2000/svg" width="40" height="50" viewBox="0 0 60 80">
+        <path d="M30 0 C13 0 0 13 0 30 C0 47 30 80 30 80 C30 80 60 47 60 30 C60 13 47 0 30 0Z" fill="#FF6B00" stroke="#CC5500" stroke-width="2"/>
+        <circle cx="30" cy="28" r="17" fill="white" opacity="0.95"/>
+        <text x="30" y="33" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="14" font-weight="900" fill="#CC5500">P\${p.num}</text>
+      </svg>\`;
+      L.marker([p.lat, p.lng], {
+        icon: L.divIcon({ className: '', html: svg, iconSize: [40, 50], iconAnchor: [20, 50] })
+      }).addTo(m).bindPopup('<b>P' + p.num + '</b><br>' + p.mins + ' min<br>' + p.hora);
+      todosPontos.push([p.lat, p.lng]);
+    });
+  });
+  if (todosPontos.length > 0) {
+    m.fitBounds(todosPontos, { padding: [40, 40] });
+  } else {
+    m.setView([-22.7078, -47.6659], 13);
+  }
+<\/script>
+</body>
+</html>`;
+
+  // Download
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'trajeto_' + dataArq + '.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+  addLog('💾 Trajeto salvo!', 'log-ok');
+};
 // ═══════════════════════════════════════════════════
 //  SERVICE WORKER
 // ═══════════════════════════════════════════════════
