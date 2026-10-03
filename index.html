@@ -71,7 +71,7 @@
   .btn-center { flex:0 0 44px; width:44px; height:44px; background:#1565C0; color:#fff; border:none; border-radius:10px; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; }
   .btn-center:active { background:#0d47a1; }
 
-  /* Linha 2 — AUX + Festa grandes, demais quadradinhos */
+  /* Linha 2 */
   .btn-linha { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
   .btn-linha .btn-aux,
   .btn-linha .btn-festa {
@@ -104,7 +104,6 @@
   .log-err  { color:#ef5350; }
   .log-warn { color:#ffa726; }
 
-  /* Botão flutuante Todos */
   #btnTodos { position:absolute; top:70px; right:8px; z-index:999; background:rgba(0,0,0,0.7); border:1px solid #444; color:#fff; padding:6px 12px; border-radius:20px; font-size:12px; cursor:pointer; display:none; }
 
   /* ── BANNERS ── */
@@ -140,7 +139,6 @@
   #modalSeguranca input { width:100%; padding:8px; margin-bottom:8px; border-radius:6px; border:1px solid #444; background:#111; color:#fff; font-size:13px; }
   #modalSeguranca input:focus { outline:1px solid #1565C0; }
 
-  /* Cores específicas dos modais genéricos */
   #modalAviso .modal-box   { border-color:#f9a825; }
   #modalAviso strong       { color:#f9a825; }
   #modalConfirm .modal-box { border-color:#1565C0; }
@@ -238,7 +236,6 @@
     <span class="badge badge-off" id="pStatus">Aguardando</span>
   </div>
 
-  <!-- LINHA 1 -->
   <div class="btn-row">
     <button class="btn-center" onclick="window.centralizarAtivo()">◎</button>
     <button class="map-btn btn-block"  id="btnBlock"  style="display:none;">🔴 Bloqueado</button>
@@ -246,7 +243,6 @@
     <button class="map-btn btn-unlock" id="btnUnlock">🟢 Liberado</button>
   </div>
 
-  <!-- LINHA 2 -->
   <div class="btn-linha">
     <button class="btn-aux" onclick="window.acionarAux()">🔓 AUX</button>
     <button class="btn-festa" id="btnFesta" onclick="window.toggleModoFesta()">🛡️ Festa</button>
@@ -296,7 +292,7 @@
   </div>
 </div>
 
-<!-- MODAL AVISO (substitui alert) -->
+<!-- MODAL AVISO -->
 <div id="modalAviso">
   <div class="modal-box">
     <strong id="modalAvisoTitulo">Aviso</strong>
@@ -307,7 +303,7 @@
   </div>
 </div>
 
-<!-- MODAL CONFIRMAÇÃO (substitui confirm) -->
+<!-- MODAL CONFIRMAÇÃO -->
 <div id="modalConfirm">
   <div class="modal-box">
     <strong id="modalConfirmTitulo">Confirmação</strong>
@@ -331,9 +327,9 @@ const PARADA_MIN_MS = 360000;
 const RAIO_PINGO_M = 70.0;
 const RAIO_FESTA_M = 50.0;
 
-// Tiles
+// Tiles — Esri (CORS garantido, sem API key)
 const TILES = {
-  map:       'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  map:       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
   satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
 };
 
@@ -353,7 +349,7 @@ let sireneChipId = null;
 let jammerChipId = null;
 
 // ═══════════════════════════════════════════════════
-//  MODAIS GENÉRICOS (substituem alert/confirm)
+//  MODAIS GENÉRICOS
 // ═══════════════════════════════════════════════════
 window.uiAviso = function(texto, titulo) {
   document.getElementById('modalAvisoTitulo').textContent = titulo || 'Aviso';
@@ -454,7 +450,7 @@ window.iniciarApp = function() {
   tileLayer = L.tileLayer(TILES.map, {
     maxZoom: 19,
     crossOrigin: true,
-    attribution: '© OpenStreetMap © CARTO'
+    attribution: '© Esri'
   }).addTo(map);
   window.conectarMQTT();
 };
@@ -986,7 +982,7 @@ window.centralizarTodos = function() {
 };
 
 // ═══════════════════════════════════════════════════
-//  ALERTA DE MOVIMENTO (Modo Festa)
+//  ALERTA DE MOVIMENTO
 // ═══════════════════════════════════════════════════
 window.ativarAlertaMovimento = function(chipId, d) {
   const lat = parseFloat(d.lat);
@@ -1092,7 +1088,7 @@ window.cancelarPanico = function() {
 };
 
 // ═══════════════════════════════════════════════════
-//  SIRENE FRANCESA (Web Audio)
+//  SIRENE
 // ═══════════════════════════════════════════════════
 window.__sirene = window.__sirene || { ativa: false, interval: null, osc: null, ctx: null, gain: null };
 
@@ -1130,7 +1126,7 @@ window.desligarAlarme = function() {
 };
 
 // ═══════════════════════════════════════════════════
-//  SALVAR MAPA (CartoDB + robusto)
+//  SALVAR MAPA
 // ═══════════════════════════════════════════════════
 window.salvarMapa = async function() {
   if (typeof leafletImage !== 'function') {
@@ -1151,7 +1147,6 @@ window.salvarMapa = async function() {
     return;
   }
 
-  // Força modo mapa (CartoDB) antes de capturar, porque ArcGIS satélite bloqueia CORS
   if (currentStyle !== 'map') {
     currentStyle = 'map';
     tileLayer.setUrl(TILES.map);
@@ -1318,7 +1313,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-console.log('🚀 GatewayConnectCar v6 — CartoDB + modais internos');
+console.log('🚀 GatewayConnectCar v7 — Esri (Street + Satellite)');
 </script>
 </body>
 </html>
