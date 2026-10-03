@@ -1188,19 +1188,39 @@ window.salvarMapa = function() {
         <span>Vel. Máx: <b class="${v.velMax > 80 ? 'verm' : 'verde'}">${v.velMax} km/h</b></span>
         <span>Vel. Média: <b>${v.velMedia} km/h</b></span>
       </div>`;
-    if (v.pingos.length > 0) {
-      html += `<table>
-        <tr><th>#</th><th>Horário</th><th>Duração</th><th>Local</th></tr>`;
-      v.pingos.forEach(p => {
-        html += `<tr>
-          <td>P${p.num}</td>
-          <td>${p.hora}</td>
-          <td>${p.mins} min</td>
-          <td><a href="https://maps.google.com/?q=${p.lat},${p.lng}" target="_blank">Abrir no Google Maps</a></td>
-        </tr>`;
-      });
-      html += `</table>`;
+   if (v.pingos.length > 0) {
+  html += `<table>
+    <tr>
+      <th>#</th>
+      <th>Início da parada</th>
+      <th>Pingo apareceu</th>
+      <th>Tempo total parado</th>
+      <th>Local</th>
+    </tr>`;
+  v.pingos.forEach(p => {
+    // Calcula hora de início (hora do pingo - 6 min)
+    let horaInicio = '—';
+    if (p.hora) {
+      const [hh, mm] = p.hora.split(':').map(Number);
+      const data = new Date();
+      data.setHours(hh, mm - 6, 0, 0);
+      horaInicio = String(data.getHours()).padStart(2,'0') + ':' + String(data.getMinutes()).padStart(2,'0');
     }
+    // Tempo total: p.mins já é 6 + tempo após criação
+    const horas = Math.floor(p.mins / 60);
+    const mins = p.mins % 60;
+    const tempoTotal = horas > 0 ? `${horas}h ${String(mins).padStart(2,'0')}min` : `${mins} min`;
+
+    html += `<tr>
+      <td>P${p.num}</td>
+      <td>${horaInicio}</td>
+      <td>${p.hora}</td>
+      <td>${tempoTotal}</td>
+      <td><a href="https://maps.google.com/?q=${p.lat},${p.lng}" target="_blank">Abrir</a></td>
+    </tr>`;
+  });
+  html += `</table>`;
+}
     html += `</div>`;
   });
 
