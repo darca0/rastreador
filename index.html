@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<script src="https://unpkg.com/leaflet-image@0.4.0/leaflet-image.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet-image@0.4.0/leaflet-image.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>GatewayConnectCar</title>
 <link rel="manifest" href="/rastreador/manifest.json">
@@ -14,7 +14,7 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #111; color: #fff; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 
-  /* LOGIN */
+  /* ── LOGIN ── */
   #loginScreen { position: fixed; inset: 0; background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; gap: 12px; padding: 20px; }
   #loginScreen h1 { font-size: 22px; font-weight: 700; }
   .pin-dot { width: 16px; height: 16px; border-radius: 50%; background: #333; border: 2px solid #555; display: inline-block; margin: 0 4px; transition: all 0.15s; }
@@ -27,7 +27,7 @@
   #loginError { color: #f44336; font-size: 13px; min-height: 18px; }
   #inputUsuario { width:100%; padding:12px; border-radius:8px; border:1px solid #444; background:#1a1a1a; color:#fff; font-size:16px; text-align:center; }
 
-  /* TOPBAR */
+  /* ── TOPBAR ── */
   #topbar { display:none; background: rgba(0,0,0,0.85); border-bottom: 1px solid #222; z-index: 1000; padding: 4px 8px; }
   #topbar .row { display:flex; align-items:center; gap:6px; flex-wrap:nowrap; overflow-x:auto; white-space:nowrap; font-size:11px; }
   #topbar .row + .row { margin-top: 3px; }
@@ -43,17 +43,17 @@
   #veiculoAtivoNome { font-size:11px; font-weight:700; color:#90caf9; }
   #relogioLocal { font-size:11px; color:#00ff41; font-family:'Courier New',monospace; margin-left:auto; }
 
-  /* VEÍCULOS */
+  /* ── VEÍCULOS ── */
   #veiculosList { display:none; background:rgba(0,0,0,0.85); border-bottom:1px solid #222; overflow-x:auto; gap:4px; padding:4px 6px; z-index:999; }
   #veiculosList.show { display:flex; }
   .veiculo-btn { flex-shrink:0; padding:4px 10px; border-radius:16px; border:2px solid #333; background:#1a1a1a; color:#fff; font-size:11px; font-weight:600; cursor:pointer; white-space:nowrap; }
   .veiculo-btn.ativo { border-color:#1565C0; background:#1565C020; }
   #semVeiculos { color:#555; font-size:11px; padding:4px; }
 
-  /* MAPA */
+  /* ── MAPA ── */
   #map { flex: 1; }
 
-  /* PAINEL */
+  /* ── PAINEL ── */
   #panel { display:none; position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.88); padding:6px 8px; z-index:1000; border-top:1px solid #222; }
   #panelNome { font-size:11px; font-weight:700; color:#90caf9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:4px; }
   .info-row { display:flex; align-items:center; gap:4px; flex-wrap:wrap; margin-bottom:4px; }
@@ -61,7 +61,7 @@
   #pTempoParada { background:#1a1a1a; border:1px solid #f9a825; border-radius:8px; padding:2px 8px; font-size:11px; color:#f9a825; white-space:nowrap; display:none; }
   #pTempoParada.ativo { display:inline-block; animation:blink 1s infinite; }
 
-  /* LINHA 1 — centralizar + bloquear */
+  /* Linha 1 */
   .btn-row { display:flex; align-items:center; gap:6px; }
   .map-btn { flex:1; height:44px; padding:0 8px; border-radius:10px; border:none; font-size:14px; font-weight:700; cursor:pointer; transition:all 0.15s; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .map-btn:active { transform: scale(0.97); }
@@ -71,46 +71,22 @@
   .btn-center { flex:0 0 44px; width:44px; height:44px; background:#1565C0; color:#fff; border:none; border-radius:10px; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; }
   .btn-center:active { background:#0d47a1; }
 
-  /* LINHA 2 — AUX + Festa grandes, demais quadradinhos */
-  .btn-linha {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 6px;
-  }
+  /* Linha 2 — AUX + Festa grandes, demais quadradinhos */
+  .btn-linha { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
   .btn-linha .btn-aux,
   .btn-linha .btn-festa {
-    flex: 1;
-    height: 44px;
-    padding: 0 8px;
-    border-radius: 10px;
-    border: none;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.15s;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    flex: 1; height: 44px; padding: 0 8px; border-radius: 10px; border: none;
+    font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.15s;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .btn-linha .btn-aux   { background:#1565C0; color:#fff; }
   .btn-linha .btn-aux:active { background:#0d47a1; }
   .btn-linha .btn-festa { background:#333; color:#fff; border:1px solid #555; }
   .btn-linha .btn-festa.ativo { background:#f9a825; color:#111; border-color:#f9a825; }
   .btn-linha .btn-quadrado {
-    flex: 0 0 44px;
-    width: 44px;
-    height: 44px;
-    padding: 0;
-    border-radius: 10px;
-    border: none;
-    font-size: 16px;
-    font-weight: 900;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.15s;
+    flex: 0 0 44px; width: 44px; height: 44px; padding: 0; border-radius: 10px; border: none;
+    font-size: 16px; font-weight: 900; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s;
   }
   .btn-linha .btn-quadrado:active { transform: scale(0.95); }
   .btn-linha .btn-salvar { background:#2e7d32; color:#fff; }
@@ -128,10 +104,10 @@
   .log-err  { color:#ef5350; }
   .log-warn { color:#ffa726; }
 
-  /* BOTÕES FLUTUANTES */
+  /* Botão flutuante Todos */
   #btnTodos { position:absolute; top:70px; right:8px; z-index:999; background:rgba(0,0,0,0.7); border:1px solid #444; color:#fff; padding:6px 12px; border-radius:20px; font-size:12px; cursor:pointer; display:none; }
 
-  /* BANNERS DE ALERTA */
+  /* ── BANNERS ── */
   .alertaBanner { display:none; position:fixed; top:0; left:0; right:0; z-index:9997; color:#fff; text-align:center; padding:8px 10px; font-weight:700; font-size:13px; box-shadow:0 2px 8px rgba(0,0,0,0.5); }
   .alertaBanner.panico  { background:#b71c1c; }
   .alertaBanner.sirene  { background:#b71c1c; }
@@ -139,7 +115,7 @@
   .alertaBanner button { background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; padding:3px 10px; border-radius:10px; font-size:12px; margin-left:8px; cursor:pointer; font-weight:700; }
   .alertaBanner button:active { background:rgba(255,255,255,0.4); }
 
-  /* WIDGETS */
+  /* ── WIDGETS ── */
   #panicWidget, #sireneWidget, #jammerWidget { display:none; position:fixed; top:80px; right:8px; z-index:9998; align-items:center; gap:4px; background:rgba(0,0,0,0.75); border-radius:16px; padding:4px 10px; cursor:pointer; }
   #panicWidget, #sireneWidget { border:1px solid #c62828; }
   #jammerWidget { border:1px solid #d84315; }
@@ -150,9 +126,9 @@
   #panicTxt, #sireneTxt { font-size:11px; font-weight:700; color:#ff6666; }
   #jammerTxt { font-size:11px; font-weight:700; color:#ffaa66; }
 
-  /* MODAIS */
-  #modalAux, #modalSeguranca, #modalFesta { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; }
-  #modalAux.show, #modalSeguranca.show, #modalFesta.show { display:flex; }
+  /* ── MODAIS ── */
+  #modalAux, #modalSeguranca, #modalFesta, #modalAviso, #modalConfirm { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; }
+  #modalAux.show, #modalSeguranca.show, #modalFesta.show, #modalAviso.show, #modalConfirm.show { display:flex; }
   .modal-box { background:#1a1a1a; border:1px solid #1565C0; border-radius:14px; padding:16px; width:82%; max-width:320px; text-align:center; }
   .modal-box p { font-size:13px; color:#ccc; margin-bottom:12px; line-height:1.5; }
   .modal-box strong { color:#fff; font-size:15px; display:block; margin-bottom:6px; }
@@ -163,6 +139,12 @@
   .btn-festa-confirm { background:#f9a825; color:#111; }
   #modalSeguranca input { width:100%; padding:8px; margin-bottom:8px; border-radius:6px; border:1px solid #444; background:#111; color:#fff; font-size:13px; }
   #modalSeguranca input:focus { outline:1px solid #1565C0; }
+
+  /* Cores específicas dos modais genéricos */
+  #modalAviso .modal-box   { border-color:#f9a825; }
+  #modalAviso strong       { color:#f9a825; }
+  #modalConfirm .modal-box { border-color:#1565C0; }
+  #modalConfirm strong     { color:#90caf9; }
 </style>
 </head>
 <body>
@@ -256,7 +238,7 @@
     <span class="badge badge-off" id="pStatus">Aguardando</span>
   </div>
 
-  <!-- LINHA 1: centralizar + bloquear -->
+  <!-- LINHA 1 -->
   <div class="btn-row">
     <button class="btn-center" onclick="window.centralizarAtivo()">◎</button>
     <button class="map-btn btn-block"  id="btnBlock"  style="display:none;">🔴 Bloqueado</button>
@@ -264,7 +246,7 @@
     <button class="map-btn btn-unlock" id="btnUnlock">🟢 Liberado</button>
   </div>
 
-  <!-- LINHA 2: AUX + Festa grandes, demais quadradinhos 44px -->
+  <!-- LINHA 2 -->
   <div class="btn-linha">
     <button class="btn-aux" onclick="window.acionarAux()">🔓 AUX</button>
     <button class="btn-festa" id="btnFesta" onclick="window.toggleModoFesta()">🛡️ Festa</button>
@@ -314,6 +296,29 @@
   </div>
 </div>
 
+<!-- MODAL AVISO (substitui alert) -->
+<div id="modalAviso">
+  <div class="modal-box">
+    <strong id="modalAvisoTitulo">Aviso</strong>
+    <p id="modalAvisoTexto">Mensagem</p>
+    <div class="modal-btns">
+      <button class="btn-confirm" onclick="window.fecharAviso()">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAÇÃO (substitui confirm) -->
+<div id="modalConfirm">
+  <div class="modal-box">
+    <strong id="modalConfirmTitulo">Confirmação</strong>
+    <p id="modalConfirmTexto">Tem certeza?</p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="window.fecharConfirm(false)">Cancelar</button>
+      <button class="btn-confirm" onclick="window.fecharConfirm(true)">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════
 //  CONFIG
@@ -325,6 +330,12 @@ const PARADA_VEL = 5.0;
 const PARADA_MIN_MS = 360000;
 const RAIO_PINGO_M = 70.0;
 const RAIO_FESTA_M = 50.0;
+
+// Tiles
+const TILES = {
+  map:       'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+};
 
 let pinBuffer = '';
 let usuarioId = '';
@@ -340,6 +351,35 @@ let panicoCancelavel = true;
 let panicoChipId = null;
 let sireneChipId = null;
 let jammerChipId = null;
+
+// ═══════════════════════════════════════════════════
+//  MODAIS GENÉRICOS (substituem alert/confirm)
+// ═══════════════════════════════════════════════════
+window.uiAviso = function(texto, titulo) {
+  document.getElementById('modalAvisoTitulo').textContent = titulo || 'Aviso';
+  document.getElementById('modalAvisoTexto').textContent = texto;
+  document.getElementById('modalAviso').classList.add('show');
+};
+
+window.fecharAviso = function() {
+  document.getElementById('modalAviso').classList.remove('show');
+};
+
+let _confirmResolve = null;
+
+window.uiConfirm = function(texto, titulo) {
+  return new Promise((resolve) => {
+    _confirmResolve = resolve;
+    document.getElementById('modalConfirmTitulo').textContent = titulo || 'Confirmação';
+    document.getElementById('modalConfirmTexto').textContent = texto;
+    document.getElementById('modalConfirm').classList.add('show');
+  });
+};
+
+window.fecharConfirm = function(resposta) {
+  document.getElementById('modalConfirm').classList.remove('show');
+  if (_confirmResolve) { _confirmResolve(resposta); _confirmResolve = null; }
+};
 
 // ═══════════════════════════════════════════════════
 //  LOGIN
@@ -396,7 +436,7 @@ setInterval(atualizarRelogioLocal, 1000);
 atualizarRelogioLocal();
 
 // ═══════════════════════════════════════════════════
-//  ÁUDIO — desbloqueia no primeiro toque
+//  ÁUDIO
 // ═══════════════════════════════════════════════════
 document.body.addEventListener('touchstart', function desbloqueiaAudio() {
   if (window.__sirene && window.__sirene.ctx && window.__sirene.ctx.state === 'suspended') {
@@ -406,21 +446,27 @@ document.body.addEventListener('touchstart', function desbloqueiaAudio() {
 }, { once: true });
 
 // ═══════════════════════════════════════════════════
-//  MAPA E MQTT
+//  MAPA
 // ═══════════════════════════════════════════════════
 window.iniciarApp = function() {
   map = L.map('map', { zoomControl: false }).setView([-22.7078, -47.6659], 13);
   L.control.zoom({ position: 'topleft' }).addTo(map);
-  tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, crossOrigin: true }).addTo(map);
+  tileLayer = L.tileLayer(TILES.map, {
+    maxZoom: 19,
+    crossOrigin: true,
+    attribution: '© OpenStreetMap © CARTO'
+  }).addTo(map);
   window.conectarMQTT();
 };
 
 window.nextMapStyle = function() {
   currentStyle = currentStyle === 'map' ? 'satellite' : 'map';
-  const url = currentStyle === 'map' ? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' : 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-  tileLayer.setUrl(url);
+  tileLayer.setUrl(TILES[currentStyle]);
 };
 
+// ═══════════════════════════════════════════════════
+//  MQTT
+// ═══════════════════════════════════════════════════
 window.conectarMQTT = function() {
   if (mqttClient) { mqttClient.end(true); }
   setBadge('mqttBadge', 'Conectando...', 'badge-warn');
@@ -511,13 +557,13 @@ window.solicitarBloqueio = function() {
 window.confirmarBloqueio = function() {
   let user = document.getElementById('segUser').value.trim();
   let pass = document.getElementById('segPass').value.trim();
-  if (!user || !pass) { alert('⚠️ Digite usuário e senha!'); return; }
+  if (!user || !pass) { window.uiAviso('Digite usuário e senha!', '🔒 Autenticação'); return; }
   if (user === usuarioId && pass === USUARIOS[usuarioId]) {
     document.getElementById('modalSeguranca').classList.remove('show');
     window.cmdAtivo('BLOQUEAR');
     window.desligarAlarme();
   } else {
-    alert('❌ Usuário ou senha incorretos!');
+    window.uiAviso('Usuário ou senha incorretos!', '❌ Erro');
     document.getElementById('segPass').value = '';
     document.getElementById('segPass').focus();
   }
@@ -528,7 +574,7 @@ window.fecharModalSeguranca = function() {
 };
 
 window.acionarAux = function() {
-  if (!ativoId) { alert('⚠️ Selecione um veículo!'); return; }
+  if (!ativoId) { window.uiAviso('Selecione um veículo primeiro.', '⚠️ Atenção'); return; }
   document.getElementById('modalAux').classList.add('show');
 };
 
@@ -544,9 +590,10 @@ window.fecharModal = function() {
 // ═══════════════════════════════════════════════════
 //  PARAR ALARME REMOTAMENTE
 // ═══════════════════════════════════════════════════
-window.desligarAlarmeRemoto = function() {
-  if (!ativoId) { alert('⚠️ Selecione um veículo!'); return; }
-  if (!confirm('Desligar o alarme do veículo agora?')) return;
+window.desligarAlarmeRemoto = async function() {
+  if (!ativoId) { window.uiAviso('Selecione um veículo primeiro.', '⚠️ Atenção'); return; }
+  const ok = await window.uiConfirm('Desligar o alarme do veículo agora?', '⏹ Parar Alarme');
+  if (!ok) return;
   window.cmd(ativoId, 'ALARME_CANCELADO');
   window.fecharBannerSirene();
   addLog('⏹ Comando de parar alarme enviado', 'log-warn');
@@ -555,10 +602,11 @@ window.desligarAlarmeRemoto = function() {
 // ═══════════════════════════════════════════════════
 //  TESTE D8
 // ═══════════════════════════════════════════════════
-window.testarD8 = function() {
-  if (!ativoId) { alert('⚠️ Selecione um veículo!'); return; }
-  if (panicoAtivo) { alert('⚠️ Já existe um pânico ativo!'); return; }
-  if (!confirm('Simular acionamento de PÂNICO via tela?')) return;
+window.testarD8 = async function() {
+  if (!ativoId) { window.uiAviso('Selecione um veículo primeiro.', '⚠️ Atenção'); return; }
+  if (panicoAtivo) { window.uiAviso('Já existe um pânico ativo!', '🚨 Pânico'); return; }
+  const ok = await window.uiConfirm('Simular acionamento de PÂNICO via tela?', '🚨 Teste D8');
+  if (!ok) return;
   window.cmd(ativoId, 'PANICO_ATIVAR');
   window.ativarPanico(ativoId, 'manual', {});
   addLog('🚨 Teste D8 enviado', 'log-warn');
@@ -568,10 +616,10 @@ window.testarD8 = function() {
 //  MODO FESTA
 // ═══════════════════════════════════════════════════
 window.toggleModoFesta = function() {
-  if (!ativoId) { alert('⚠️ Selecione um veículo!'); return; }
+  if (!ativoId) { window.uiAviso('Selecione um veículo primeiro.', '⚠️ Atenção'); return; }
   if (!modoFestaAtivo) {
     const v = veiculos[ativoId];
-    if (!v || !v.ultimaPos) { alert('⚠️ Aguarde o GPS fixar antes de ativar o Modo Festa.'); return; }
+    if (!v || !v.ultimaPos) { window.uiAviso('Aguarde o GPS fixar antes de ativar o Modo Festa.', '🛡️ Modo Festa'); return; }
     window.cmd(ativoId, 'ATIVAR_MODO_FESTA');
     if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
     circuloFesta = L.circle(v.ultimaPos, { color:'#f9a825', fillColor:'#f9a825', fillOpacity:0.15, radius:RAIO_FESTA_M }).addTo(map);
@@ -1082,10 +1130,14 @@ window.desligarAlarme = function() {
 };
 
 // ═══════════════════════════════════════════════════
-//  SALVAR MAPA (com captura real)
+//  SALVAR MAPA (CartoDB + robusto)
 // ═══════════════════════════════════════════════════
-window.salvarMapa = function() {
-  addLog('📸 Preparando captura...', 'log-warn');
+window.salvarMapa = async function() {
+  if (typeof leafletImage !== 'function') {
+    window.uiAviso('Biblioteca leaflet-image não carregou. Recarregue a página.', '❌ Erro');
+    return;
+  }
+
   const todosPontos = [];
   Object.values(veiculos).forEach(v => {
     const trail = v.trail.getLatLngs();
@@ -1093,124 +1145,164 @@ window.salvarMapa = function() {
     v.pingos.forEach(p => { if (p.marker) todosPontos.push(p.marker.getLatLng()); });
     if (v.ultimaPos) todosPontos.push(v.ultimaPos);
   });
-  if (todosPontos.length === 0) { alert('⚠️ Nenhum ponto para salvar!'); return; }
+
+  if (todosPontos.length === 0) {
+    window.uiAviso('Nenhum ponto para salvar! Aguarde o GPS fixar e o veículo se mover.', '💾 Salvar');
+    return;
+  }
+
+  // Força modo mapa (CartoDB) antes de capturar, porque ArcGIS satélite bloqueia CORS
+  if (currentStyle !== 'map') {
+    currentStyle = 'map';
+    tileLayer.setUrl(TILES.map);
+    addLog('🛰 Trocado para modo Mapa para captura', 'log-warn');
+    await new Promise(r => setTimeout(r, 1200));
+  }
+
+  addLog('📸 Preparando captura...', 'log-warn');
   const bounds = L.latLngBounds(todosPontos);
   map.fitBounds(bounds, { padding: [60, 60], animate: false, maxZoom: 16 });
+
+  await new Promise(r => setTimeout(r, 800));
+
   let tentativas = 0;
+  const MAX_TENTATIVAS = 30;
+
   const verificarTiles = setInterval(() => {
     tentativas++;
     const tilesCarregados = document.querySelectorAll('.leaflet-tile-loaded').length;
     const tilesTotal = document.querySelectorAll('.leaflet-tile').length;
-    if ((tilesTotal > 0 && tilesCarregados >= tilesTotal) || tentativas >= 20) {
+    const tilesOk = (tilesTotal > 0 && tilesCarregados >= tilesTotal);
+
+    if (tilesOk || tentativas >= MAX_TENTATIVAS) {
       clearInterval(verificarTiles);
+      addLog('📸 Capturando (' + tilesCarregados + '/' + tilesTotal + ' tiles)', 'log-warn');
+
       const zoomControl = document.querySelector('.leaflet-control-zoom');
       const attribution = document.querySelector('.leaflet-control-attribution');
       let zoomDisplay = '', attrDisplay = '';
       if (zoomControl) { zoomDisplay = zoomControl.style.display; zoomControl.style.display = 'none'; }
       if (attribution) { attrDisplay = attribution.style.display; attribution.style.display = 'none'; }
+
       setTimeout(() => {
-        leafletImage(map, function(err, canvas) {
+        try {
+          leafletImage(map, function(err, canvas) {
+            if (zoomControl) zoomControl.style.display = zoomDisplay || '';
+            if (attribution) attribution.style.display = attrDisplay || '';
+
+            if (err) {
+              addLog('❌ Erro ao capturar: ' + err, 'log-err');
+              window.uiAviso('Erro ao capturar o mapa: ' + err, '💾 Salvar');
+              return;
+            }
+            if (!canvas) {
+              addLog('❌ Canvas vazio', 'log-err');
+              window.uiAviso('Erro: canvas vazio. Tente de novo.', '💾 Salvar');
+              return;
+            }
+
+            const ctx = canvas.getContext('2d');
+            const largura = canvas.width, altura = canvas.height;
+            const mapBounds = map.getBounds();
+            const ne = mapBounds.getNorthEast();
+            const sw = mapBounds.getSouthWest();
+
+            function latLngParaPixel(lat, lng) {
+              const x = ((lng - sw.lng) / (ne.lng - sw.lng)) * largura;
+              const y = ((ne.lat - lat) / (ne.lat - sw.lat)) * altura;
+              return { x, y };
+            }
+
+            Object.values(veiculos).forEach(v => {
+              const pontos = v.trail.getLatLngs();
+              const vels = v.velocidadesTrail || [];
+              if (pontos.length < 2) return;
+              for (let i = 1; i < pontos.length; i++) {
+                const vel = vels[i] || 0;
+                const cor = (vel <= 80) ? '#1565C0' : '#c62828';
+                const corBorda = (vel <= 80) ? '#0d47a1' : '#8e0000';
+                const p1 = latLngParaPixel(pontos[i-1].lat, pontos[i-1].lng);
+                const p2 = latLngParaPixel(pontos[i].lat, pontos[i].lng);
+                ctx.beginPath();
+                ctx.strokeStyle = corBorda;
+                ctx.lineWidth = 7 * (canvas.width / map.getSize().x);
+                ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+                ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+                ctx.beginPath();
+                ctx.strokeStyle = cor;
+                ctx.lineWidth = 4 * (canvas.width / map.getSize().x);
+                ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+              }
+              if (vels.length > 0) {
+                const velMax = Math.max(...vels);
+                const idxMax = vels.indexOf(velMax);
+                const pontoMax = pontos[idxMax];
+                if (pontoMax) {
+                  const px = latLngParaPixel(pontoMax.lat, pontoMax.lng);
+                  const corMarcador = (velMax <= 80) ? '#1565C0' : '#c62828';
+                  ctx.beginPath();
+                  ctx.arc(px.x, px.y, 18, 0, 2 * Math.PI);
+                  ctx.fillStyle = corMarcador; ctx.fill();
+                  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3; ctx.stroke();
+                  ctx.fillStyle = '#ffffff';
+                  ctx.font = 'bold 13px Arial';
+                  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                  ctx.fillText(Math.round(velMax) + '', px.x, px.y);
+                  ctx.fillStyle = corMarcador;
+                  ctx.font = 'bold 10px Arial';
+                  ctx.fillText('MÁX', px.x, px.y + 28);
+                }
+              }
+            });
+
+            const imgBase64 = canvas.toDataURL('image/png');
+            const data = new Date().toLocaleString('pt-BR');
+            const dataArq = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
+            let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Trajeto ${dataArq}</title>
+            <style>body{font-family:system-ui;background:#111;color:#fff;margin:0;padding:0;}
+            .header{padding:16px 20px;} h2{color:#90caf9;margin:0 0 4px 0;}
+            .mapa{width:100vw;height:auto;} table{width:100%;border-collapse:collapse;margin-top:8px;}
+            th{background:#1565C0;color:#fff;padding:10px;text-align:center;}td{padding:8px;border:1px solid #333;text-align:center;}
+            tr:nth-child(even){background:#1a1a1a;} a{color:#90caf9;}</style></head><body>
+            <div class="header"><h2>🛡️ Trajeto salvo em ${data}</h2></div>
+            <img class="mapa" src="${imgBase64}"><div style="padding:16px 20px;">`;
+
+            Object.values(veiculos).forEach(v => {
+              const km = (v.kmTotal / 1000).toFixed(2);
+              const vels = v.velocidadesTrail || [];
+              const velMax = vels.length > 0 ? Math.max(...vels) : 0;
+              const velMedia = vels.length > 0 ? (vels.reduce((a,b) => a+b, 0) / vels.length) : 0;
+              html += `<h3>🚗 ${v.nome} — ${v.bloqueado ? 'BLOQUEADO' : 'LIBERADO'}</h3>`;
+              html += `<p style="text-align:center;">Paradas: <b>${v.pingos.length}</b> | Distância: <b>${km} km</b> | Vel. Máx: <b style="color:${velMax > 80 ? '#c62828' : '#1565C0'}">${velMax.toFixed(0)} km/h</b> | Vel. Média: <b>${velMedia.toFixed(0)} km/h</b></p>`;
+              if (v.pingos.length > 0) {
+                html += '<table><tr><th>#</th><th>Horário</th><th>Duração</th><th>Local</th></tr>';
+                v.pingos.forEach(p => {
+                  const ll = p.marker.getLatLng();
+                  html += `<tr><td>P${p.num}</td><td>${p.horaBrasilia || '—'}</td><td>${p.mins} min</td><td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td></tr>`;
+                });
+                html += '</table>';
+              }
+            });
+            html += `</div></body></html>`;
+
+            const blob = new Blob([html], {type:'text/html'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'trajeto_' + dataArq + '.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            addLog('💾 Trajeto salvo!', 'log-ok');
+          });
+        } catch (e) {
           if (zoomControl) zoomControl.style.display = zoomDisplay || '';
           if (attribution) attribution.style.display = attrDisplay || '';
-          if (err) { alert('Erro ao capturar o mapa: ' + err); return; }
-          const ctx = canvas.getContext('2d');
-          const largura = canvas.width, altura = canvas.height;
-          const mapBounds = map.getBounds();
-          const ne = mapBounds.getNorthEast();
-          const sw = mapBounds.getSouthWest();
-          function latLngParaPixel(lat, lng) {
-            const x = ((lng - sw.lng) / (ne.lng - sw.lng)) * largura;
-            const y = ((ne.lat - lat) / (ne.lat - sw.lat)) * altura;
-            return { x, y };
-          }
-          Object.values(veiculos).forEach(v => {
-            const pontos = v.trail.getLatLngs();
-            const vels = v.velocidadesTrail || [];
-            if (pontos.length < 2) return;
-            for (let i = 1; i < pontos.length; i++) {
-              const vel = vels[i] || 0;
-              const cor = (vel <= 80) ? '#1565C0' : '#c62828';
-              const corBorda = (vel <= 80) ? '#0d47a1' : '#8e0000';
-              const p1 = latLngParaPixel(pontos[i-1].lat, pontos[i-1].lng);
-              const p2 = latLngParaPixel(pontos[i].lat, pontos[i].lng);
-              ctx.beginPath();
-              ctx.strokeStyle = corBorda;
-              ctx.lineWidth = 7 * (canvas.width / map.getSize().x);
-              ctx.lineJoin = 'round';
-              ctx.lineCap = 'round';
-              ctx.moveTo(p1.x, p1.y);
-              ctx.lineTo(p2.x, p2.y);
-              ctx.stroke();
-              ctx.beginPath();
-              ctx.strokeStyle = cor;
-              ctx.lineWidth = 4 * (canvas.width / map.getSize().x);
-              ctx.moveTo(p1.x, p1.y);
-              ctx.lineTo(p2.x, p2.y);
-              ctx.stroke();
-            }
-            if (vels.length > 0) {
-              const velMax = Math.max(...vels);
-              const idxMax = vels.indexOf(velMax);
-              const pontoMax = pontos[idxMax];
-              if (pontoMax) {
-                const px = latLngParaPixel(pontoMax.lat, pontoMax.lng);
-                const corMarcador = (velMax <= 80) ? '#1565C0' : '#c62828';
-                ctx.beginPath();
-                ctx.arc(px.x, px.y, 18, 0, 2 * Math.PI);
-                ctx.fillStyle = corMarcador;
-                ctx.fill();
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 3;
-                ctx.stroke();
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 13px Arial';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(Math.round(velMax) + '', px.x, px.y);
-                ctx.fillStyle = corMarcador;
-                ctx.font = 'bold 10px Arial';
-                ctx.fillText('MÁX', px.x, px.y + 28);
-              }
-            }
-          });
-          const imgBase64 = canvas.toDataURL('image/png');
-          const data = new Date().toLocaleString('pt-BR');
-          const dataArq = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
-          let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Trajeto ${dataArq}</title>
-          <style>body{font-family:system-ui;background:#111;color:#fff;margin:0;padding:0;}
-          .header{padding:16px 20px;} h2{color:#90caf9;margin:0 0 4px 0;}
-          .mapa{width:100vw;height:auto;} table{width:100%;border-collapse:collapse;margin-top:8px;}
-          th{background:#1565C0;color:#fff;padding:10px;text-align:center;}td{padding:8px;border:1px solid #333;text-align:center;}
-          tr:nth-child(even){background:#1a1a1a;} a{color:#90caf9;}</style></head><body>
-          <div class="header"><h2>🛡️ Trajeto salvo em ${data}</h2></div>
-          <img class="mapa" src="${imgBase64}"><div style="padding:16px 20px;">`;
-          Object.values(veiculos).forEach(v => {
-            const km = (v.kmTotal / 1000).toFixed(2);
-            const vels = v.velocidadesTrail || [];
-            const velMax = vels.length > 0 ? Math.max(...vels) : 0;
-            const velMedia = vels.length > 0 ? (vels.reduce((a,b) => a+b, 0) / vels.length) : 0;
-            html += `<h3>🚗 ${v.nome} — ${v.bloqueado ? 'BLOQUEADO' : 'LIBERADO'}</h3>`;
-            html += `<p style="text-align:center;">Paradas: <b>${v.pingos.length}</b> | Distância: <b>${km} km</b> | Vel. Máx: <b style="color:${velMax > 80 ? '#c62828' : '#1565C0'}">${velMax.toFixed(0)} km/h</b> | Vel. Média: <b>${velMedia.toFixed(0)} km/h</b></p>`;
-            if (v.pingos.length > 0) {
-              html += '<table><tr><th>#</th><th>Horário</th><th>Duração</th><th>Local</th></tr>';
-              v.pingos.forEach(p => {
-                const ll = p.marker.getLatLng();
-                html += `<tr><td>P${p.num}</td><td>${p.horaBrasilia || '—'}</td><td>${p.mins} min</td><td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td></tr>`;
-              });
-              html += '</table>';
-            }
-          });
-          html += `</div></body></html>`;
-          const blob = new Blob([html], {type:'text/html'});
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'trajeto_' + dataArq + '.html';
-          a.click();
-          URL.revokeObjectURL(url);
-          addLog('💾 Trajeto salvo!', 'log-ok');
-        });
-      }, 500);
+          addLog('❌ Exceção: ' + e.message, 'log-err');
+          window.uiAviso('Erro inesperado ao salvar: ' + e.message, '💾 Salvar');
+        }
+      }, 300);
     }
   }, 500);
 };
@@ -1226,7 +1318,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-console.log('🚀 GatewayConnectCar v5 — layout otimizado');
+console.log('🚀 GatewayConnectCar v6 — CartoDB + modais internos');
 </script>
 </body>
 </html>
