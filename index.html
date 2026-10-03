@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<script src="https://unpkg.com/leaflet-image@0.4.0/leaflet-image.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>GatewayConnectCar</title>
 <link rel="manifest" href="/rastreador/manifest.json">
@@ -60,15 +61,64 @@
   #pTempoParada { background:#1a1a1a; border:1px solid #f9a825; border-radius:8px; padding:2px 8px; font-size:11px; color:#f9a825; white-space:nowrap; display:none; }
   #pTempoParada.ativo { display:inline-block; animation:blink 1s infinite; }
 
-  .btn-row { display:flex; align-items:center; gap:6px; flex-wrap:nowrap; }
-  .map-btn { flex:1; padding:10px 6px; border-radius:10px; border:none; font-size:14px; font-weight:700; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
+  /* LINHA 1 — centralizar + bloquear */
+  .btn-row { display:flex; align-items:center; gap:6px; }
+  .map-btn { flex:1; height:44px; padding:0 8px; border-radius:10px; border:none; font-size:14px; font-weight:700; cursor:pointer; transition:all 0.15s; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .map-btn:active { transform: scale(0.97); }
   .btn-block  { background:#c62828; color:#fff; }
   .btn-unlock { background:#2e7d32; color:#fff; }
   .btn-cancel { background:#f9a825; color:#fff; }
-  .btn-center { flex:0 0 44px; background:#1565C0; color:#fff; border:none; border-radius:10px; font-size:18px; cursor:pointer; height:44px; }
-  .btn-aux    { flex:1; padding:10px; border-radius:10px; border:none; font-size:13px; font-weight:700; cursor:pointer; background:#1565C0; color:#fff; }
-  .btn-aux:active { background:#0d47a1; }
+  .btn-center { flex:0 0 44px; width:44px; height:44px; background:#1565C0; color:#fff; border:none; border-radius:10px; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; }
+  .btn-center:active { background:#0d47a1; }
+
+  /* LINHA 2 — AUX + Festa grandes, demais quadradinhos */
+  .btn-linha {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .btn-linha .btn-aux,
+  .btn-linha .btn-festa {
+    flex: 1;
+    height: 44px;
+    padding: 0 8px;
+    border-radius: 10px;
+    border: none;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .btn-linha .btn-aux   { background:#1565C0; color:#fff; }
+  .btn-linha .btn-aux:active { background:#0d47a1; }
+  .btn-linha .btn-festa { background:#333; color:#fff; border:1px solid #555; }
+  .btn-linha .btn-festa.ativo { background:#f9a825; color:#111; border-color:#f9a825; }
+  .btn-linha .btn-quadrado {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 10px;
+    border: none;
+    font-size: 16px;
+    font-weight: 900;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .btn-linha .btn-quadrado:active { transform: scale(0.95); }
+  .btn-linha .btn-salvar { background:#2e7d32; color:#fff; }
+  .btn-linha .btn-salvar:active { background:#1b5e20; }
+  .btn-linha .btn-parar  { background:#c62828; color:#fff; }
+  .btn-linha .btn-parar:active  { background:#8e0000; }
+  .btn-linha .btn-d8     { background:#b71c1c; color:#fff; }
+  .btn-linha .btn-d8:active     { background:#7f0000; }
 
   #pendenteBanner { display:none; background:#f9a825dd; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:600; text-align:center; color:#fff; margin-bottom:4px; }
 
@@ -80,7 +130,6 @@
 
   /* BOTÕES FLUTUANTES */
   #btnTodos { position:absolute; top:70px; right:8px; z-index:999; background:rgba(0,0,0,0.7); border:1px solid #444; color:#fff; padding:6px 12px; border-radius:20px; font-size:12px; cursor:pointer; display:none; }
-  #btnSalvar { position:absolute; top:70px; right:100px; z-index:999; background:rgba(0,0,0,0.7); border:1px solid #444; color:#fff; padding:6px 12px; border-radius:20px; font-size:12px; cursor:pointer; display:none; }
 
   /* BANNERS DE ALERTA */
   .alertaBanner { display:none; position:fixed; top:0; left:0; right:0; z-index:9997; color:#fff; text-align:center; padding:8px 10px; font-weight:700; font-size:13px; box-shadow:0 2px 8px rgba(0,0,0,0.5); }
@@ -102,8 +151,8 @@
   #jammerTxt { font-size:11px; font-weight:700; color:#ffaa66; }
 
   /* MODAIS */
-  #modalAux, #modalSeguranca { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; }
-  #modalAux.show, #modalSeguranca.show { display:flex; }
+  #modalAux, #modalSeguranca, #modalFesta { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; }
+  #modalAux.show, #modalSeguranca.show, #modalFesta.show { display:flex; }
   .modal-box { background:#1a1a1a; border:1px solid #1565C0; border-radius:14px; padding:16px; width:82%; max-width:320px; text-align:center; }
   .modal-box p { font-size:13px; color:#ccc; margin-bottom:12px; line-height:1.5; }
   .modal-box strong { color:#fff; font-size:15px; display:block; margin-bottom:6px; }
@@ -111,6 +160,7 @@
   .modal-btns button { flex:1; padding:10px; border-radius:8px; border:none; font-size:13px; font-weight:700; cursor:pointer; }
   .btn-confirm { background:#c62828; color:#fff; }
   .btn-cancel  { background:#333; color:#aaa; }
+  .btn-festa-confirm { background:#f9a825; color:#111; }
   #modalSeguranca input { width:100%; padding:8px; margin-bottom:8px; border-radius:6px; border:1px solid #444; background:#111; color:#fff; font-size:13px; }
   #modalSeguranca input:focus { outline:1px solid #1565C0; }
 </style>
@@ -191,7 +241,6 @@
 <!-- MAPA -->
 <div id="map"></div>
 <button id="btnTodos" onclick="window.centralizarTodos()">⊕ Todos</button>
-<button id="btnSalvar" onclick="window.salvarMapa()">💾 Salvar</button>
 
 <!-- PAINEL -->
 <div id="panel">
@@ -206,15 +255,24 @@
     <span id="pTempoParada">⏱️ 00:00</span>
     <span class="badge badge-off" id="pStatus">Aguardando</span>
   </div>
+
+  <!-- LINHA 1: centralizar + bloquear -->
   <div class="btn-row">
     <button class="btn-center" onclick="window.centralizarAtivo()">◎</button>
     <button class="map-btn btn-block"  id="btnBlock"  style="display:none;">🔴 Bloqueado</button>
-    <button class="map-btn btn-cancel" id="btnCancel" style="display:none;">🟡 Aguardando...</button>
+    <button class="map-btn btn-cancel" id="btnCancel" style="display:none;">🟡 Aguardando</button>
     <button class="map-btn btn-unlock" id="btnUnlock">🟢 Liberado</button>
   </div>
-  <div class="btn-row" style="margin-top:6px;">
-    <button class="btn-aux" onclick="window.acionarAux()">🔓 AUX — Destravar Portas</button>
+
+  <!-- LINHA 2: AUX + Festa grandes, demais quadradinhos 44px -->
+  <div class="btn-linha">
+    <button class="btn-aux" onclick="window.acionarAux()">🔓 AUX</button>
+    <button class="btn-festa" id="btnFesta" onclick="window.toggleModoFesta()">🛡️ Festa</button>
+    <button class="btn-quadrado btn-salvar" onclick="window.salvarMapa()" title="Salvar trajeto">💾</button>
+    <button class="btn-quadrado btn-parar"  onclick="window.desligarAlarmeRemoto()" title="Parar alarme">⏹</button>
+    <button class="btn-quadrado btn-d8"     onclick="window.testarD8()" title="Teste D8">🚨</button>
   </div>
+
   <div id="logBox"></div>
 </div>
 
@@ -244,6 +302,18 @@
   </div>
 </div>
 
+<!-- MODAL FESTA -->
+<div id="modalFesta">
+  <div class="modal-box" style="border-color:#f9a825;">
+    <strong style="color:#f9a825;">🛡️ Desativar Modo Festa?</strong>
+    <p>O veículo <b>não será mais monitorado</b>. Se ele se mover, você não receberá alerta.</p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="window.fecharModalFesta()">Cancelar</button>
+      <button class="btn-festa-confirm" onclick="window.confirmarDesativarFesta()">Desativar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════
 //  CONFIG
@@ -262,6 +332,7 @@ let map, tileLayer, mqttClient;
 let veiculos = {};
 let ativoId = null;
 let currentStyle = 'map';
+let modoFestaAtivo = false;
 let circuloFesta = null;
 let panicoAtivo = false;
 let panicoTimer = null;
@@ -294,7 +365,6 @@ window.loginComUsuario = function() {
     document.getElementById('veiculosList').classList.add('show');
     document.getElementById('panel').style.display = 'block';
     document.getElementById('nomeUsuario').textContent = '👤 ' + usuarioId;
-    document.getElementById('btnSalvar').style.display = '';
     window.iniciarApp();
   } else {
     document.getElementById('loginError').textContent = '❌ PIN incorreto';
@@ -365,7 +435,7 @@ window.conectarMQTT = function() {
     setBadge('mqttBadge', '✅ Conectado', 'badge-ok');
     mqttClient.subscribe('rastreador/' + usuarioId + '/+/gps');
     mqttClient.subscribe('rastreador/' + usuarioId + '/+/status');
-    mqttClient.subscribe('rastreador/' + usuarioId + '/+/alerta');  // ⚠️ NOVO
+    mqttClient.subscribe('rastreador/' + usuarioId + '/+/alerta');
     addLog('Conectado como ' + usuarioId, 'log-ok');
   });
   mqttClient.on('disconnect', () => setBadge('mqttBadge', 'Desconectado', 'badge-off'));
@@ -382,7 +452,6 @@ window.conectarMQTT = function() {
       if (tipo === 'gps')    window.processarGPS(chipId, data);
       if (tipo === 'status') window.processarStatus(chipId, data);
 
-      // ⚠️ NOVO: tópico /alerta (com retain — chega mesmo se app estava fechado)
       if (tipo === 'alerta') {
         if (data.motivo === 'sirene_disparou')  window.ativarAlertaSirene(chipId, data);
         if (data.motivo === 'sirene_parou')     window.fecharBannerSirene();
@@ -391,7 +460,6 @@ window.conectarMQTT = function() {
         if (data.motivo === 'alerta_jammer')    window.ativarAlertaJammer(chipId, data);
       }
 
-      // Compatibilidade com o formato antigo (status)
       if (tipo === 'status' && data.motivo === 'panico') window.ativarPanico(chipId, 'mqtt', data);
       if (tipo === 'status' && data.motivo === 'panico_cancelado') window.cancelarPanico();
       if (tipo === 'status' && data.motivo === 'alerta_movimento') window.ativarAlertaMovimento(chipId, data);
@@ -471,6 +539,63 @@ window.confirmarAux = function() {
 
 window.fecharModal = function() {
   document.getElementById('modalAux').classList.remove('show');
+};
+
+// ═══════════════════════════════════════════════════
+//  PARAR ALARME REMOTAMENTE
+// ═══════════════════════════════════════════════════
+window.desligarAlarmeRemoto = function() {
+  if (!ativoId) { alert('⚠️ Selecione um veículo!'); return; }
+  if (!confirm('Desligar o alarme do veículo agora?')) return;
+  window.cmd(ativoId, 'ALARME_CANCELADO');
+  window.fecharBannerSirene();
+  addLog('⏹ Comando de parar alarme enviado', 'log-warn');
+};
+
+// ═══════════════════════════════════════════════════
+//  TESTE D8
+// ═══════════════════════════════════════════════════
+window.testarD8 = function() {
+  if (!ativoId) { alert('⚠️ Selecione um veículo!'); return; }
+  if (panicoAtivo) { alert('⚠️ Já existe um pânico ativo!'); return; }
+  if (!confirm('Simular acionamento de PÂNICO via tela?')) return;
+  window.cmd(ativoId, 'PANICO_ATIVAR');
+  window.ativarPanico(ativoId, 'manual', {});
+  addLog('🚨 Teste D8 enviado', 'log-warn');
+};
+
+// ═══════════════════════════════════════════════════
+//  MODO FESTA
+// ═══════════════════════════════════════════════════
+window.toggleModoFesta = function() {
+  if (!ativoId) { alert('⚠️ Selecione um veículo!'); return; }
+  if (!modoFestaAtivo) {
+    const v = veiculos[ativoId];
+    if (!v || !v.ultimaPos) { alert('⚠️ Aguarde o GPS fixar antes de ativar o Modo Festa.'); return; }
+    window.cmd(ativoId, 'ATIVAR_MODO_FESTA');
+    if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
+    circuloFesta = L.circle(v.ultimaPos, { color:'#f9a825', fillColor:'#f9a825', fillOpacity:0.15, radius:RAIO_FESTA_M }).addTo(map);
+    document.getElementById('btnFesta').classList.add('ativo');
+    document.getElementById('btnFesta').textContent = '🛡️ Ativo';
+    modoFestaAtivo = true;
+    addLog('🛡️ Modo Festa ATIVADO (50m)', 'log-ok');
+  } else {
+    document.getElementById('modalFesta').classList.add('show');
+  }
+};
+
+window.fecharModalFesta = function() {
+  document.getElementById('modalFesta').classList.remove('show');
+};
+
+window.confirmarDesativarFesta = function() {
+  document.getElementById('modalFesta').classList.remove('show');
+  window.cmd(ativoId, 'DESATIVAR_MODO_FESTA');
+  if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
+  document.getElementById('btnFesta').classList.remove('ativo');
+  document.getElementById('btnFesta').textContent = '🛡️ Festa';
+  modoFestaAtivo = false;
+  addLog('🛡️ Modo Festa DESATIVADO', 'log-warn');
 };
 
 // ═══════════════════════════════════════════════════
@@ -820,7 +945,11 @@ window.ativarAlertaMovimento = function(chipId, d) {
   const lng = parseFloat(d.lng);
   const posValida = (lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng));
   if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
+  document.getElementById('btnFesta').classList.remove('ativo');
+  document.getElementById('btnFesta').textContent = '🛡️ Festa';
+  modoFestaAtivo = false;
   window.tocarAlarmeNavegador();
+  setBadge('pStatus', '🚨 FURTO', 'badge-err');
   addLog('🚨 ALERTA DE FURTO DETECTADO!', 'log-err');
   if (posValida) map.setView(L.latLng(lat, lng), 15);
 };
@@ -846,7 +975,6 @@ window.fecharBannerSirene = function() {
   document.getElementById('sireneWidget').style.display = 'none';
   window.desligarAlarme();
   setBadge('pStatus', 'Liberado', 'badge-ok');
-  // ⚠️ Limpa o retain no broker
   if (mqttClient && mqttClient.connected && sireneChipId) {
     mqttClient.publish('rastreador/' + usuarioId + '/' + sireneChipId + '/alerta', '', { retain: true });
   }
@@ -954,10 +1082,137 @@ window.desligarAlarme = function() {
 };
 
 // ═══════════════════════════════════════════════════
-//  SALVAR MAPA (simplificado — mantém a captura)
+//  SALVAR MAPA (com captura real)
 // ═══════════════════════════════════════════════════
 window.salvarMapa = function() {
-  addLog('📸 Salvar trajeto: recurso disponível na versão completa.', 'log-warn');
+  addLog('📸 Preparando captura...', 'log-warn');
+  const todosPontos = [];
+  Object.values(veiculos).forEach(v => {
+    const trail = v.trail.getLatLngs();
+    if (trail && trail.length > 0) trail.forEach(p => todosPontos.push(p));
+    v.pingos.forEach(p => { if (p.marker) todosPontos.push(p.marker.getLatLng()); });
+    if (v.ultimaPos) todosPontos.push(v.ultimaPos);
+  });
+  if (todosPontos.length === 0) { alert('⚠️ Nenhum ponto para salvar!'); return; }
+  const bounds = L.latLngBounds(todosPontos);
+  map.fitBounds(bounds, { padding: [60, 60], animate: false, maxZoom: 16 });
+  let tentativas = 0;
+  const verificarTiles = setInterval(() => {
+    tentativas++;
+    const tilesCarregados = document.querySelectorAll('.leaflet-tile-loaded').length;
+    const tilesTotal = document.querySelectorAll('.leaflet-tile').length;
+    if ((tilesTotal > 0 && tilesCarregados >= tilesTotal) || tentativas >= 20) {
+      clearInterval(verificarTiles);
+      const zoomControl = document.querySelector('.leaflet-control-zoom');
+      const attribution = document.querySelector('.leaflet-control-attribution');
+      let zoomDisplay = '', attrDisplay = '';
+      if (zoomControl) { zoomDisplay = zoomControl.style.display; zoomControl.style.display = 'none'; }
+      if (attribution) { attrDisplay = attribution.style.display; attribution.style.display = 'none'; }
+      setTimeout(() => {
+        leafletImage(map, function(err, canvas) {
+          if (zoomControl) zoomControl.style.display = zoomDisplay || '';
+          if (attribution) attribution.style.display = attrDisplay || '';
+          if (err) { alert('Erro ao capturar o mapa: ' + err); return; }
+          const ctx = canvas.getContext('2d');
+          const largura = canvas.width, altura = canvas.height;
+          const mapBounds = map.getBounds();
+          const ne = mapBounds.getNorthEast();
+          const sw = mapBounds.getSouthWest();
+          function latLngParaPixel(lat, lng) {
+            const x = ((lng - sw.lng) / (ne.lng - sw.lng)) * largura;
+            const y = ((ne.lat - lat) / (ne.lat - sw.lat)) * altura;
+            return { x, y };
+          }
+          Object.values(veiculos).forEach(v => {
+            const pontos = v.trail.getLatLngs();
+            const vels = v.velocidadesTrail || [];
+            if (pontos.length < 2) return;
+            for (let i = 1; i < pontos.length; i++) {
+              const vel = vels[i] || 0;
+              const cor = (vel <= 80) ? '#1565C0' : '#c62828';
+              const corBorda = (vel <= 80) ? '#0d47a1' : '#8e0000';
+              const p1 = latLngParaPixel(pontos[i-1].lat, pontos[i-1].lng);
+              const p2 = latLngParaPixel(pontos[i].lat, pontos[i].lng);
+              ctx.beginPath();
+              ctx.strokeStyle = corBorda;
+              ctx.lineWidth = 7 * (canvas.width / map.getSize().x);
+              ctx.lineJoin = 'round';
+              ctx.lineCap = 'round';
+              ctx.moveTo(p1.x, p1.y);
+              ctx.lineTo(p2.x, p2.y);
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.strokeStyle = cor;
+              ctx.lineWidth = 4 * (canvas.width / map.getSize().x);
+              ctx.moveTo(p1.x, p1.y);
+              ctx.lineTo(p2.x, p2.y);
+              ctx.stroke();
+            }
+            if (vels.length > 0) {
+              const velMax = Math.max(...vels);
+              const idxMax = vels.indexOf(velMax);
+              const pontoMax = pontos[idxMax];
+              if (pontoMax) {
+                const px = latLngParaPixel(pontoMax.lat, pontoMax.lng);
+                const corMarcador = (velMax <= 80) ? '#1565C0' : '#c62828';
+                ctx.beginPath();
+                ctx.arc(px.x, px.y, 18, 0, 2 * Math.PI);
+                ctx.fillStyle = corMarcador;
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 13px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(Math.round(velMax) + '', px.x, px.y);
+                ctx.fillStyle = corMarcador;
+                ctx.font = 'bold 10px Arial';
+                ctx.fillText('MÁX', px.x, px.y + 28);
+              }
+            }
+          });
+          const imgBase64 = canvas.toDataURL('image/png');
+          const data = new Date().toLocaleString('pt-BR');
+          const dataArq = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
+          let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Trajeto ${dataArq}</title>
+          <style>body{font-family:system-ui;background:#111;color:#fff;margin:0;padding:0;}
+          .header{padding:16px 20px;} h2{color:#90caf9;margin:0 0 4px 0;}
+          .mapa{width:100vw;height:auto;} table{width:100%;border-collapse:collapse;margin-top:8px;}
+          th{background:#1565C0;color:#fff;padding:10px;text-align:center;}td{padding:8px;border:1px solid #333;text-align:center;}
+          tr:nth-child(even){background:#1a1a1a;} a{color:#90caf9;}</style></head><body>
+          <div class="header"><h2>🛡️ Trajeto salvo em ${data}</h2></div>
+          <img class="mapa" src="${imgBase64}"><div style="padding:16px 20px;">`;
+          Object.values(veiculos).forEach(v => {
+            const km = (v.kmTotal / 1000).toFixed(2);
+            const vels = v.velocidadesTrail || [];
+            const velMax = vels.length > 0 ? Math.max(...vels) : 0;
+            const velMedia = vels.length > 0 ? (vels.reduce((a,b) => a+b, 0) / vels.length) : 0;
+            html += `<h3>🚗 ${v.nome} — ${v.bloqueado ? 'BLOQUEADO' : 'LIBERADO'}</h3>`;
+            html += `<p style="text-align:center;">Paradas: <b>${v.pingos.length}</b> | Distância: <b>${km} km</b> | Vel. Máx: <b style="color:${velMax > 80 ? '#c62828' : '#1565C0'}">${velMax.toFixed(0)} km/h</b> | Vel. Média: <b>${velMedia.toFixed(0)} km/h</b></p>`;
+            if (v.pingos.length > 0) {
+              html += '<table><tr><th>#</th><th>Horário</th><th>Duração</th><th>Local</th></tr>';
+              v.pingos.forEach(p => {
+                const ll = p.marker.getLatLng();
+                html += `<tr><td>P${p.num}</td><td>${p.horaBrasilia || '—'}</td><td>${p.mins} min</td><td><a href="https://maps.google.com/?q=${ll.lat},${ll.lng}" target="_blank">Abrir</a></td></tr>`;
+              });
+              html += '</table>';
+            }
+          });
+          html += `</div></body></html>`;
+          const blob = new Blob([html], {type:'text/html'});
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'trajeto_' + dataArq + '.html';
+          a.click();
+          URL.revokeObjectURL(url);
+          addLog('💾 Trajeto salvo!', 'log-ok');
+        });
+      }, 500);
+    }
+  }, 500);
 };
 
 // ═══════════════════════════════════════════════════
@@ -971,7 +1226,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-console.log('🚀 GatewayConnectCar v5 — alertas com retain');
+console.log('🚀 GatewayConnectCar v5 — layout otimizado');
 </script>
 </body>
 </html>
