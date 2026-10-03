@@ -14,7 +14,7 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: system-ui, sans-serif; background: #111; color: #fff; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 
-  /* ── LOGIN ── */
+  /* LOGIN */
   #loginScreen { position: fixed; inset: 0; background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; gap: 12px; padding: 20px; }
   #loginScreen h1 { font-size: 22px; font-weight: 700; }
   .pin-dot { width: 16px; height: 16px; border-radius: 50%; background: #333; border: 2px solid #555; display: inline-block; margin: 0 4px; transition: all 0.15s; }
@@ -27,7 +27,7 @@
   #loginError { color: #f44336; font-size: 13px; min-height: 18px; }
   #inputUsuario { width:100%; padding:12px; border-radius:8px; border:1px solid #444; background:#1a1a1a; color:#fff; font-size:16px; text-align:center; }
 
-  /* ── TOPBAR ── */
+  /* TOPBAR */
   #topbar { display:none; background: rgba(0,0,0,0.85); border-bottom: 1px solid #222; z-index: 1000; padding: 4px 8px; }
   #topbar .row { display:flex; align-items:center; gap:6px; flex-wrap:nowrap; overflow-x:auto; white-space:nowrap; font-size:11px; }
   #topbar .row + .row { margin-top: 3px; }
@@ -43,17 +43,17 @@
   #veiculoAtivoNome { font-size:11px; font-weight:700; color:#90caf9; }
   #relogioLocal { font-size:11px; color:#00ff41; font-family:'Courier New',monospace; margin-left:auto; }
 
-  /* ── VEÍCULOS ── */
+  /* VEÍCULOS */
   #veiculosList { display:none; background:rgba(0,0,0,0.85); border-bottom:1px solid #222; overflow-x:auto; gap:4px; padding:4px 6px; z-index:999; }
   #veiculosList.show { display:flex; }
   .veiculo-btn { flex-shrink:0; padding:4px 10px; border-radius:16px; border:2px solid #333; background:#1a1a1a; color:#fff; font-size:11px; font-weight:600; cursor:pointer; white-space:nowrap; }
   .veiculo-btn.ativo { border-color:#1565C0; background:#1565C020; }
   #semVeiculos { color:#555; font-size:11px; padding:4px; }
 
-  /* ── MAPA ── */
+  /* MAPA */
   #map { flex: 1; }
 
-  /* ── PAINEL ── */
+  /* PAINEL */
   #panel { display:none; position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.88); padding:6px 8px; z-index:1000; border-top:1px solid #222; }
   #panelNome { font-size:11px; font-weight:700; color:#90caf9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:4px; }
   .info-row { display:flex; align-items:center; gap:4px; flex-wrap:wrap; margin-bottom:4px; }
@@ -106,7 +106,7 @@
 
   #btnTodos { position:absolute; top:70px; right:8px; z-index:999; background:rgba(0,0,0,0.7); border:1px solid #444; color:#fff; padding:6px 12px; border-radius:20px; font-size:12px; cursor:pointer; display:none; }
 
-  /* ── BANNERS ── */
+  /* BANNERS */
   .alertaBanner { display:none; position:fixed; top:0; left:0; right:0; z-index:9997; color:#fff; text-align:center; padding:8px 10px; font-weight:700; font-size:13px; box-shadow:0 2px 8px rgba(0,0,0,0.5); }
   .alertaBanner.panico  { background:#b71c1c; }
   .alertaBanner.sirene  { background:#b71c1c; }
@@ -114,7 +114,7 @@
   .alertaBanner button { background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; padding:3px 10px; border-radius:10px; font-size:12px; margin-left:8px; cursor:pointer; font-weight:700; }
   .alertaBanner button:active { background:rgba(255,255,255,0.4); }
 
-  /* ── WIDGETS ── */
+  /* WIDGETS */
   #panicWidget, #sireneWidget, #jammerWidget { display:none; position:fixed; top:80px; right:8px; z-index:9998; align-items:center; gap:4px; background:rgba(0,0,0,0.75); border-radius:16px; padding:4px 10px; cursor:pointer; }
   #panicWidget, #sireneWidget { border:1px solid #c62828; }
   #jammerWidget { border:1px solid #d84315; }
@@ -125,7 +125,7 @@
   #panicTxt, #sireneTxt { font-size:11px; font-weight:700; color:#ff6666; }
   #jammerTxt { font-size:11px; font-weight:700; color:#ffaa66; }
 
-  /* ── MODAIS ── */
+  /* MODAIS */
   #modalAux, #modalSeguranca, #modalFesta, #modalAviso, #modalConfirm { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; }
   #modalAux.show, #modalSeguranca.show, #modalFesta.show, #modalAviso.show, #modalConfirm.show { display:flex; }
   .modal-box { background:#1a1a1a; border:1px solid #1565C0; border-radius:14px; padding:16px; width:82%; max-width:320px; text-align:center; }
@@ -327,7 +327,7 @@ const PARADA_MIN_MS = 360000;
 const RAIO_PINGO_M = 70.0;
 const RAIO_FESTA_M = 50.0;
 
-// Tiles — Esri (CORS garantido, sem API key)
+// Esri — CORS garantido, sem API key
 const TILES = {
   map:       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
   satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
@@ -356,13 +356,10 @@ window.uiAviso = function(texto, titulo) {
   document.getElementById('modalAvisoTexto').textContent = texto;
   document.getElementById('modalAviso').classList.add('show');
 };
-
 window.fecharAviso = function() {
   document.getElementById('modalAviso').classList.remove('show');
 };
-
 let _confirmResolve = null;
-
 window.uiConfirm = function(texto, titulo) {
   return new Promise((resolve) => {
     _confirmResolve = resolve;
@@ -371,7 +368,6 @@ window.uiConfirm = function(texto, titulo) {
     document.getElementById('modalConfirm').classList.add('show');
   });
 };
-
 window.fecharConfirm = function(resposta) {
   document.getElementById('modalConfirm').classList.remove('show');
   if (_confirmResolve) { _confirmResolve(resposta); _confirmResolve = null; }
@@ -584,7 +580,7 @@ window.fecharModal = function() {
 };
 
 // ═══════════════════════════════════════════════════
-//  PARAR ALARME REMOTAMENTE
+//  PARAR / TESTE D8
 // ═══════════════════════════════════════════════════
 window.desligarAlarmeRemoto = async function() {
   if (!ativoId) { window.uiAviso('Selecione um veículo primeiro.', '⚠️ Atenção'); return; }
@@ -595,9 +591,6 @@ window.desligarAlarmeRemoto = async function() {
   addLog('⏹ Comando de parar alarme enviado', 'log-warn');
 };
 
-// ═══════════════════════════════════════════════════
-//  TESTE D8
-// ═══════════════════════════════════════════════════
 window.testarD8 = async function() {
   if (!ativoId) { window.uiAviso('Selecione um veículo primeiro.', '⚠️ Atenção'); return; }
   if (panicoAtivo) { window.uiAviso('Já existe um pânico ativo!', '🚨 Pânico'); return; }
@@ -779,26 +772,22 @@ window.processarGPS = function(chipId, d) {
     const tempoCrono2 = agora - pingoAtivo.tempoDentro;
     const minsCrono2 = Math.floor(tempoCrono2 / 60000);
     pingoAtivo.mins = 6 + minsCrono2;
-    const novoIcone = criarIconePingo(pingoAtivo.num, pingoAtivo.mins);
-    pingoAtivo.marker.setIcon(novoIcone);
+    pingoAtivo.marker.setIcon(criarIconePingo(pingoAtivo.num, pingoAtivo.mins));
     if (elTempo) { elTempo.textContent = '⏱️ ' + pingoAtivo.mins + ' min'; elTempo.className = 'ativo'; elTempo.style.display = 'inline-block'; }
 
     const posPingo = L.latLng(pingoAtivo.lat, pingoAtivo.lng);
-    const distanciaInstantanea = map.distance(posPingo, pos);
+    const distInstant = map.distance(posPingo, pos);
     if (!pingoAtivo.distBuffer) pingoAtivo.distBuffer = [];
-    pingoAtivo.distBuffer.push(distanciaInstantanea);
+    pingoAtivo.distBuffer.push(distInstant);
     if (pingoAtivo.distBuffer.length > 10) pingoAtivo.distBuffer.shift();
-    const distanciaMedia = pingoAtivo.distBuffer.reduce((a, b) => a + b, 0) / pingoAtivo.distBuffer.length;
+    const distMedia = pingoAtivo.distBuffer.reduce((a, b) => a + b, 0) / pingoAtivo.distBuffer.length;
 
-    const velocidadeAlta = v.vel > PARADA_VEL;
-    const distante = distanciaMedia > RAIO_PINGO_M;
-    if (velocidadeAlta && distante) {
+    if (v.vel > PARADA_VEL && distMedia > RAIO_PINGO_M) {
       pingoAtivo.tempoDentro = null;
       v.paradaCirculo = null;
       addLog('⏹️ P' + pingoAtivo.num + ' congelado em ' + pingoAtivo.mins + 'min', 'log-ok');
       if (elTempo) { elTempo.className = ''; elTempo.style.display = 'none'; }
-      v.paradaInicio = null;
-      v.paradaPos = null;
+      v.paradaInicio = null; v.paradaPos = null;
     }
   } else {
     if (v.vel <= PARADA_VEL) {
@@ -816,19 +805,16 @@ window.processarGPS = function(chipId, d) {
           pingoProximo.tempoDentro = agora;
           pingoProximo.mins = 6;
           pingoProximo.distBuffer = [];
-          const novoIcone = criarIconePingo(pingoProximo.num, 6);
-          pingoProximo.marker.setIcon(novoIcone);
+          pingoProximo.marker.setIcon(criarIconePingo(pingoProximo.num, 6));
           addLog('▶️ P' + pingoProximo.num + ' reativado', 'log-warn');
         } else {
           v.contador = (v.contador || 0) + 1;
           const numPingo = v.contador;
-          const icone = criarIconePingo(numPingo, 6);
-          const marker = L.marker(pos, { icon: icone, zIndexOffset: 100 }).addTo(map);
+          const marker = L.marker(pos, { icon: criarIconePingo(numPingo, 6), zIndexOffset: 100 }).addTo(map);
           v.pingos.push({
             marker: marker, num: numPingo, mins: 6,
             lat: pos.lat, lng: pos.lng,
             tempoDentro: agora,
-            paradaInicio: v.paradaInicio,
             horaBrasilia: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
             distBuffer: []
           });
@@ -848,22 +834,15 @@ window.processarGPS = function(chipId, d) {
     } else {
       if (v.paradaPos) {
         const distDoPonto = map.distance(v.paradaPos, pos);
-        if (distDoPonto > 50) {
-          v.paradaInicio = null;
-          v.paradaPos = null;
-        }
+        if (distDoPonto > 50) { v.paradaInicio = null; v.paradaPos = null; }
       } else {
-        v.paradaInicio = null;
-        v.paradaPos = null;
+        v.paradaInicio = null; v.paradaPos = null;
       }
     }
   }
 
   atualizarBotaoLista(chipId);
-  if (chipId === ativoId) {
-    atualizarPainel(chipId);
-    atualizarVeiculoTopbar(chipId);
-  }
+  if (chipId === ativoId) { atualizarPainel(chipId); atualizarVeiculoTopbar(chipId); }
 };
 
 // ═══════════════════════════════════════════════════
@@ -902,8 +881,7 @@ function atualizarPainel(chipId) {
   document.getElementById('pSat').textContent = v.sat + ' sat';
   document.getElementById('pRssi').textContent = (v.rssi || '—') + ' dBm';
   document.getElementById('pAlt').textContent = v.alt ? v.alt.toFixed(0) + ' m' : '— m';
-  const km = (v.kmTotal / 1000).toFixed(2);
-  document.getElementById('pKm').textContent = km + ' km';
+  document.getElementById('pKm').textContent = (v.kmTotal / 1000).toFixed(2) + ' km';
 
   const st = document.getElementById('pStatus');
   const bB = document.getElementById('btnBlock');
@@ -982,11 +960,10 @@ window.centralizarTodos = function() {
 };
 
 // ═══════════════════════════════════════════════════
-//  ALERTA DE MOVIMENTO
+//  ALERTAS
 // ═══════════════════════════════════════════════════
 window.ativarAlertaMovimento = function(chipId, d) {
-  const lat = parseFloat(d.lat);
-  const lng = parseFloat(d.lng);
+  const lat = parseFloat(d.lat), lng = parseFloat(d.lng);
   const posValida = (lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng));
   if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
   document.getElementById('btnFesta').classList.remove('ativo');
@@ -998,9 +975,6 @@ window.ativarAlertaMovimento = function(chipId, d) {
   if (posValida) map.setView(L.latLng(lat, lng), 15);
 };
 
-// ═══════════════════════════════════════════════════
-//  ALERTA DE SIRENE
-// ═══════════════════════════════════════════════════
 window.ativarAlertaSirene = function(chipId, d) {
   sireneChipId = chipId;
   document.getElementById('sireneBanner').style.display = 'block';
@@ -1009,8 +983,7 @@ window.ativarAlertaSirene = function(chipId, d) {
   setBadge('pStatus', '🚨 ALARME', 'badge-err');
   addLog('🚨 ALARME DO VEÍCULO DISPAROU!', 'log-err');
   if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
-  const lat = parseFloat(d.lat);
-  const lng = parseFloat(d.lng);
+  const lat = parseFloat(d.lat), lng = parseFloat(d.lng);
   if (lat && lng && lat !== 0 && lng !== 0) map.setView(L.latLng(lat, lng), 16);
 };
 
@@ -1026,9 +999,6 @@ window.fecharBannerSirene = function() {
   addLog('🔇 Alerta de sirene fechado', 'log-ok');
 };
 
-// ═══════════════════════════════════════════════════
-//  ALERTA DE JAMMER
-// ═══════════════════════════════════════════════════
 window.ativarAlertaJammer = function(chipId, d) {
   jammerChipId = chipId;
   document.getElementById('jammerBanner').style.display = 'block';
@@ -1150,7 +1120,7 @@ window.salvarMapa = async function() {
   if (currentStyle !== 'map') {
     currentStyle = 'map';
     tileLayer.setUrl(TILES.map);
-    addLog('🛰 Trocado para modo Mapa para captura', 'log-warn');
+    addLog('🛰 Trocado para modo Mapa', 'log-warn');
     await new Promise(r => setTimeout(r, 1200));
   }
 
@@ -1187,7 +1157,7 @@ window.salvarMapa = async function() {
 
             if (err) {
               addLog('❌ Erro ao capturar: ' + err, 'log-err');
-              window.uiAviso('Erro ao capturar o mapa: ' + err, '💾 Salvar');
+              window.uiAviso('Erro ao capturar: ' + err, '💾 Salvar');
               return;
             }
             if (!canvas) {
@@ -1295,7 +1265,7 @@ window.salvarMapa = async function() {
           if (zoomControl) zoomControl.style.display = zoomDisplay || '';
           if (attribution) attribution.style.display = attrDisplay || '';
           addLog('❌ Exceção: ' + e.message, 'log-err');
-          window.uiAviso('Erro inesperado ao salvar: ' + e.message, '💾 Salvar');
+          window.uiAviso('Erro inesperado: ' + e.message, '💾 Salvar');
         }
       }, 300);
     }
@@ -1313,7 +1283,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-console.log('🚀 GatewayConnectCar v7 — Esri (Street + Satellite)');
+console.log('🚀 GatewayConnectCar v8 — Esri + save robusto + modais internos');
 </script>
 </body>
 </html>
