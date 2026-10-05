@@ -925,22 +925,35 @@ window.salvarMapa = function() {
     html += '</div>';
     if (v.pingos.length > 0) {
       html += '<table><tr><th>#</th><th>Início da parada</th><th>Pingo apareceu</th><th>Tempo total parado</th><th>Local</th></tr>';
-      v.pingos.forEach(p => {
-        let horaInicio = '—';
-        if (p.hora) {
-          const partes = p.hora.split(':');
-          const hh = Number(partes[0]);
-          const mm = Number(partes[1]);
-          const dt = new Date();
-          dt.setHours(hh, mm - 6, 0, 0);
-          horaInicio = String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
-        }
-        const horas = Math.floor(p.mins / 60);
-        const mins = p.mins % 60;
-        const tempoTotal = horas > 0 ? horas + 'h ' + String(mins).padStart(2,'0') + 'min' : mins + ' min';
-        html += '<tr><td>P' + p.num + '</td><td>' + horaInicio + '</td><td>' + p.hora + '</td><td>' + tempoTotal + '</td>';
-        html += '<td><a href="https://maps.google.com/?q=' + p.lat + ',' + p.lng + '" target="_blank">Abrir</a></td></tr>';
-      });
+    v.pingos.forEach(p => {
+  let horaInicio = '—';
+  let tempoTotal = p.mins + ' min';   // fallback
+
+  if (p.hora) {
+    // Hora de início da parada = hora do pingo - 6 min
+    const partes = p.hora.split(':');
+    const hh = Number(partes[0]);
+    const mm = Number(partes[1]);
+
+    // Hora do início (pingo - 6 min)
+    const dtInicio = new Date();
+    dtInicio.setHours(hh, mm - 6, 0, 0);
+    horaInicio = String(dtInicio.getHours()).padStart(2,'0') + ':' + String(dtInicio.getMinutes()).padStart(2,'0');
+
+    // Tempo total = (agora - hora do pingo) + 6 min
+    const agora = new Date();
+    const dtPingo = new Date();
+    dtPingo.setHours(hh, mm, 0, 0);
+    const diffMin = Math.floor((agora - dtPingo) / 60000);
+    const totalMin = Math.max(6, diffMin + 6);   // nunca menor que 6
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    tempoTotal = h > 0 ? h + 'h ' + String(m).padStart(2,'0') + 'min' : totalMin + ' min';
+  }
+
+  html += '<tr><td>P' + p.num + '</td><td>' + horaInicio + '</td><td>' + p.hora + '</td><td>' + tempoTotal + '</td>';
+  html += '<td><a href="https://maps.google.com/?q=' + p.lat + ',' + p.lng + '" target="_blank">Abrir</a></td></tr>';
+}); 
       html += '</table>';
     }
     html += '</div>';
