@@ -983,9 +983,11 @@ window.salvarMapa = function() {
             'L.marker(pontoMax, { icon: L.divIcon({ className: "", html: placaSVG, iconSize: [60, 60], iconAnchor: [30, 30], popupAnchor: [0, -30] }), zIndexOffset: 1000 }).addTo(m).bindPopup("<b>🚨 Velocidade Máxima</b><br>" + velArred + " km/h");' +
           '}' +
         '}' +
-        'if (v.ultimaPos) {' +
-          'L.circleMarker(v.ultimaPos, { radius: 8, color: "#2e7d32", fillColor: "#2e7d32", fillOpacity: 1, weight: 3 }).addTo(m).bindPopup("<b>" + v.nome + "</b><br>Posição atual");' +
-        '}' +
+      'if (v.ultimaPos) {' +
+  'var corMarc = v.bloqueado ? "#c62828" : "#2e7d32";' +
+  'var iconeAtual = \'<div style="width:22px;height:22px;border-radius:50%;background:\' + corMarc + \';border:3px solid #fff;box-shadow:0 0 0 2px \' + corMarc + \',0 2px 8px rgba(0,0,0,0.5)"></div>\';' +
+  'L.marker(v.ultimaPos, { icon: L.divIcon({ className: "", html: iconeAtual, iconSize: [22, 22], iconAnchor: [11, 11] }), zIndexOffset: 500 }).addTo(m).bindPopup("<b>" + v.nome + "</b><br>Posição atual");' +
+'}' +
         'v.trail.forEach(p => todosPontos.push(p));' +
       '}' +
       'v.pingos.forEach(p => {' +
