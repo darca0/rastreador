@@ -561,17 +561,32 @@ window.processarGPS = function(chipId, d) {
 
   const pos = L.latLng(parseFloat(d.lat), parseFloat(d.lng));
 
-  // ── FILTRO 3: ignora os primeiros 30s de fix (cold start) ──
+  // ── FILTRO 3: nos primeiros 60s, mostra SÓ o marcador (sem trail) ──
   if (v.gpsInicioMs === null) {
     v.gpsInicioMs = Date.now();
     v.gpsFixCount = 0;
-    addLog('📍 GPS: aguardando estabilizar (30s)...', 'log-warn');
+    addLog('📍 GPS: marcador ativo — trail só após 60s', 'log-warn');
   }
   v.gpsFixCount++;
+  const estabilizando = (Date.now() - v.gpsInicioMs) < GPS_ESTABILIZACAO_MS;
 
-  if (Date.now() - v.gpsInicioMs < GPS_ESTABILIZACAO_MS) {
-    // Ainda estabilizando — atualiza painel, mas não plota no mapa
-    if (chipId === ativoId) { atualizarPainel(chipId); atualizarVeiculoTopbar(chipId); }
+  // ⚡ MOSTRA O MARCADOR IMEDIATAMENTE (mesmo durante estabilização)
+  const cor = corMarcador(v);
+  if (!v.marker) {
+    v.marker = L.marker(pos, { icon: mkIcon(cor) }).addTo(map);
+    v.marker.bindTooltip(v.nome);
+    if (chipId === ativoId) map.setView(pos, 16);
+  } else {
+    v.marker.setLatLng(pos);
+    v.marker.setIcon(mkIcon(cor));
+  }
+
+  // Atualiza painel sempre
+  if (chipId === ativoId) { atualizarPainel(chipId); atualizarVeiculoTopbar(chipId); }
+
+  // Durante estabilização, para aqui (não desenha trail, não conta km, não cria pingo)
+  if (estabilizando) {
+    atualizarBotaoLista(chipId);
     return;
   }
 
@@ -591,7 +606,8 @@ window.processarGPS = function(chipId, d) {
   // Passou pelos filtros — aceita a posição
   v.ultimaPos = pos;
   v.ultimoTimestamp = Date.now();
-  const cor = corMarcador(v);
+
+  // (o marcador já foi atualizado acima — nada a fazer aqui)
 
   if (!v.marker) {
     v.marker = L.marker(pos, { icon: mkIcon(cor) }).addTo(map);
