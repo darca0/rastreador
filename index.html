@@ -543,9 +543,10 @@ window.processarGPS = function(chipId, d) {
     const soma = v.velBuffer.reduce((acc, val) => acc + val, 0);
     velMedia = soma / v.velBuffer.length;
   }
-  v.vel = velMedia;
-  v.velInstantanea = spdAjustada;
-
+   v.vel = velMedia;
+  // Se a média indica que está parado (< 2 km/h), força instantânea a 0
+  // (evita que picos de jitter contem como "movimento")
+  v.velInstantanea = (velMedia < 2.0) ? 0 : spdAjustada;
   // Dados gerais
   if (d.rssi !== undefined) v.rssi = d.rssi;
   if (d.sat !== undefined) v.sat = d.sat;
@@ -601,28 +602,32 @@ window.processarGPS = function(chipId, d) {
     v.marker.setIcon(mkIcon(cor));
   }
 
-  // Trail — só adiciona se mover ≥5m (filtra jitter)
-  const emMovimento = v.vel > PARADA_VEL;
+    // ── Trail: só adiciona se o VEÍCULO estiver realmente em movimento ──
+  // Critério 1: velocidade INSTANTÂNEA > 5 km/h (não usa média)
+  // Critério 2: moveu pelo menos 15m do último ponto (filtra jitter do GPS parado)
+  const velInstant = v.velInstantanea || 0;
+  const emMovimentoReal = velInstant > 5.0;
   const temPingoAtivo = v.pingos.some(p => p.tempoDentro !== null && p.tempoDentro !== undefined);
 
   let deveAdicionarTrail = false;
-  if (emMovimento) {
+  if (emMovimentoReal) {
+    // Está se movendo de verdade — sempre adiciona
     deveAdicionarTrail = true;
   } else if (!temPingoAtivo) {
+    // Parado e sem pingo — só adiciona se moveu ≥15m (evita jitter)
     const pontos = v.trail.getLatLngs();
     if (pontos.length === 0) {
       deveAdicionarTrail = true;
     } else {
       const ultimoPonto = pontos[pontos.length - 1];
-      if (ultimoPonto.distanceTo(pos) >= 5) deveAdicionarTrail = true;
+      if (ultimoPonto.distanceTo(pos) >= 15) deveAdicionarTrail = true;
     }
   }
 
   if (deveAdicionarTrail) {
     v.trail.addLatLng(pos);
-    v.velocidadesTrail.push(v.velInstantanea || v.vel || 0);
+    v.velocidadesTrail.push(velInstant);
   }
-
   // Contador de movimento (pra km)
   if (v.vel > 15) v.contadorMovimento = (v.contadorMovimento || 0) + 1;
   else v.contadorMovimento = 0;
