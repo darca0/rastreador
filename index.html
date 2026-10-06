@@ -848,9 +848,20 @@ window.ativarAlertaMovimento = function(chipId, d) {
   document.getElementById('btnFesta').classList.remove('ativo');
   document.getElementById('btnFesta').textContent = '🛡️ Festa';
   modoFestaAtivo = false;
+
+  // Reaproveita o banner vermelho (tem botão Fechar)
+  sireneChipId = chipId;
+  document.getElementById('sireneBanner').style.display = 'block';
+  document.getElementById('sireneWidget').style.display = 'flex';
+  document.getElementById('sireneBanner').innerHTML =
+    '🚨 VEÍCULO SE MOVEU (Festa)' +
+    '<button onclick="window.fecharBannerSirene()">Fechar</button>' +
+    '<button onclick="window.centralizarAtivo()">Ver</button>';
+
   window.tocarAlarmeNavegador();
   setBadge('pStatus', '🚨 FURTO', 'badge-err');
   addLog('🚨 ALERTA DE FURTO DETECTADO!', 'log-err');
+  if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
   if (posValida) map.setView(L.latLng(lat, lng), 15);
 };
 window.ativarAlertaSirene = function(chipId, d) {
