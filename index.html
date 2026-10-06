@@ -628,14 +628,14 @@ window.processarGPS = function(chipId, d) {
     v.trail.addLatLng(pos);
     v.velocidadesTrail.push(velInstant);
   }
-  // Contador de movimento (pra km)
+   // Contador de movimento (pra km)
   if (v.vel > 15) v.contadorMovimento = (v.contadorMovimento || 0) + 1;
   else v.contadorMovimento = 0;
-  const emMovimentoReal = v.contadorMovimento >= 5;
-  if (v.ultimoPontoKm && emMovimentoReal) {
+  const emMovimentoKm = v.contadorMovimento >= 5;   // ← RENOMEADO
+  if (v.ultimoPontoKm && emMovimentoKm) {
     const dist = v.ultimoPontoKm.distanceTo(pos);
     if (dist > 100) { v.kmTotal += dist; v.ultimoPontoKm = pos; }
-  } else if (emMovimentoReal) {
+  } else if (emMovimentoKm) {
     v.ultimoPontoKm = pos;
   }
 
