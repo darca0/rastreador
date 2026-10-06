@@ -545,12 +545,32 @@ window.processarGPS = function(chipId, d) {
     v.marker.setLatLng(pos);
     v.marker.setIcon(mkIcon(cor));
   }
-  const emMovimento = v.vel > PARADA_VEL;
-  const temPingoAtivo = v.pingos.some(p => p.tempoDentro !== null && p.tempoDentro !== undefined);
-  if (emMovimento || !temPingoAtivo) {
+ const emMovimento = v.vel > PARADA_VEL;
+const temPingoAtivo = v.pingos.some(p => p.tempoDentro !== null && p.tempoDentro !== undefined);
+
+// Só adiciona ponto ao trail se:
+// 1) Está em movimento, OU
+// 2) Não tem pingo ativo E moveu pelo menos 5m do último ponto
+let deveAdicionarTrail = false;
+if (emMovimento) {
+    deveAdicionarTrail = true;
+} else if (!temPingoAtivo) {
+    const pontos = v.trail.getLatLngs();
+    if (pontos.length === 0) {
+        deveAdicionarTrail = true;
+    } else {
+        const ultimoPonto = pontos[pontos.length - 1];
+        const distDesdeUltimo = ultimoPonto.distanceTo(pos);
+        if (distDesdeUltimo >= 5) {   // ← 5 metros de tolerância
+            deveAdicionarTrail = true;
+        }
+    }
+}
+
+if (deveAdicionarTrail) {
     v.trail.addLatLng(pos);
     v.velocidadesTrail.push(v.velInstantanea || v.vel || 0);
-  }
+}
   if (v.vel > 15) v.contadorMovimento = (v.contadorMovimento || 0) + 1;
   else v.contadorMovimento = 0;
   const emMovimentoReal = v.contadorMovimento >= 5;
