@@ -882,9 +882,13 @@ window.fecharBannerSirene = function() {
   setBadge('pStatus', 'Liberado', 'badge-ok');
   if (mqttClient && mqttClient.connected && sireneChipId) {
     mqttClient.publish('rastreador/' + usuarioId + '/' + sireneChipId + '/alerta', '', { retain: true });
+    mqttClient.publish('rastreador/' + usuarioId + '/' + sireneChipId + '/cmd', 'DESATIVAR_MODO_FESTA');
   }
   sireneChipId = null;
-  addLog('🔇 Alerta de sirene fechado', 'log-ok');
+  modoFestaAtivo = false;
+  document.getElementById('btnFesta').classList.remove('ativo');
+  document.getElementById('btnFesta').textContent = '🛡️ Festa';
+  addLog('🔇 Sirene + Festa desativados', 'log-ok');
 };
 window.ativarAlertaJammer = function(chipId, d) {
   jammerChipId = chipId;
