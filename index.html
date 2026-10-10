@@ -33,6 +33,7 @@
   .badge-warn { background: #f9a82588; color: #fff8e1; border-color: #f9a825; animation: blink 1s infinite; }
   .badge-off { background: #33333388; color: #888; border-color: #444; }
   @keyframes blink { 50% { opacity: 0.5; } }
+  @keyframes aura-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   #topbar button { background: #1a1a1a; border:1px solid #333; color:#fff; padding:2px 8px; border-radius:12px; font-size:11px; cursor:pointer; }
   #topbar button:active { background: #1565C0; }
   #nomeUsuario { font-size:11px; color:#4caf50; font-weight:700; }
@@ -200,6 +201,7 @@
     <span class="info-pill" id="pRssi">— dBm</span>
     <span class="info-pill" id="pAlt">— m</span>
     <span class="info-pill" id="pKm">0.00 km</span>
+    <span class="info-pill" id="pIp" title="IP do ESP">🌐 —</span>
     <span id="pTempoParada">⏱️ 00:00</span>
     <span class="badge badge-off" id="pStatus">Aguardando</span>
   </div>
@@ -470,6 +472,7 @@ function obterVeiculo(chipId) {
     veiculos[chipId] = {
       chipId: chipId, nome: 'Veículo ' + chipId.slice(-4).toUpperCase(),
       bloqueado: false, pendente: false, vel: 0, sat: 0, rssi: 0, alt: 0,
+      ip: '—',
       marker: null, trail: L.polyline([], { color: '#1565C0', weight: 3, opacity: 0.8 }).addTo(map),
       velocidadesTrail: [], ultimaPos: null, paradaInicio: null, paradaPos: null,
       paradaCirculo: null, pingos: [], contador: 0, kmTotal: 0, ultimoPontoKm: null
@@ -646,6 +649,7 @@ window.processarStatus = function(chipId, d) {
   const v = obterVeiculo(chipId);
   if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
   if (d.pendente !== undefined) v.pendente = d.pendente === true;
+  if (d.ip !== undefined) v.ip = d.ip;                    // ⚡ NOVO
   if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
   atualizarBotaoLista(chipId);
   if (chipId === ativoId) { atualizarPainel(chipId); atualizarVeiculoTopbar(chipId); }
@@ -654,6 +658,15 @@ window.processarStatus = function(chipId, d) {
   else if (v.pendente) addLog('[' + chipId.slice(-4) + '] Aguardando...', 'log-warn');
   else if (m === 'desbloqueado') addLog('[' + chipId.slice(-4) + '] LIBERADO', 'log-ok');
   else if (m === 'online' || m === 'reconectado') addLog('[' + chipId.slice(-4) + '] Online ✓', 'log-ok');
+  // ⚡ NOVO: ESP avisou que modo festa NÃO ativou (GPS sem fix)
+  else if (m === 'modo_festa_erro') {
+    if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
+    document.getElementById('btnFesta').classList.remove('ativo');
+    document.getElementById('btnFesta').textContent = '🛡️ Festa';
+    modoFestaAtivo = false;
+    addLog('⚠️ Modo Festa NÃO ativou (GPS sem fix)', 'log-err');
+    window.uiAviso('GPS sem sinal. Aguarde fixar e tente novamente.', '🛡️ Modo Festa');
+  }
 };
 
 function atualizarBotaoLista(chipId) {
@@ -672,6 +685,7 @@ function atualizarPainel(chipId) {
   document.getElementById('pRssi').textContent = (v.rssi || '—') + ' dBm';
   document.getElementById('pAlt').textContent = v.alt ? v.alt.toFixed(0) + ' m' : '— m';
   document.getElementById('pKm').textContent = (v.kmTotal / 1000).toFixed(2) + ' km';
+  document.getElementById('pIp').textContent = v.ip || '—';   // ⚡ NOVO
   const st = document.getElementById('pStatus');
   const bB = document.getElementById('btnBlock');
   const bC = document.getElementById('btnCancel');
@@ -712,7 +726,13 @@ function corMarcador(v) {
 function mkIcon(cor) {
   return L.divIcon({
     className: '',
-    html: '<div style="width:22px;height:22px;border-radius:50%;background:' + cor + ';border:3px solid #fff;box-shadow:0 0 0 2px ' + cor + ',0 2px 8px rgba(0,0,0,0.5)"></div>',
+    html:
+      '<div style="position:relative;width:22px;height:22px;">' +
+        // ⚡ aura pontilhada girando
+        '<div style="position:absolute;top:-8px;left:-8px;width:38px;height:38px;border:2px dashed ' + cor + ';border-radius:50%;box-sizing:border-box;animation:aura-rotate 12s linear infinite;opacity:0.85;"></div>' +
+        // ponto central
+        '<div style="position:absolute;top:0;left:0;width:22px;height:22px;border-radius:50%;background:' + cor + ';border:3px solid #fff;box-sizing:border-box;box-shadow:0 2px 8px rgba(0,0,0,0.5);"></div>' +
+      '</div>',
     iconSize: [22, 22], iconAnchor: [11, 11]
   });
 }
@@ -952,7 +972,6 @@ window.salvarMapa = function() {
     '<span class="linha-cor" style="background:#c62828;margin-left:20px;"></span> Acima de 80 km/h' +
     '</div>';
 
-  // Script do mapa salvo
   html += '<script>' +
     'const dados = ' + JSON.stringify(dadosVeiculos) + ';' +
     'const m = L.map("mapa", { zoomControl: true });' +
@@ -965,7 +984,6 @@ window.salvarMapa = function() {
           'const cor = vel <= 80 ? "#1565C0" : "#c62828";' +
           'L.polyline([v.trail[i-1], v.trail[i]], { color: cor, weight: 4, opacity: 0.9 }).addTo(m);' +
         '}' +
-        // Marcador de velocidade máxima — placa em SVG via concatenação (SEM template literal!)
         'if (v.vels.length > 0) {' +
           'const velMax = Math.max.apply(null, v.vels);' +
           'const idxMax = v.vels.indexOf(velMax);' +
@@ -980,16 +998,16 @@ window.salvarMapa = function() {
               '\'<text x="50" y="\' + yNum + \'" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="\' + fontSize + \'" font-weight="900" fill="#222">\' + velArred + \'</text>\' +' +
               '\'<text x="50" y="72" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#222">km/h</text>\' +' +
               '\'</svg>\';' +
-         'L.marker(pontoMax, { icon: L.divIcon({ className: "", html: placaSVG, iconSize: [44, 44], iconAnchor: [22, 22], popupAnchor: [0, -22] }), zIndexOffset: 1000 }).addTo(m).bindPopup("<b>🚨 Velocidade Máxima</b><br>" + velArred + " km/h");' +
-   '}' +
+            'L.marker(pontoMax, { icon: L.divIcon({ className: "", html: placaSVG, iconSize: [44, 44], iconAnchor: [22, 22], popupAnchor: [0, -22] }), zIndexOffset: 1000 }).addTo(m).bindPopup("<b>🚨 Velocidade Máxima</b><br>" + velArred + " km/h");' +
+          '}' +
         '}' +
-      'if (v.ultimaPos) {' +
-  'var corMarc = v.bloqueado ? "#c62828" : "#2e7d32";' +
-  'var iconeAtual = \'<div style="width:22px;height:22px;border-radius:50%;background:\' + corMarc + \';border:3px solid #fff;box-shadow:0 0 0 2px \' + corMarc + \',0 2px 8px rgba(0,0,0,0.5)"></div>\';' +
-  'L.marker(v.ultimaPos, { icon: L.divIcon({ className: "", html: iconeAtual, iconSize: [22, 22], iconAnchor: [11, 11] }), zIndexOffset: 500 }).addTo(m).bindPopup("<b>" + v.nome + "</b><br>Posição atual");' +
-'}' +
-        'v.trail.forEach(p => todosPontos.push(p));' +
       '}' +
+      'if (v.ultimaPos) {' +
+        'var corMarc = v.bloqueado ? "#c62828" : "#2e7d32";' +
+        'var iconeAtual = \'<div style="width:22px;height:22px;border-radius:50%;background:\' + corMarc + \';border:3px solid #fff;box-shadow:0 0 0 2px \' + corMarc + \',0 2px 8px rgba(0,0,0,0.5)"></div>\';' +
+        'L.marker(v.ultimaPos, { icon: L.divIcon({ className: "", html: iconeAtual, iconSize: [22, 22], iconAnchor: [11, 11] }), zIndexOffset: 500 }).addTo(m).bindPopup("<b>" + v.nome + "</b><br>Posição atual");' +
+      '}' +
+      'v.trail.forEach(p => todosPontos.push(p));' +
       'v.pingos.forEach(p => {' +
         'const svgPingo = \'<svg xmlns="http://www.w3.org/2000/svg" width="40" height="50" viewBox="0 0 60 80">\' +' +
           '\'<path d="M30 0 C13 0 0 13 0 30 C0 47 30 80 30 80 C30 80 60 47 60 30 C60 13 47 0 30 0Z" fill="#FF6B00" stroke="#CC5500" stroke-width="2"/>\' +' +
@@ -1022,7 +1040,7 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.log('❌ Erro SW:', err));
   });
 }
-console.log('🚀 GatewayConnectCar v9 — placa SVG via concatenação');
+console.log('🚀 GatewayConnectCar v10 — aura pontilhada + IP + modo_festa_erro');
 </script>
 </body>
 </html>
