@@ -391,7 +391,7 @@ window.cmdAtivo = function(comando) {
   atualizarPainel(ativoId);
   atualizarBotaoLista(ativoId);
   atualizarVeiculoTopbar(ativoId);
-  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
+  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v), v.fonte));   // ⚡ NOVO: passa fonte
 };
 window.solicitarBloqueio = function() {
   document.getElementById('modalSeguranca').classList.add('show');
@@ -473,6 +473,7 @@ function obterVeiculo(chipId) {
       chipId: chipId, nome: 'Veículo ' + chipId.slice(-4).toUpperCase(),
       bloqueado: false, pendente: false, vel: 0, sat: 0, rssi: 0, alt: 0,
       ip: '—',
+      fonte: null,                    // ⚡ NOVO: gps | wifi
       marker: null, trail: L.polyline([], { color: '#1565C0', weight: 3, opacity: 0.8 }).addTo(map),
       velocidadesTrail: [], ultimaPos: null, paradaInicio: null, paradaPos: null,
       paradaCirculo: null, pingos: [], contador: 0, kmTotal: 0, ultimoPontoKm: null
@@ -516,6 +517,11 @@ function atualizarVeiculoTopbar(chipId) {
 window.processarGPS = function(chipId, d) {
   const v = obterVeiculo(chipId);
   if (!v) return;
+
+  // ⚡ NOVO: guarda fonte e detecta mudança
+  const fonteAntes = v.fonte;
+  if (d.fonte !== undefined) v.fonte = d.fonte;
+
   if (!v.velBuffer) v.velBuffer = [];
   if (d.spd !== undefined && d.spd <= 20) {
     v.velBuffer.push(d.spd);
@@ -541,12 +547,15 @@ window.processarGPS = function(chipId, d) {
   v.ultimaPos = pos;
   const cor = corMarcador(v);
   if (!v.marker) {
-    v.marker = L.marker(pos, { icon: mkIcon(cor) }).addTo(map);
+    v.marker = L.marker(pos, { icon: mkIcon(cor, v.fonte) }).addTo(map);   // ⚡ passa fonte
     v.marker.bindTooltip(v.nome);
     if (chipId === ativoId) map.setView(pos, 16);
   } else {
     v.marker.setLatLng(pos);
-    v.marker.setIcon(mkIcon(cor));
+    // ⚡ Só troca ícone se a fonte mudou (evita re-render)
+    if (fonteAntes !== v.fonte) {
+      v.marker.setIcon(mkIcon(cor, v.fonte));
+    }
   }
   const emMovimento = v.vel > PARADA_VEL;
   const temPingoAtivo = v.pingos.some(p => p.tempoDentro !== null && p.tempoDentro !== undefined);
@@ -649,8 +658,8 @@ window.processarStatus = function(chipId, d) {
   const v = obterVeiculo(chipId);
   if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
   if (d.pendente !== undefined) v.pendente = d.pendente === true;
-  if (d.ip !== undefined) v.ip = d.ip;                    // ⚡ NOVO
-  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v)));
+  if (d.ip !== undefined) v.ip = d.ip;
+  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v), v.fonte));   // ⚡ passa fonte
   atualizarBotaoLista(chipId);
   if (chipId === ativoId) { atualizarPainel(chipId); atualizarVeiculoTopbar(chipId); }
   const m = d.motivo || '';
@@ -658,7 +667,6 @@ window.processarStatus = function(chipId, d) {
   else if (v.pendente) addLog('[' + chipId.slice(-4) + '] Aguardando...', 'log-warn');
   else if (m === 'desbloqueado') addLog('[' + chipId.slice(-4) + '] LIBERADO', 'log-ok');
   else if (m === 'online' || m === 'reconectado') addLog('[' + chipId.slice(-4) + '] Online ✓', 'log-ok');
-  // ⚡ NOVO: ESP avisou que modo festa NÃO ativou (GPS sem fix)
   else if (m === 'modo_festa_erro') {
     if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
     document.getElementById('btnFesta').classList.remove('ativo');
@@ -685,7 +693,7 @@ function atualizarPainel(chipId) {
   document.getElementById('pRssi').textContent = (v.rssi || '—') + ' dBm';
   document.getElementById('pAlt').textContent = v.alt ? v.alt.toFixed(0) + ' m' : '— m';
   document.getElementById('pKm').textContent = (v.kmTotal / 1000).toFixed(2) + ' km';
-  document.getElementById('pIp').textContent = v.ip || '—';   // ⚡ NOVO
+  document.getElementById('pIp').textContent = v.ip || '—';
   const st = document.getElementById('pStatus');
   const bB = document.getElementById('btnBlock');
   const bC = document.getElementById('btnCancel');
@@ -723,14 +731,19 @@ function corMarcador(v) {
   if (v.pendente) return '#f9a825';
   return '#2e7d32';
 }
-function mkIcon(cor) {
+
+// ⚡ NOVO: aura sólida quando GPS, pontilhada quando WiFi
+function mkIcon(cor, fonte) {
+  const modoGPS = (fonte === 'gps');
+  const auraHTML = modoGPS
+    ? '<div style="position:absolute;top:-2px;left:-2px;width:26px;height:26px;border:2px solid ' + cor + ';border-radius:50%;box-sizing:border-box;opacity:0.9;"></div>'
+    : '<div style="position:absolute;top:-2px;left:-2px;width:26px;height:26px;border:2px dashed ' + cor + ';border-radius:50%;box-sizing:border-box;animation:aura-rotate 12s linear infinite;opacity:0.9;"></div>';
+
   return L.divIcon({
     className: '',
     html:
       '<div style="position:relative;width:22px;height:22px;">' +
-        // ⚡ aura tangente ao anel branco (26x26, offset -2)
-        '<div style="position:absolute;top:-2px;left:-2px;width:26px;height:26px;border:2px dashed ' + cor + ';border-radius:50%;box-sizing:border-box;animation:aura-rotate 12s linear infinite;opacity:0.9;"></div>' +
-        // ponto central
+        auraHTML +
         '<div style="position:absolute;top:0;left:0;width:22px;height:22px;border-radius:50%;background:' + cor + ';border:3px solid #fff;box-sizing:border-box;box-shadow:0 2px 8px rgba(0,0,0,0.5);"></div>' +
       '</div>',
     iconSize: [22, 22], iconAnchor: [11, 11]
@@ -1040,7 +1053,7 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.log('❌ Erro SW:', err));
   });
 }
-console.log('🚀 GatewayConnectCar v10 — aura pontilhada + IP + modo_festa_erro');
+console.log('🚀 GatewayConnectCar v11 — aura GPS sólida / WiFi pontilhada');
 </script>
 </body>
 </html>
