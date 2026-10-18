@@ -217,6 +217,9 @@
     <button class="btn-quadrado btn-salvar" onclick="window.salvarMapa()" title="Salvar trajeto">💾</button>
     <button class="btn-quadrado btn-parar"  onclick="window.desligarAlarmeRemoto()" title="Parar alarme">⏹</button>
     <button class="btn-quadrado btn-d8"     onclick="window.testarD8()" title="Teste D8">🚨</button>
+ <button id="btnCompartilhar" onclick="window.compartilharTrajeto()" style="display: none; background: #25D366; color: white; padding: 10px; border: none; border-radius: 5px; margin-top: 10px; cursor: pointer; width: 100%; font-weight: bold;">
+    📤 Compartilhar Trajeto
+</button>
   </div>
   <div id="logBox"></div>
 </div>
@@ -1051,7 +1054,9 @@ window.salvarMapa = function() {
       ultimoTrajetoGerado = blob;
       nomeArquivoTrajeto = "trajeto_" + new Date().toISOString().slice(0, 10) + ".html";
       document.getElementById('btnCompartilhar').style.display = 'block';
-  });
+  }).catch(err => {
+        console.error("Erro ao preparar compartilhamento:", err);
+    });
   // --- FIM DA CAPTURA ---
 };
 
@@ -1068,16 +1073,14 @@ if ('serviceWorker' in navigator) {
     let ultimoTrajetoGerado = null;
     let nomeArquivoTrajeto = "trajeto_veiculo.html";
 
-    async function compartilharTrajeto() {
+    window.compartilharTrajeto = async function() {
         if (!ultimoTrajetoGerado) {
             alert("Nenhum trajeto gerado ainda. Clique em 'Salvar Trajeto' primeiro.");
             return;
         }
 
-        // Cria o arquivo
         const arquivo = new File([ultimoTrajetoGerado], nomeArquivoTrajeto, { type: "text/html" });
 
-        // Verifica se o dispositivo suporta compartilhar arquivos (Celulares)
         if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
             try {
                 await navigator.share({
@@ -1090,13 +1093,12 @@ if ('serviceWorker' in navigator) {
                 console.error('Erro ao compartilhar:', error);
             }
         } else {
-            // Fallback para PC ou navegadores antigos
             alert("Seu navegador não suporta o compartilhamento direto. O download será iniciado.");
-            baixarArquivoFallback(arquivo);
+            window.baixarArquivoFallback(arquivo);
         }
-    }
+    };
 
-    function baixarArquivoFallback(arquivo) {
+    window.baixarArquivoFallback = function(arquivo) {
         const url = URL.createObjectURL(arquivo);
         const a = document.createElement('a');
         a.href = url;
@@ -1105,8 +1107,9 @@ if ('serviceWorker' in navigator) {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-    }
+    };
     // --- FIM DAS FUNÇÕES DE COMPARTILHAMENTO ---
+    
   </script> <!-- AQUI FECHA O SCRIPT -->
 
   <!-- O BOTÃO FICA AQUI, FORA DO SCRIPT -->
