@@ -1044,6 +1044,15 @@ window.salvarMapa = function() {
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   addLog('💾 Trajeto salvo!', 'log-ok');
+
+  // --- INÍCIO DA CAPTURA PARA COMPARTILHAR ---
+  // Pega o arquivo que acabou de ser gerado e guarda para o botão de compartilhar
+  fetch(url).then(res => res.blob()).then(blob => {
+      ultimoTrajetoGerado = blob;
+      nomeArquivoTrajeto = "trajeto_" + new Date().toISOString().slice(0, 10) + ".html";
+      document.getElementById('btnCompartilhar').style.display = 'block';
+  });
+  // --- FIM DA CAPTURA ---
 };
 
 if ('serviceWorker' in navigator) {
@@ -1053,7 +1062,57 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.log('❌ Erro SW:', err));
   });
 }
-console.log('🚀 GatewayConnectCar v11 — aura GPS sólida / WiFi pontilhada');
-</script>
+    console.log('🚀 GatewayConnectCar v11 — aura GPS sólida / WiFi pontilhada'); 
+    
+    // --- INÍCIO DAS FUNÇÕES DE COMPARTILHAMENTO ---
+    let ultimoTrajetoGerado = null;
+    let nomeArquivoTrajeto = "trajeto_veiculo.html";
+
+    async function compartilharTrajeto() {
+        if (!ultimoTrajetoGerado) {
+            alert("Nenhum trajeto gerado ainda. Clique em 'Salvar Trajeto' primeiro.");
+            return;
+        }
+
+        // Cria o arquivo
+        const arquivo = new File([ultimoTrajetoGerado], nomeArquivoTrajeto, { type: "text/html" });
+
+        // Verifica se o dispositivo suporta compartilhar arquivos (Celulares)
+        if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+            try {
+                await navigator.share({
+                    files: [arquivo],
+                    title: 'Trajeto do Veículo',
+                    text: 'Segue o trajeto salvo do rastreador.'
+                });
+                console.log('Compartilhado com sucesso!');
+            } catch (error) {
+                console.error('Erro ao compartilhar:', error);
+            }
+        } else {
+            // Fallback para PC ou navegadores antigos
+            alert("Seu navegador não suporta o compartilhamento direto. O download será iniciado.");
+            baixarArquivoFallback(arquivo);
+        }
+    }
+
+    function baixarArquivoFallback(arquivo) {
+        const url = URL.createObjectURL(arquivo);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = arquivo.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+    // --- FIM DAS FUNÇÕES DE COMPARTILHAMENTO ---
+  </script> <!-- AQUI FECHA O SCRIPT -->
+
+  <!-- O BOTÃO FICA AQUI, FORA DO SCRIPT -->
+  <button id="btnCompartilhar" onclick="compartilharTrajeto()" style="display: none; background: #25D366; color: white; padding: 10px; border: none; border-radius: 5px; margin-top: 10px; cursor: pointer; width: 100%;">
+      📤 Compartilhar Trajeto
+  </button>
+
 </body>
 </html>
