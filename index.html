@@ -1031,7 +1031,7 @@ window.salvarMapa = function() {
         'todosPontos.push([p.lat, p.lng]);' +
       '});' +
     '});' +
-     'if (todosPontos.length > 0) { m.fitBounds(todosPontos, { padding: [40, 40] }); } else { m.setView([-22.7078, -47.6659], 13); }' +
+   'if (todosPontos.length > 0) { m.fitBounds(todosPontos, { padding: [40, 40] }); } else { m.setView([-22.7078, -47.6659], 13); }' +
   '<\/script>' +
   
   // --- INÍCIO DO BOTÃO DE COMPARTILHAR NO ARQUIVO SALVO ---
@@ -1046,10 +1046,17 @@ window.salvarMapa = function() {
               'const htmlContent = document.documentElement.outerHTML;' +
               'const blob = new Blob([htmlContent], { type: "text/html" });' +
               'const file = new File([blob], "trajeto_salvo.html", { type: "text/html" });' +
+              
+              // Se for Celular, abre a janelinha do WhatsApp/Gmail
               'if (navigator.canShare && navigator.canShare({ files: [file] })) {' +
                   'await navigator.share({ files: [file], title: "Trajeto do Veículo", text: "Segue o trajeto salvo." });' +
               '} else {' +
-                  'alert("Seu navegador (PC) não suporta compartilhamento direto. Use o arquivo já baixado.");' +
+                  // Se for PC, baixa o arquivo silenciosamente para você anexar manualmente
+                  'const a = document.createElement("a");' +
+                  'a.href = URL.createObjectURL(blob);' +
+                  'a.download = "trajeto_compartilhar.html";' +
+                  'a.click();' +
+                  'alert("O PC não compartilha direto. O arquivo foi baixado novamente! Basta arrastar ele para o WhatsApp Web ou anexar no Gmail.");' +
               '}' +
           '} catch (error) { console.log("Compartilhamento cancelado."); }' +
       '};' +
