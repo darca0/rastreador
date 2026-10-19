@@ -1031,8 +1031,32 @@ window.salvarMapa = function() {
         'todosPontos.push([p.lat, p.lng]);' +
       '});' +
     '});' +
-    'if (todosPontos.length > 0) { m.fitBounds(todosPontos, { padding: [40, 40] }); } else { m.setView([-22.7078, -47.6659], 13); }' +
-  '<\/script></body></html>';
+     'if (todosPontos.length > 0) { m.fitBounds(todosPontos, { padding: [40, 40] }); } else { m.setView([-22.7078, -47.6659], 13); }' +
+  '<\/script>' +
+  
+  // --- INÍCIO DO BOTÃO DE COMPARTILHAR NO ARQUIVO SALVO ---
+  '<div style="position: absolute; top: 80px; right: 20px; z-index: 9999;">' +
+      '<button onclick="window.compartilharEsteArquivo()" style="background: #25D366; color: white; padding: 12px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.5); font-size: 14px;">' +
+          '📤 Compartilhar Mapa' +
+      '</button>' +
+  '</div>' +
+  '<script>' +
+      'window.compartilharEsteArquivo = async function() {' +
+          'try {' +
+              'const htmlContent = document.documentElement.outerHTML;' +
+              'const blob = new Blob([htmlContent], { type: "text/html" });' +
+              'const file = new File([blob], "trajeto_salvo.html", { type: "text/html" });' +
+              'if (navigator.canShare && navigator.canShare({ files: [file] })) {' +
+                  'await navigator.share({ files: [file], title: "Trajeto do Veículo", text: "Segue o trajeto salvo." });' +
+              '} else {' +
+                  'alert("Seu navegador (PC) não suporta compartilhamento direto. Use o arquivo já baixado.");' +
+              '}' +
+          '} catch (error) { console.log("Compartilhamento cancelado."); }' +
+      '};' +
+  '<\/script>' +
+  // --- FIM DO BOTÃO DE COMPARTILHAR ---
+  
+  '</body></html>';
 
   const blob = new Blob([html], { type: 'text/html' });
   const url = URL.createObjectURL(blob);
