@@ -889,7 +889,15 @@ window.desligarAlarme = function() {
   window.__sirene.gain = null;
   if (navigator.vibrate) navigator.vibrate(0);
 };
-
+function calcularDistanciaTotal(trail) {
+    let dist = 0;
+    for (let i = 1; i < trail.length; i++) {
+        const p1 = L.latLng(trail[i-1][0], trail[i-1][1]);
+        const p2 = L.latLng(trail[i][0], trail[i][1]);
+        dist += p1.distanceTo(p2);
+    }
+    return dist;
+}
 window.salvarMapa = function() {
   const dadosVeiculos = [];
   let temAlgo = false;
@@ -905,7 +913,7 @@ window.salvarMapa = function() {
     if (trail.length > 0 || pingos.length > 0) temAlgo = true;
     dadosVeiculos.push({
       nome: v.nome, chipId: v.chipId, bloqueado: v.bloqueado,
-      km: (v.kmTotal / 1000).toFixed(2),
+      km: (calcularDistanciaTotal(trail) / 1000).toFixed(2),
       velMax: velMax.toFixed(0), velMedia: velMedia.toFixed(0),
       trail: trail, vels: vels, pingos: pingos,
       ultimaPos: v.ultimaPos ? [v.ultimaPos.lat, v.ultimaPos.lng] : null
