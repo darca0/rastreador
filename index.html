@@ -345,13 +345,46 @@ window.conectarMQTT = function() {
   mqttClient.on('disconnect', () => setBadge('mqttBadge', 'Desconectado', 'badge-off'));
   mqttClient.on('offline', () => setBadge('mqttBadge', 'Offline', 'badge-err'));
   mqttClient.on('error', (e) => addLog('Erro: ' + e.message, 'log-err'));
+   // Variável global para controlar o tempo de parada de cada veículo
+  const estadoParada = {}; 
+
   mqttClient.on('message', (topic, payload) => {
     try {
       const parts = topic.split('/');
       const chipId = parts[2], tipo = parts[3];
       const data = JSON.parse(payload.toString());
-      if (tipo === 'gps')    window.processarGPS(chipId, data);
+      
+      if (tipo === 'gps') {
+        // ⏱️ INÍCIO DA LÓGICA DO CRONÔMETRO
+        const velAtual = parseFloat(data.spd || 0);
+        const agora = Date.now();
+        const estaParado = (velAtual <= 5);
+
+        if (!estadoParada[chipId]) {
+          estadoParada[chipId] = { inicio: null, pingoFeito: false };
+        }
+        const ep = estadoParada[chipId];
+
+        if (estaParado) {
+          if (!ep.inicio) {
+            ep.inicio = agora; // Marca a hora que parou
+          } else if ((agora - ep.inicio) >= 360000 && !ep.pingoFeito) {
+            // 6 minutos = 360.000 ms
+            ep.pingoFeito = true;
+            data.forcarPingo = true; // 👈 Avisa o processarGPS para criar o pingo
+            console.log("⏱️ 6 minutos parados! Criando pingo...");
+          }
+        } else {
+          ep.inicio = null;
+          ep.pingoFeito = false;
+        }
+        // ⏱️ FIM DA LÓGICA DO CRONÔMETRO
+
+        window.processarGPS(chipId, data);
+      }
+      
       if (tipo === 'status') window.processarStatus(chipId, data);
+      
       if (tipo === 'alerta') {
         if (data.motivo === 'sirene_disparou')  window.ativarAlertaSirene(chipId, data);
         if (data.motivo === 'sirene_parou')     window.fecharBannerSirene();
@@ -359,6 +392,7 @@ window.conectarMQTT = function() {
         if (data.motivo === 'alerta_movimento') window.ativarAlertaMovimento(chipId, data);
         if (data.motivo === 'alerta_jammer')    window.ativarAlertaJammer(chipId, data);
       }
+      
       if (tipo === 'status' && data.motivo === 'panico') window.ativarPanico(chipId, 'mqtt', data);
       if (tipo === 'status' && data.motivo === 'panico_cancelado') window.cancelarPanico();
       if (tipo === 'status' && data.motivo === 'alerta_movimento') window.ativarAlertaMovimento(chipId, data);
@@ -366,9 +400,33 @@ window.conectarMQTT = function() {
       if (tipo === 'status' && data.motivo === 'sirene_parou') window.fecharBannerSirene();
       if (tipo === 'status' && data.motivo === 'alerta_jammer') window.ativarAlertaJammer(chipId, data);
       if (tipo === 'status' && data.motivo === 'jammer_cancelado') window.cancelarAlertaJammer();
-    } catch(e) {}
+      
+    } catch(e) { console.error("Erro no MQTT:", e); }
   });
-};
+
+  // ⏱️ RELÓGIO INDEPENDENTE (Para criar o pingo mesmo se o ESP ficar em silêncio no Wi-Fi)
+  setInterval(() => {
+    const agora = Date.now();
+    Object.keys(estadoParada).forEach(chipId => {
+      const ep = estadoParada[chipId];
+      // Se passou de 6 minutos e o pingo ainda não foi feito
+      if (ep.inicio && !ep.pingoFeito && (agora - ep.inicio) >= 360000) {
+        ep.pingoFeito = true;
+        console.log(`⏱️ Relógio: 6 minutos parados no carro ${chipId}!`);
+        
+        // Pega a última posição conhecida do veículo para forçar o pingo
+        if (window.processarGPS && veiculos[chipId] && veiculos[chipId].ultimaPos) {
+          window.processarGPS(chipId, {
+            lat: veiculos[chipId].ultimaPos.lat,
+            lng: veiculos[chipId].ultimaPos.lng,
+            spd: 0,
+            fonte: veiculos[chipId].fonte || 'wifi',
+            forcarPingo: true 
+          });
+        }
+      }
+    });
+  }, 30000); // Roda a cada 30 segundos
 function setBadge(id, txt, cls) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -603,7 +661,7 @@ window.processarGPS = function(chipId, d) {
     if (v.vel <= PARADA_VEL) {
       if (!v.paradaInicio) { v.paradaInicio = agora; v.paradaPos = pos; }
       const tempoParado = agora - v.paradaInicio;
-      if (tempoParado >= PARADA_MIN_MS) {
+        if (tempoParado >= PARADA_MIN_MS || d.forcarPingo) {
         let pingoProximo = null;
         for (let p of v.pingos) {
           if (p.marker) {
@@ -612,7 +670,8 @@ window.processarGPS = function(chipId, d) {
           }
         }
         if (pingoProximo) {
-          pingoProximo.tempoDentro = agora;
+          // Se for forçado e já existe um pingo perto, reativa ele
+          pingoProximo.tempoDentro = agora - (d.forcarPingo ? 360000 : 0); 
           pingoProximo.mins = 6;
           pingoProximo.distBuffer = [];
           pingoProximo.marker.setIcon(criarIconePingo(pingoProximo.num, 6));
@@ -624,8 +683,9 @@ window.processarGPS = function(chipId, d) {
           v.pingos.push({
             marker: marker, num: numPingo, mins: 6,
             lat: pos.lat, lng: pos.lng,
-            tempoDentro: agora,
-            horaBrasilia: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            // ⚡ Se for forçado, subtraímos 6 minutos do 'agora' para o tempo na tabela já começar em 6 min
+            tempoDentro: agora - (d.forcarPingo ? 360000 : 0), 
+            horaBrasilia: new Date(Date.now() - (d.forcarPingo ? 360000 : 0)).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
             distBuffer: []
           });
           v.paradaCirculo = marker;
