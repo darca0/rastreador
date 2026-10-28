@@ -345,7 +345,8 @@ window.conectarMQTT = function() {
   mqttClient.on('disconnect', () => setBadge('mqttBadge', 'Desconectado', 'badge-off'));
   mqttClient.on('offline', () => setBadge('mqttBadge', 'Offline', 'badge-err'));
   mqttClient.on('error', (e) => addLog('Erro: ' + e.message, 'log-err'));
-   // Variável global para controlar o tempo de parada de cada veículo
+  
+  // Variável global para controlar o tempo de parada de cada veículo
   const estadoParada = {}; 
 
   mqttClient.on('message', (topic, payload) => {
@@ -427,7 +428,7 @@ window.conectarMQTT = function() {
       }
     });
   }, 30000); // Roda a cada 30 segundos
-}
+}; // 👈 ESSA CHAVE E O PONTO E VÍRGULA SÃO ESSENCIAIS!
 function setBadge(id, txt, cls) {
   const el = document.getElementById(id);
   if (!el) return;
