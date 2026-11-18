@@ -681,13 +681,12 @@ window.processarGPS = function(chipId, d) {
           v.contador = (v.contador || 0) + 1;
           const numPingo = v.contador;
           const marker = L.marker(pos, { icon: criarIconePingo(numPingo, 6), zIndexOffset: 100 }).addTo(map);
-          
-          // ✅ CORREÇÃO 1: Salva a hora exata do INÍCIO da parada, sem bagunçar o fuso
-          v.pingos.push({
+                  v.pingos.push({
             marker: marker, num: numPingo, mins: 6,
             lat: pos.lat, lng: pos.lng,
             tempoDentro: agora,
-            timestampInicio: agora - 360000, // Início = Momento atual - 6 min
+            horaBrasilia: new Date(Date.now() - 360000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+            timestampInicio: Date.now() - 360000, 
             distBuffer: []
           });
           v.paradaCirculo = marker;
@@ -966,7 +965,7 @@ window.salvarMapa = function() {
     const trail = v.trail.getLatLngs().map(p => [p.lat, p.lng]);
     const pingos = v.pingos.map(p => {
       const ll = p.marker.getLatLng();
-      return { lat: ll.lat, lng: ll.lng, num: p.num, mins: p.mins, timestampInicio: p.timestampInicio };
+      return { lat: ll.lat, lng: ll.lng, num: p.num, mins: p.mins, hora: p.horaBrasilia || '—', timestampInicio: p.timestampInicio };
     });
     const vels = v.velocidadesTrail || [];
     const velMax = vels.length > 0 ? Math.max(...vels) : 0;
@@ -1026,34 +1025,26 @@ window.salvarMapa = function() {
     html += '<span>Vel. Média: <b>' + v.velMedia + ' km/h</b></span>';
     html += '</div>';
     if (v.pingos.length > 0) {
-      // ✅ CORREÇÃO 2: Nova estrutura da tabela com cálculo exato das colunas
-      html += '<table><tr><th>#</th><th>Início da parada</th><th>Tempo total do pingo</th><th>Tempo total parado (Pingo + 6min)</th><th>Local</th></tr>';
+      html += '<table><tr><th>#</th><th>Início da parada</th><th>Pingo apareceu</th><th>Tempo total parado</th><th>Local</th></tr>';
       v.pingos.forEach(p => {
-        
-        // Calcula a hora de início da parada
         let horaInicio = '—';
+        
         if (p.timestampInicio) {
           horaInicio = new Date(p.timestampInicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        } else if (p.hora) {
+          const partes = p.hora.split(':');
+          const hh = Number(partes[0]);
+          const mm = Number(partes[1]);
+          const dt = new Date();
+          dt.setHours(hh, mm - 6, 0, 0);
+          horaInicio = String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
         }
 
-        // Cálculos dos tempos
-        const tempoPingoMin = Math.max(0, p.mins - 6); // Subtrai os 6 minutos de incerteza
-        const tempoTotalParadoMin = p.mins; // O tempo total que ele ficou parado
-
-        // Função para formatar (ex: 33 min ou 1h 15min)
-        const formataTempo = (m) => {
-            const h = Math.floor(m / 60);
-            const min = m % 60;
-            return h > 0 ? h + 'h ' + String(min).padStart(2,'0') + 'min' : min + ' min';
-        };
-
-        html += '<tr>';
-        html += '<td>P' + p.num + '</td>';
-        html += '<td>' + horaInicio + '</td>';
-        html += '<td>' + formataTempo(tempoPingoMin) + '</td>';
-        html += '<td>' + formataTempo(tempoTotalParadoMin) + '</td>';
-        html += '<td><a href="https://maps.google.com/?q=' + p.lat + ',' + p.lng + '" target="_blank">Abrir</a></td>';
-        html += '</tr>';
+        const horas = Math.floor(p.mins / 60);
+        const mins = p.mins % 60;
+        const tempoTotal = horas > 0 ? horas + 'h ' + String(mins).padStart(2,'0') + 'min' : mins + ' min';
+        html += '<tr><td>P' + p.num + '</td><td>' + horaInicio + '</td><td>' + p.hora + '</td><td>' + tempoTotal + '</td>';
+        html += '<td><a href="https://maps.google.com/?q=' + p.lat + ',' + p.lng + '" target="_blank">Abrir</a></td></tr>';
       });
       html += '</table>';
     }
@@ -1108,7 +1099,7 @@ window.salvarMapa = function() {
           '\'<circle cx="30" cy="28" r="17" fill="white" opacity="0.95"/>\' +' +
           '\'<text x="30" y="33" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="14" font-weight="900" fill="#CC5500">P\' + p.num + \'</text>\' +' +
           '\'</svg>\';' +
-        'L.marker([p.lat, p.lng], { icon: L.divIcon({ className: "", html: svgPingo, iconSize: [40, 50], iconAnchor: [20, 50] }) }).addTo(m).bindPopup("<b>P" + p.num + "</b><br>" + p.mins + " min<br>");' +
+        'L.marker([p.lat, p.lng], { icon: L.divIcon({ className: "", html: svgPingo, iconSize: [40, 50], iconAnchor: [20, 50] }) }).addTo(m).bindPopup("<b>P" + p.num + "</b><br>" + p.mins + " min<br>" + p.hora);' +
         'todosPontos.push([p.lat, p.lng]);' +
       '});' +
     '});' +
