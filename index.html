@@ -346,7 +346,6 @@ window.conectarMQTT = function() {
   mqttClient.on('offline', () => setBadge('mqttBadge', 'Offline', 'badge-err'));
   mqttClient.on('error', (e) => addLog('Erro: ' + e.message, 'log-err'));
   
-  // Variável global para controlar o tempo de parada de cada veículo
   const estadoParada = {}; 
 
   mqttClient.on('message', (topic, payload) => {
@@ -356,10 +355,8 @@ window.conectarMQTT = function() {
       const data = JSON.parse(payload.toString());
       
       if (tipo === 'gps') {
-        // ⏱️ INÍCIO DA LÓGICA DO CRONÔMETRO
         const velAtual = parseFloat(data.spd || 0);
         const agora = Date.now();
-        // CORRIGIDO AQUI: Usando PARADA_VEL em vez de 5 fixo
         const estaParado = (velAtual <= PARADA_VEL);
 
         if (!estadoParada[chipId]) {
@@ -369,19 +366,15 @@ window.conectarMQTT = function() {
 
         if (estaParado) {
           if (!ep.inicio) {
-            ep.inicio = agora; // Marca a hora que parou
+            ep.inicio = agora; 
           } else if ((agora - ep.inicio) >= PARADA_MIN_MS && !ep.pingoFeito) {
-            // 6 minutos = 360.000 ms
             ep.pingoFeito = true;
-            data.forcarPingo = true; // 👈 Avisa o processarGPS para criar o pingo
-            console.log("⏱️ 6 minutos parados! Criando pingo...");
+            data.forcarPingo = true; 
           }
         } else {
           ep.inicio = null;
           ep.pingoFeito = false;
         }
-        // ⏱️ FIM DA LÓGICA DO CRONÔMETRO
-
         window.processarGPS(chipId, data);
       }
       
@@ -406,17 +399,13 @@ window.conectarMQTT = function() {
     } catch(e) { console.error("Erro no MQTT:", e); }
   });
 
-  // ⏱️ RELÓGIO INDEPENDENTE (Para criar o pingo mesmo se o ESP ficar em silêncio no Wi-Fi)
   setInterval(() => {
     const agora = Date.now();
     Object.keys(estadoParada).forEach(chipId => {
       const ep = estadoParada[chipId];
-      // Se passou de 6 minutos e o pingo ainda não foi feito
       if (ep.inicio && !ep.pingoFeito && (agora - ep.inicio) >= PARADA_MIN_MS) {
         ep.pingoFeito = true;
         console.log(`⏱️ Relógio: 6 minutos parados no carro ${chipId}!`);
-        
-        // Pega a última posição conhecida do veículo para forçar o pingo
         if (window.processarGPS && veiculos[chipId] && veiculos[chipId].ultimaPos) {
           window.processarGPS(chipId, {
             lat: veiculos[chipId].ultimaPos.lat,
@@ -428,7 +417,7 @@ window.conectarMQTT = function() {
         }
       }
     });
-  }, 30000); // Roda a cada 30 segundos
+  }, 30000); 
 };
 function setBadge(id, txt, cls) {
   const el = document.getElementById(id);
@@ -606,6 +595,7 @@ window.processarGPS = function(chipId, d) {
   const pos = L.latLng(parseFloat(d.lat), parseFloat(d.lng));
   v.ultimaPos = pos;
   const cor = corMarcador(v);
+  
   if (!v.marker) {
     v.marker = L.marker(pos, { icon: mkIcon(cor, v.fonte) }).addTo(map);
     v.marker.bindTooltip(v.nome);
@@ -616,6 +606,12 @@ window.processarGPS = function(chipId, d) {
       v.marker.setIcon(mkIcon(cor, v.fonte));
     }
   }
+
+  // ✅ CORREÇÃO AQUI: O mapa segue o carro ativo!
+  if (chipId === ativoId) {
+    map.panTo(pos);
+  }
+
   const emMovimento = v.vel > PARADA_VEL;
   const temPingoAtivo = v.pingos.some(p => p.tempoDentro !== null && p.tempoDentro !== undefined);
   if (emMovimento || !temPingoAtivo) {
@@ -662,7 +658,7 @@ window.processarGPS = function(chipId, d) {
     if (v.vel <= PARADA_VEL) {
       if (!v.paradaInicio) { v.paradaInicio = agora; v.paradaPos = pos; }
       const tempoParado = agora - v.paradaInicio;
-        if (tempoParado >= PARADA_MIN_MS || d.forcarPingo) {
+      if (tempoParado >= PARADA_MIN_MS || d.forcarPingo) {
         let pingoProximo = null;
         for (let p of v.pingos) {
           if (p.marker) {
@@ -671,7 +667,6 @@ window.processarGPS = function(chipId, d) {
           }
         }
         if (pingoProximo) {
-          // Se for forçado e já existe um pingo perto, reativa ele
           pingoProximo.tempoDentro = agora - (d.forcarPingo ? 360000 : 0); 
           pingoProximo.mins = 6;
           pingoProximo.distBuffer = [];
@@ -681,12 +676,11 @@ window.processarGPS = function(chipId, d) {
           v.contador = (v.contador || 0) + 1;
           const numPingo = v.contador;
           const marker = L.marker(pos, { icon: criarIconePingo(numPingo, 6), zIndexOffset: 100 }).addTo(map);
-                  v.pingos.push({
+          v.pingos.push({
             marker: marker, num: numPingo, mins: 6,
             lat: pos.lat, lng: pos.lng,
             tempoDentro: agora,
-            horaBrasilia: new Date(Date.now() - 360000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-            timestampInicio: Date.now() - 360000, 
+            timestampInicio: agora - 360000,
             distBuffer: []
           });
           v.paradaCirculo = marker;
@@ -965,7 +959,7 @@ window.salvarMapa = function() {
     const trail = v.trail.getLatLngs().map(p => [p.lat, p.lng]);
     const pingos = v.pingos.map(p => {
       const ll = p.marker.getLatLng();
-      return { lat: ll.lat, lng: ll.lng, num: p.num, mins: p.mins, hora: p.horaBrasilia || '—', timestampInicio: p.timestampInicio };
+      return { lat: ll.lat, lng: ll.lng, num: p.num, mins: p.mins, timestampInicio: p.timestampInicio };
     });
     const vels = v.velocidadesTrail || [];
     const velMax = vels.length > 0 ? Math.max(...vels) : 0;
@@ -1025,26 +1019,26 @@ window.salvarMapa = function() {
     html += '<span>Vel. Média: <b>' + v.velMedia + ' km/h</b></span>';
     html += '</div>';
     if (v.pingos.length > 0) {
-      html += '<table><tr><th>#</th><th>Início da parada</th><th>Pingo apareceu</th><th>Tempo total parado</th><th>Local</th></tr>';
+      html += '<table><tr><th>#</th><th>Início da parada</th><th>Tempo total do pingo</th><th>Tempo total parado (Pingo + 6min)</th><th>Local</th></tr>';
       v.pingos.forEach(p => {
         let horaInicio = '—';
-        
         if (p.timestampInicio) {
           horaInicio = new Date(p.timestampInicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        } else if (p.hora) {
-          const partes = p.hora.split(':');
-          const hh = Number(partes[0]);
-          const mm = Number(partes[1]);
-          const dt = new Date();
-          dt.setHours(hh, mm - 6, 0, 0);
-          horaInicio = String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
         }
-
-        const horas = Math.floor(p.mins / 60);
-        const mins = p.mins % 60;
-        const tempoTotal = horas > 0 ? horas + 'h ' + String(mins).padStart(2,'0') + 'min' : mins + ' min';
-        html += '<tr><td>P' + p.num + '</td><td>' + horaInicio + '</td><td>' + p.hora + '</td><td>' + tempoTotal + '</td>';
-        html += '<td><a href="https://maps.google.com/?q=' + p.lat + ',' + p.lng + '" target="_blank">Abrir</a></td></tr>';
+        const tempoPingoMin = Math.max(0, p.mins - 6); 
+        const tempoTotalParadoMin = p.mins; 
+        const formataTempo = (m) => {
+            const h = Math.floor(m / 60);
+            const min = m % 60;
+            return h > 0 ? h + 'h ' + String(min).padStart(2,'0') + 'min' : min + ' min';
+        };
+        html += '<tr>';
+        html += '<td>P' + p.num + '</td>';
+        html += '<td>' + horaInicio + '</td>';
+        html += '<td>' + formataTempo(tempoPingoMin) + '</td>';
+        html += '<td>' + formataTempo(tempoTotalParadoMin) + '</td>';
+        html += '<td><a href="https://maps.google.com/?q=' + p.lat + ',' + p.lng + '" target="_blank">Abrir</a></td>';
+        html += '</tr>';
       });
       html += '</table>';
     }
@@ -1099,7 +1093,7 @@ window.salvarMapa = function() {
           '\'<circle cx="30" cy="28" r="17" fill="white" opacity="0.95"/>\' +' +
           '\'<text x="30" y="33" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="14" font-weight="900" fill="#CC5500">P\' + p.num + \'</text>\' +' +
           '\'</svg>\';' +
-        'L.marker([p.lat, p.lng], { icon: L.divIcon({ className: "", html: svgPingo, iconSize: [40, 50], iconAnchor: [20, 50] }) }).addTo(m).bindPopup("<b>P" + p.num + "</b><br>" + p.mins + " min<br>" + p.hora);' +
+        'L.marker([p.lat, p.lng], { icon: L.divIcon({ className: "", html: svgPingo, iconSize: [40, 50], iconAnchor: [20, 50] }) }).addTo(m).bindPopup("<b>P" + p.num + "</b><br>" + p.mins + " min<br>");' +
         'todosPontos.push([p.lat, p.lng]);' +
       '});' +
     '});' +
