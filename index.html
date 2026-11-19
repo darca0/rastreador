@@ -1,3 +1,37 @@
+darca0
+rastreador
+Repository navigation
+Code
+Issues
+Pull requests
+Actions
+Projects
+Wiki
+Security and quality
+Insights
+Settings
+Files
+Go to file
+t
+T
+index.html
+manifest.json
+sw.js
+web-app-manifest-192x192.png
+web-app-manifest-512x512.png
+rastreador
+/index.html
+darca0
+darca0
+Update index.html
+af06b64
+ · 
+2 weeks ago
+
+Code
+
+Blame
+1098 lines (1069 loc) · 58.6 KB
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -45,10 +79,6 @@
   .veiculo-btn.ativo { border-color:#1565C0; background:#1565C020; }
   #semVeiculos { color:#555; font-size:11px; padding:4px; }
   #map { flex: 1; }
-  
-  /* ✅ PAINEL DE DEBUG NA TELA */
-  #debugPanel { position: absolute; top: 80px; left: 8px; z-index: 9999; background: rgba(0, 0, 0, 0.85); border: 1px solid #2e7d32; color: #4caf50; padding: 8px; border-radius: 8px; font-family: monospace; font-size: 11px; display: none; pointer-events: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-  
   #panel { display:none; position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.88); padding:6px 8px; z-index:1000; border-top:1px solid #222; }
   #panelNome { font-size:11px; font-weight:700; color:#90caf9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:4px; }
   .info-row { display:flex; align-items:center; gap:4px; flex-wrap:wrap; margin-bottom:4px; }
@@ -124,7 +154,7 @@
 <div id="loginScreen">
   <h1>🚗 GatewayConnectCar</h1>
   <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:80%; max-width:300px;">
-    <input type="text" id="inputUsuario" placeholder="Usuário" value="zerruela">
+    <input type="text" id="inputUsuario" placeholder="Usuário">
     <div id="pinDisplay">
       <div class="pin-dot" id="dot0"></div>
       <div class="pin-dot" id="dot1"></div>
@@ -194,9 +224,6 @@
 <!-- MAPA -->
 <div id="map"></div>
 <button id="btnTodos" onclick="window.centralizarTodos()">⊕ Todos</button>
-
-<!-- ✅ PAINEL DE DEBUG -->
-<div id="debugPanel">⏳ Iniciando...</div>
 
 <!-- PAINEL -->
 <div id="panel">
@@ -293,7 +320,6 @@ window.loginComUsuario = function() {
     document.getElementById('veiculosList').classList.add('show');
     document.getElementById('panel').style.display = 'block';
     document.getElementById('nomeUsuario').textContent = '👤 ' + usuarioId;
-    document.getElementById('debugPanel').style.display = 'block';
     window.iniciarApp();
   } else {
     document.getElementById('loginError').textContent = '❌ PIN incorreto';
@@ -349,46 +375,17 @@ window.conectarMQTT = function() {
     mqttClient.subscribe('rastreador/' + usuarioId + '/+/status');
     mqttClient.subscribe('rastreador/' + usuarioId + '/+/alerta');
     addLog('Conectado como ' + usuarioId, 'log-ok');
-    document.getElementById('debugPanel').innerHTML = '✅ MQTT Conectado.<br>Aguardando dados do GPS...';
   });
   mqttClient.on('disconnect', () => setBadge('mqttBadge', 'Desconectado', 'badge-off'));
   mqttClient.on('offline', () => setBadge('mqttBadge', 'Offline', 'badge-err'));
   mqttClient.on('error', (e) => addLog('Erro: ' + e.message, 'log-err'));
-  
-  const estadoParada = {}; 
-
   mqttClient.on('message', (topic, payload) => {
     try {
       const parts = topic.split('/');
       const chipId = parts[2], tipo = parts[3];
       const data = JSON.parse(payload.toString());
-      
-      if (tipo === 'gps') {
-        const velAtual = parseFloat(data.spd || 0);
-        const agora = Date.now();
-        const estaParado = (velAtual <= PARADA_VEL);
-
-        if (!estadoParada[chipId]) {
-          estadoParada[chipId] = { inicio: null, pingoFeito: false };
-        }
-        const ep = estadoParada[chipId];
-
-        if (estaParado) {
-          if (!ep.inicio) {
-            ep.inicio = agora; 
-          } else if ((agora - ep.inicio) >= PARADA_MIN_MS && !ep.pingoFeito) {
-            ep.pingoFeito = true;
-            data.forcarPingo = true; 
-          }
-        } else {
-          ep.inicio = null;
-          ep.pingoFeito = false;
-        }
-        window.processarGPS(chipId, data);
-      }
-      
+      if (tipo === 'gps')    window.processarGPS(chipId, data);
       if (tipo === 'status') window.processarStatus(chipId, data);
-      
       if (tipo === 'alerta') {
         if (data.motivo === 'sirene_disparou')  window.ativarAlertaSirene(chipId, data);
         if (data.motivo === 'sirene_parou')     window.fecharBannerSirene();
@@ -396,7 +393,6 @@ window.conectarMQTT = function() {
         if (data.motivo === 'alerta_movimento') window.ativarAlertaMovimento(chipId, data);
         if (data.motivo === 'alerta_jammer')    window.ativarAlertaJammer(chipId, data);
       }
-      
       if (tipo === 'status' && data.motivo === 'panico') window.ativarPanico(chipId, 'mqtt', data);
       if (tipo === 'status' && data.motivo === 'panico_cancelado') window.cancelarPanico();
       if (tipo === 'status' && data.motivo === 'alerta_movimento') window.ativarAlertaMovimento(chipId, data);
@@ -404,28 +400,8 @@ window.conectarMQTT = function() {
       if (tipo === 'status' && data.motivo === 'sirene_parou') window.fecharBannerSirene();
       if (tipo === 'status' && data.motivo === 'alerta_jammer') window.ativarAlertaJammer(chipId, data);
       if (tipo === 'status' && data.motivo === 'jammer_cancelado') window.cancelarAlertaJammer();
-      
-    } catch(e) { console.error("Erro no MQTT:", e); }
+    } catch(e) {}
   });
-
-  setInterval(() => {
-    const agora = Date.now();
-    Object.keys(estadoParada).forEach(chipId => {
-      const ep = estadoParada[chipId];
-      if (ep.inicio && !ep.pingoFeito && (agora - ep.inicio) >= PARADA_MIN_MS) {
-        ep.pingoFeito = true;
-        if (window.processarGPS && veiculos[chipId] && veiculos[chipId].ultimaPos) {
-          window.processarGPS(chipId, {
-            lat: veiculos[chipId].ultimaPos.lat,
-            lng: veiculos[chipId].ultimaPos.lng,
-            spd: 0,
-            fonte: veiculos[chipId].fonte || 'wifi',
-            forcarPingo: true 
-          });
-        }
-      }
-    });
-  }, 30000); 
 };
 function setBadge(id, txt, cls) {
   const el = document.getElementById(id);
@@ -449,7 +425,7 @@ window.cmdAtivo = function(comando) {
   atualizarPainel(ativoId);
   atualizarBotaoLista(ativoId);
   atualizarVeiculoTopbar(ativoId);
-  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v), v.fonte));  
+  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v), v.fonte));   // ⚡ NOVO: passa fonte
 };
 window.solicitarBloqueio = function() {
   document.getElementById('modalSeguranca').classList.add('show');
@@ -509,7 +485,7 @@ window.toggleModoFesta = function() {
     document.getElementById('btnFesta').classList.add('ativo');
     document.getElementById('btnFesta').textContent = '🛡️ Ativo';
     modoFestaAtivo = true;
-    addLog('🛡️ Modo Festa ATIVADO', 'log-ok');
+    addLog('🛡️ Modo Festa ATIVADO (50m)', 'log-ok');
   } else {
     document.getElementById('modalFesta').classList.add('show');
   }
@@ -531,7 +507,7 @@ function obterVeiculo(chipId) {
       chipId: chipId, nome: 'Veículo ' + chipId.slice(-4).toUpperCase(),
       bloqueado: false, pendente: false, vel: 0, sat: 0, rssi: 0, alt: 0,
       ip: '—',
-      fonte: null,
+      fonte: null,                    // ⚡ NOVO: gps | wifi
       marker: null, trail: L.polyline([], { color: '#1565C0', weight: 3, opacity: 0.8 }).addTo(map),
       velocidadesTrail: [], ultimaPos: null, paradaInicio: null, paradaPos: null,
       paradaCirculo: null, pingos: [], contador: 0, kmTotal: 0, ultimoPontoKm: null
@@ -576,15 +552,7 @@ window.processarGPS = function(chipId, d) {
   const v = obterVeiculo(chipId);
   if (!v) return;
 
-  // ✅ ATUALIZA O PAINEL DE DEBUG NA TELA
-  const debug = document.getElementById('debugPanel');
-  if (!d.lat || !d.lng || d.lat == 0 || d.lng == 0) {
-      debug.innerHTML = `⚠️ Recebido [${chipId.slice(-4)}]<br>Mas GPS sem fix (0,0)`;
-      if (chipId === ativoId) { atualizarPainel(chipId); atualizarVeiculoTopbar(chipId); }
-      return;
-  }
-  debug.innerHTML = `📍 Dados Recebidos [${chipId.slice(-4)}]<br>Lat: ${d.lat}<br>Lng: ${d.lng}<br>Vel: ${d.spd} km/h`;
-
+  // ⚡ NOVO: guarda fonte e detecta mudança
   const fonteAntes = v.fonte;
   if (d.fonte !== undefined) v.fonte = d.fonte;
 
@@ -605,28 +573,24 @@ window.processarGPS = function(chipId, d) {
   if (d.alt !== undefined) v.alt = d.alt;
   if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
   if (d.pendente !== undefined) v.pendente = d.pendente === true;
-  
+  if (!d.lat || !d.lng) {
+    if (chipId === ativoId) { atualizarPainel(chipId); atualizarVeiculoTopbar(chipId); }
+    return;
+  }
   const pos = L.latLng(parseFloat(d.lat), parseFloat(d.lng));
   v.ultimaPos = pos;
   const cor = corMarcador(v);
-  
   if (!v.marker) {
-    v.marker = L.marker(pos, { icon: mkIcon(cor, v.fonte) }).addTo(map);
+    v.marker = L.marker(pos, { icon: mkIcon(cor, v.fonte) }).addTo(map);   // ⚡ passa fonte
     v.marker.bindTooltip(v.nome);
     if (chipId === ativoId) map.setView(pos, 16);
   } else {
     v.marker.setLatLng(pos);
+    // ⚡ Só troca ícone se a fonte mudou (evita re-render)
     if (fonteAntes !== v.fonte) {
       v.marker.setIcon(mkIcon(cor, v.fonte));
     }
   }
-
-  // ✅ FAZ O MAPA SEGUIR O CARRO
-  if (chipId === ativoId) {
-    map.panTo(pos);
-  }
-
-  // ... resto do código de trail e pingos ...
   const emMovimento = v.vel > PARADA_VEL;
   const temPingoAtivo = v.pingos.some(p => p.tempoDentro !== null && p.tempoDentro !== undefined);
   if (emMovimento || !temPingoAtivo) {
@@ -673,7 +637,7 @@ window.processarGPS = function(chipId, d) {
     if (v.vel <= PARADA_VEL) {
       if (!v.paradaInicio) { v.paradaInicio = agora; v.paradaPos = pos; }
       const tempoParado = agora - v.paradaInicio;
-      if (tempoParado >= PARADA_MIN_MS || d.forcarPingo) {
+      if (tempoParado >= PARADA_MIN_MS) {
         let pingoProximo = null;
         for (let p of v.pingos) {
           if (p.marker) {
@@ -682,7 +646,7 @@ window.processarGPS = function(chipId, d) {
           }
         }
         if (pingoProximo) {
-          pingoProximo.tempoDentro = agora - (d.forcarPingo ? 360000 : 0); 
+          pingoProximo.tempoDentro = agora;
           pingoProximo.mins = 6;
           pingoProximo.distBuffer = [];
           pingoProximo.marker.setIcon(criarIconePingo(pingoProximo.num, 6));
@@ -695,7 +659,7 @@ window.processarGPS = function(chipId, d) {
             marker: marker, num: numPingo, mins: 6,
             lat: pos.lat, lng: pos.lng,
             tempoDentro: agora,
-            timestampInicio: agora - 360000,
+            horaBrasilia: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
             distBuffer: []
           });
           v.paradaCirculo = marker;
@@ -729,7 +693,7 @@ window.processarStatus = function(chipId, d) {
   if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
   if (d.pendente !== undefined) v.pendente = d.pendente === true;
   if (d.ip !== undefined) v.ip = d.ip;
-  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v), v.fonte));
+  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v), v.fonte));   // ⚡ passa fonte
   atualizarBotaoLista(chipId);
   if (chipId === ativoId) { atualizarPainel(chipId); atualizarVeiculoTopbar(chipId); }
   const m = d.motivo || '';
@@ -802,6 +766,7 @@ function corMarcador(v) {
   return '#2e7d32';
 }
 
+// ⚡ NOVO: aura sólida quando GPS, pontilhada quando WiFi
 function mkIcon(cor, fonte) {
   const modoGPS = (fonte === 'gps');
   const auraHTML = modoGPS
@@ -974,7 +939,7 @@ window.salvarMapa = function() {
     const trail = v.trail.getLatLngs().map(p => [p.lat, p.lng]);
     const pingos = v.pingos.map(p => {
       const ll = p.marker.getLatLng();
-      return { lat: ll.lat, lng: ll.lng, num: p.num, mins: p.mins, timestampInicio: p.timestampInicio };
+      return { lat: ll.lat, lng: ll.lng, num: p.num, mins: p.mins, hora: p.horaBrasilia || '—' };
     });
     const vels = v.velocidadesTrail || [];
     const velMax = vels.length > 0 ? Math.max(...vels) : 0;
@@ -1023,7 +988,7 @@ window.salvarMapa = function() {
     '<div class="header"><h1>🛡️ Trajeto salvo em ' + data + '</h1><div class="sub">GatewayConnectCar</div></div>' +
     '<div id="mapa"></div><div class="info">';
 
-   dadosVeiculos.forEach(v => {
+  dadosVeiculos.forEach(v => {
     const statusCor = v.bloqueado ? 'verm' : 'verde';
     const statusTxt = v.bloqueado ? 'BLOQUEADO' : 'LIBERADO';
     html += '<div class="veiculo"><h2>🚗 ' + v.nome + ' — <span class="status ' + statusCor + '">' + statusTxt + '</span></h2>';
@@ -1034,26 +999,22 @@ window.salvarMapa = function() {
     html += '<span>Vel. Média: <b>' + v.velMedia + ' km/h</b></span>';
     html += '</div>';
     if (v.pingos.length > 0) {
-      html += '<table><tr><th>#</th><th>Início da parada</th><th>Tempo total do pingo</th><th>Tempo total parado (Pingo + 6min)</th><th>Local</th></tr>';
+      html += '<table><tr><th>#</th><th>Início da parada</th><th>Pingo apareceu</th><th>Tempo total parado</th><th>Local</th></tr>';
       v.pingos.forEach(p => {
         let horaInicio = '—';
-        if (p.timestampInicio) {
-          horaInicio = new Date(p.timestampInicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        if (p.hora) {
+          const partes = p.hora.split(':');
+          const hh = Number(partes[0]);
+          const mm = Number(partes[1]);
+          const dt = new Date();
+          dt.setHours(hh, mm - 6, 0, 0);
+          horaInicio = String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
         }
-        const tempoPingoMin = Math.max(0, p.mins - 6); 
-        const tempoTotalParadoMin = p.mins; 
-        const formataTempo = (m) => {
-            const h = Math.floor(m / 60);
-            const min = m % 60;
-            return h > 0 ? h + 'h ' + String(min).padStart(2,'0') + 'min' : min + ' min';
-        };
-        html += '<tr>';
-        html += '<td>P' + p.num + '</td>';
-        html += '<td>' + horaInicio + '</td>';
-        html += '<td>' + formataTempo(tempoPingoMin) + '</td>';
-        html += '<td>' + formataTempo(tempoTotalParadoMin) + '</td>';
-        html += '<td><a href="https://maps.google.com/?q=' + p.lat + ',' + p.lng + '" target="_blank">Abrir</a></td>';
-        html += '</tr>';
+        const horas = Math.floor(p.mins / 60);
+        const mins = p.mins % 60;
+        const tempoTotal = horas > 0 ? horas + 'h ' + String(mins).padStart(2,'0') + 'min' : mins + ' min';
+        html += '<tr><td>P' + p.num + '</td><td>' + horaInicio + '</td><td>' + p.hora + '</td><td>' + tempoTotal + '</td>';
+        html += '<td><a href="https://maps.google.com/?q=' + p.lat + ',' + p.lng + '" target="_blank">Abrir</a></td></tr>';
       });
       html += '</table>';
     }
@@ -1108,13 +1069,14 @@ window.salvarMapa = function() {
           '\'<circle cx="30" cy="28" r="17" fill="white" opacity="0.95"/>\' +' +
           '\'<text x="30" y="33" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="14" font-weight="900" fill="#CC5500">P\' + p.num + \'</text>\' +' +
           '\'</svg>\';' +
-        'L.marker([p.lat, p.lng], { icon: L.divIcon({ className: "", html: svgPingo, iconSize: [40, 50], iconAnchor: [20, 50] }) }).addTo(m).bindPopup("<b>P" + p.num + "</b><br>" + p.mins + " min<br>");' +
+        'L.marker([p.lat, p.lng], { icon: L.divIcon({ className: "", html: svgPingo, iconSize: [40, 50], iconAnchor: [20, 50] }) }).addTo(m).bindPopup("<b>P" + p.num + "</b><br>" + p.mins + " min<br>" + p.hora);' +
         'todosPontos.push([p.lat, p.lng]);' +
       '});' +
     '});' +
    'if (todosPontos.length > 0) { m.fitBounds(todosPontos, { padding: [40, 40] }); } else { m.setView([-22.7078, -47.6659], 13); }' +
   '<\/script>' +
   
+  // --- INÍCIO DO BOTÃO DE COMPARTILHAR NO ARQUIVO SALVO ---
   '<div style="position: absolute; top: 80px; right: 20px; z-index: 9999;">' +
       '<button onclick="window.compartilharEsteArquivo()" style="background: #25D366; color: white; padding: 12px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.5); font-size: 14px;">' +
           '📤 Compartilhar Mapa' +
@@ -1126,9 +1088,12 @@ window.salvarMapa = function() {
               'const htmlContent = document.documentElement.outerHTML;' +
               'const blob = new Blob([htmlContent], { type: "text/html" });' +
               'const file = new File([blob], "trajeto_salvo.html", { type: "text/html" });' +
+              
+              // Se for Celular, abre a janelinha do WhatsApp/Gmail
               'if (navigator.canShare && navigator.canShare({ files: [file] })) {' +
                   'await navigator.share({ files: [file], title: "Trajeto do Veículo", text: "Segue o trajeto salvo." });' +
               '} else {' +
+                  // Se for PC, baixa o arquivo silenciosamente para você anexar manualmente
                   'const a = document.createElement("a");' +
                   'a.href = URL.createObjectURL(blob);' +
                   'a.download = "trajeto_compartilhar.html";' +
@@ -1138,6 +1103,7 @@ window.salvarMapa = function() {
           '} catch (error) { console.log("Compartilhamento cancelado."); }' +
       '};' +
   '<\/script>' +
+  // --- FIM DO BOTÃO DE COMPARTILHAR ---
   
   '</body></html>';
 
