@@ -1,1157 +1,1077 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<script src="https://cdn.jsdelivr.net/npm/leaflet-image@0.4.0/leaflet-image.js"></script>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>GatewayConnectCar</title>
-<link rel="manifest" href="/rastreador/manifest.json">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-<link rel="icon" type="image/png" href="/rastreador/web-app-manifest-192x192.png">
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: system-ui, sans-serif; background: #111; color: #fff; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-  #loginScreen { position: fixed; inset: 0; background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; gap: 12px; padding: 20px; }
-  #loginScreen h1 { font-size: 22px; font-weight: 700; }
-  .pin-dot { width: 16px; height: 16px; border-radius: 50%; background: #333; border: 2px solid #555; display: inline-block; margin: 0 4px; transition: all 0.15s; }
-  .pin-dot.filled { background: #1565C0; border-color: #1565C0; }
-  .pin-dot.error { background: #b71c1c; border-color: #b71c1c; }
-  #pinDisplay { display: flex; gap: 12px; margin: 8px 0; justify-content: center; }
-  .numpad { display: grid; grid-template-columns: repeat(3, 72px); gap: 10px; margin-top: 8px; }
-  .numpad button { width: 72px; height: 72px; border-radius: 50%; background: #222; border: 1px solid #333; color: #fff; font-size: 24px; cursor: pointer; transition: all 0.1s; }
-  .numpad button:active { background: #1565C0; transform: scale(0.95); }
-  #loginError { color: #f44336; font-size: 13px; min-height: 18px; }
-  #inputUsuario { width:100%; padding:12px; border-radius:8px; border:1px solid #444; background:#1a1a1a; color:#fff; font-size:16px; text-align:center; }
-  #topbar { display:none; background: rgba(0,0,0,0.85); border-bottom: 1px solid #222; z-index: 1000; padding: 4px 8px; }
-  #topbar .row { display:flex; align-items:center; gap:6px; flex-wrap:nowrap; overflow-x:auto; white-space:nowrap; font-size:11px; }
-  #topbar .row + .row { margin-top: 3px; }
-  .badge { padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; border: 1px solid; white-space: nowrap; }
-  .badge-ok { background: #2e7d3288; color: #a5d6a7; border-color: #2e7d32; }
-  .badge-err { background: #c6282888; color: #ef9a9a; border-color: #c62828; }
-  .badge-warn { background: #f9a82588; color: #fff8e1; border-color: #f9a825; animation: blink 1s infinite; }
-  .badge-off { background: #33333388; color: #888; border-color: #444; }
-  @keyframes blink { 50% { opacity: 0.5; } }
-  @keyframes aura-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-  #topbar button { background: #1a1a1a; border:1px solid #333; color:#fff; padding:2px 8px; border-radius:12px; font-size:11px; cursor:pointer; }
-  #topbar button:active { background: #1565C0; }
-  #nomeUsuario { font-size:11px; color:#4caf50; font-weight:700; }
-  #veiculoAtivoNome { font-size:11px; font-weight:700; color:#90caf9; }
-  #relogioLocal { font-size:11px; color:#00ff41; font-family:'Courier New',monospace; margin-left:auto; }
-  #veiculosList { display:none; background:rgba(0,0,0,0.85); border-bottom:1px solid #222; overflow-x:auto; gap:4px; padding:4px 6px; z-index:999; }
-  #veiculosList.show { display:flex; }
-  .veiculo-btn { flex-shrink:0; padding:4px 10px; border-radius:16px; border:2px solid #333; background:#1a1a1a; color:#fff; font-size:11px; font-weight:600; cursor:pointer; white-space:nowrap; }
-  .veiculo-btn.ativo { border-color:#1565C0; background:#1565C020; }
-  #semVeiculos { color:#555; font-size:11px; padding:4px; }
-  #map { flex: 1; }
-  #panel { display:none; position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.88); padding:6px 8px; z-index:1000; border-top:1px solid #222; }
-  #panelNome { font-size:11px; font-weight:700; color:#90caf9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:4px; }
-  .info-row { display:flex; align-items:center; gap:4px; flex-wrap:wrap; margin-bottom:4px; }
-  .info-pill { background:#1a1a1a; border:1px solid #333; border-radius:8px; padding:2px 8px; font-size:11px; color:#ccc; white-space:nowrap; }
-  #pTempoParada { background:#1a1a1a; border:1px solid #f9a825; border-radius:8px; padding:2px 8px; font-size:11px; color:#f9a825; white-space:nowrap; display:none; }
-  #pTempoParada.ativo { display:inline-block; animation:blink 1s infinite; }
-  .btn-row { display:flex; align-items:center; gap:6px; }
-  .map-btn { flex:1; height:44px; padding:0 8px; border-radius:10px; border:none; font-size:14px; font-weight:700; cursor:pointer; transition:all 0.15s; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .map-btn:active { transform: scale(0.97); }
-  .btn-block  { background:#c62828; color:#fff; }
-  .btn-unlock { background:#2e7d32; color:#fff; }
-  .btn-cancel { background:#f9a825; color:#fff; }
-  .btn-center { flex:0 0 44px; width:44px; height:44px; background:#1565C0; color:#fff; border:none; border-radius:10px; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; }
-  .btn-center:active { background:#0d47a1; }
-  .btn-linha { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
-  .btn-linha .btn-aux,
-  .btn-linha .btn-festa { flex: 1; height: 44px; padding: 0 8px; border-radius: 10px; border: none; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.15s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .btn-linha .btn-aux   { background:#1565C0; color:#fff; }
-  .btn-linha .btn-aux:active { background:#0d47a1; }
-  .btn-linha .btn-festa { background:#333; color:#fff; border:1px solid #555; }
-  .btn-linha .btn-festa.ativo { background:#f9a825; color:#111; border-color:#f9a825; }
-  .btn-linha .btn-quadrado { flex: 0 0 44px; width: 44px; height: 44px; padding: 0; border-radius: 10px; border: none; font-size: 16px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
-  .btn-linha .btn-quadrado:active { transform: scale(0.95); }
-  .btn-linha .btn-salvar { background:#2e7d32; color:#fff; }
-  .btn-linha .btn-salvar:active { background:#1b5e20; }
-  .btn-linha .btn-parar  { background:#c62828; color:#fff; }
-  .btn-linha .btn-parar:active  { background:#8e0000; }
-  .btn-linha .btn-d8     { background:#b71c1c; color:#fff; }
-  .btn-linha .btn-d8:active     { background:#7f0000; }
-  #pendenteBanner { display:none; background:#f9a825dd; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:600; text-align:center; color:#fff; margin-bottom:4px; }
-  #logBox { max-height:32px; overflow-y:auto; margin-top:4px; }
-  .log-line { font-size:9px; color:#666; line-height:1.3; }
-  .log-ok   { color:#4caf50; }
-  .log-err  { color:#ef5350; }
-  .log-warn { color:#ffa726; }
-  #btnTodos { position:absolute; top:70px; right:8px; z-index:999; background:rgba(0,0,0,0.7); border:1px solid #444; color:#fff; padding:6px 12px; border-radius:20px; font-size:12px; cursor:pointer; display:none; }
-  .alertaBanner { display:none; position:fixed; top:0; left:0; right:0; z-index:9997; color:#fff; text-align:center; padding:8px 10px; font-weight:700; font-size:13px; box-shadow:0 2px 8px rgba(0,0,0,0.5); }
-  .alertaBanner.panico  { background:#b71c1c; }
-  .alertaBanner.sirene  { background:#b71c1c; }
-  .alertaBanner.jammer  { background:#d84315; }
-  .alertaBanner button { background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; padding:3px 10px; border-radius:10px; font-size:12px; margin-left:8px; cursor:pointer; font-weight:700; }
-  .alertaBanner button:active { background:rgba(255,255,255,0.4); }
-  #panicWidget, #sireneWidget, #jammerWidget { display:none; position:fixed; top:80px; right:8px; z-index:9998; align-items:center; gap:4px; background:rgba(0,0,0,0.75); border-radius:16px; padding:4px 10px; cursor:pointer; }
-  #panicWidget, #sireneWidget { border:1px solid #c62828; }
-  #jammerWidget { border:1px solid #d84315; }
-  #panicDot, #sireneDot, #jammerDot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
-  #panicDot, #sireneDot { background:#ff0000; box-shadow:0 0 4px #ff0000; animation:panicoLed 0.4s infinite alternate; }
-  #jammerDot { background:#ff6600; box-shadow:0 0 4px #ff6600; animation:panicoLed 0.4s infinite alternate; }
-  @keyframes panicoLed { from{opacity:1;} to{opacity:0.2;} }
-  #panicTxt, #sireneTxt { font-size:11px; font-weight:700; color:#ff6666; }
-  #jammerTxt { font-size:11px; font-weight:700; color:#ffaa66; }
-  #modalAux, #modalSeguranca, #modalFesta, #modalAviso, #modalConfirm { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; }
-  #modalAux.show, #modalSeguranca.show, #modalFesta.show, #modalAviso.show, #modalConfirm.show { display:flex; }
-  .modal-box { background:#1a1a1a; border:1px solid #1565C0; border-radius:14px; padding:16px; width:82%; max-width:320px; text-align:center; }
-  .modal-box p { font-size:13px; color:#ccc; margin-bottom:12px; line-height:1.5; }
-  .modal-box strong { color:#fff; font-size:15px; display:block; margin-bottom:6px; }
-  .modal-btns { display:flex; gap:8px; margin-top:8px; }
-  .modal-btns button { flex:1; padding:10px; border-radius:8px; border:none; font-size:13px; font-weight:700; cursor:pointer; }
-  .btn-confirm { background:#c62828; color:#fff; }
-  .btn-cancel  { background:#333; color:#aaa; }
-  .btn-festa-confirm { background:#f9a825; color:#111; }
-  #modalSeguranca input { width:100%; padding:8px; margin-bottom:8px; border-radius:6px; border:1px solid #444; background:#111; color:#fff; font-size:13px; }
-  #modalSeguranca input:focus { outline:1px solid #1565C0; }
-  #modalAviso .modal-box   { border-color:#f9a825; }
-  #modalAviso strong       { color:#f9a825; }
-  #modalConfirm .modal-box { border-color:#1565C0; }
-  #modalConfirm strong     { color:#90caf9; }
-</style>
-</head>
-<body>
+// ════════════════════════════════════════════════════
+//  GATEWAY CONNECT CAR (GCC) - ESP32-C3 (CORE-ESP32 A12)
+//  + Wi-Fi, MQTT TLS, Telegram, HERE, GPS c/ Histerese
+//  + Pânico c/ debounce e janela de boot
+//  + Alarme c/ debounce de 50ms
+// ════════════════════════════════════════════════════
+#define _SS_MAX_RX_BUFF 512
 
-<!-- LOGIN -->
-<div id="loginScreen">
-  <h1>🚗 GatewayConnectCar</h1>
-  <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:80%; max-width:300px;">
-    <input type="text" id="inputUsuario" placeholder="Usuário">
-    <div id="pinDisplay">
-      <div class="pin-dot" id="dot0"></div>
-      <div class="pin-dot" id="dot1"></div>
-      <div class="pin-dot" id="dot2"></div>
-      <div class="pin-dot" id="dot3"></div>
-    </div>
-    <div id="loginError"></div>
-  </div>
-  <div class="numpad">
-    <button onclick="window.pin('1')">1</button><button onclick="window.pin('2')">2</button><button onclick="window.pin('3')">3</button>
-    <button onclick="window.pin('4')">4</button><button onclick="window.pin('5')">5</button><button onclick="window.pin('6')">6</button>
-    <button onclick="window.pin('7')">7</button><button onclick="window.pin('8')">8</button><button onclick="window.pin('9')">9</button>
-    <button onclick="window.pin('del')">⌫</button><button onclick="window.pin('0')">0</button><button onclick="window.pin('del')">✕</button>
-  </div>
-  <button onclick="window.loginComUsuario()" style="padding:12px 40px; border-radius:12px; border:none; background:#1565C0; color:#fff; font-size:16px; font-weight:700; cursor:pointer; margin-top:8px;">Entrar</button>
-</div>
+#include <WiFi.h>
+#include <WiFiClientSecure.h>
+#include <HTTPClient.h>
+#include <WebServer.h>
+#include <Preferences.h>
+#include <PubSubClient.h>
+#include <HardwareSerial.h>
+#include <TinyGPS++.h>
+#include <UniversalTelegramBot.h>
+#include <ArduinoJson.h>
+#include <WiFiManager.h>
+#include <ESPmDNS.h>
+#include <esp_task_wdt.h>
+#include <esp_heap_caps.h>
 
-<!-- TOPBAR -->
-<div id="topbar">
-  <div class="row">
-    <img src="/rastreador/web-app-manifest-192x192.png" style="width:16px; height:16px; border-radius:4px;">
-    <span id="nomeUsuario"></span>
-    <span class="badge badge-off" id="mqttBadge">Conectando</span>
-    <button onclick="window.conectarMQTT()">🔌</button>
-    <button onclick="window.nextMapStyle()">🛰</button>
-    <span class="badge badge-off" id="veiculosBadge" style="margin-left:auto;">0 veículos</span>
-  </div>
-  <div class="row">
-    <span id="veiculoAtivoNome">Aguardando...</span>
-    <span id="relogioLocal" style="margin-left:auto;">🕐 --:--:--</span>
-    <span style="font-size:9px; color:#aaa; opacity:0.7;">by darca</span>
-  </div>
-</div>
+#define USAR_WIFI_GEO
 
-<!-- VEÍCULOS -->
-<div id="veiculosList">
-  <span id="semVeiculos">Aguardando veículos...</span>
-</div>
+// ── Configuração ─────────────────────────────────────
+const char* USUARIO_ID    = "zerruela";
+const char* USUARIO_SENHA = "3412";
+const char* NOME_SISTEMA  = "🚗 GCC";
 
-<!-- BANNERS -->
-<div id="panicBanner" class="alertaBanner panico">
-  🚨 PÂNICO ATIVADO! <span id="panicTimer"></span>
-  <button onclick="window.cancelarPanico()">Cancelar</button>
-  <button onclick="window.centralizarAtivo()">Ver</button>
-</div>
-<div id="sireneBanner" class="alertaBanner sirene">
-  🚨 ALARME DO VEÍCULO DISPAROU!
-  <button onclick="window.fecharBannerSirene()">Fechar</button>
-  <button onclick="window.centralizarAtivo()">Ver</button>
-</div>
-<div id="jammerBanner" class="alertaBanner jammer">
-  ⚠️ ALERTA JAMMER — Interferência!
-  <button onclick="window.cancelarAlertaJammer()">Cancelar</button>
-</div>
+const char* AP_CONFIG_SSID = "GCC-Setup";
+const char* AP_CONFIG_PASS = "desbloquear";
 
-<!-- WIDGETS -->
-<div id="panicWidget" onclick="window.cancelarPanico()">
-  <div id="panicDot"></div><span id="panicTxt">PÂNICO</span>
-</div>
-<div id="sireneWidget" onclick="window.fecharBannerSirene()">
-  <div id="sireneDot"></div><span id="sireneTxt">ALARME</span>
-</div>
-<div id="jammerWidget" onclick="window.cancelarAlertaJammer()">
-  <div id="jammerDot"></div><span id="jammerTxt">JAMMER</span>
-</div>
+const char* MQTT_SERVER = "5e7c95681b9f45068546a87087ed9e2c.s1.eu.hivemq.cloud";
+const int   MQTT_PORT   = 8883;
+const char* MQTT_USER   = "ESP8266Dario";
+const char* MQTT_PASS   = "3SP8266d4r10";
 
-<!-- MAPA -->
-<div id="map"></div>
-<button id="btnTodos" onclick="window.centralizarTodos()">⊕ Todos</button>
+#define BOT_TOKEN "8820354706:AAFUPLXgH4Mr2ERm0el4Mh3hdMiKMDp94SA"
+#define CHAT_ID   "6245190015"
 
-<!-- PAINEL -->
-<div id="panel">
-  <div id="panelNome">Aguardando veículo...</div>
-  <div id="pendenteBanner">🟡 Aguardando velocidade ≤ 8 km/h...</div>
-  <div class="info-row">
-    <span class="info-pill" id="pVel">0.0 km/h</span>
-    <span class="info-pill" id="pSat">0 sat</span>
-    <span class="info-pill" id="pRssi">— dBm</span>
-    <span class="info-pill" id="pAlt">— m</span>
-    <span class="info-pill" id="pKm">0.00 km</span>
-    <span class="info-pill" id="pIp" title="IP do ESP">🌐 —</span>
-    <span id="pTempoParada">⏱️ 00:00</span>
-    <span class="badge badge-off" id="pStatus">Aguardando</span>
-  </div>
-  <div class="btn-row">
-    <button class="btn-center" onclick="window.centralizarAtivo()">◎</button>
-    <button class="map-btn btn-block"  id="btnBlock"  style="display:none;">🔴 Bloqueado</button>
-    <button class="map-btn btn-cancel" id="btnCancel" style="display:none;">🟡 Aguardando</button>
-    <button class="map-btn btn-unlock" id="btnUnlock">🟢 Liberado</button>
-  </div>
-  <div class="btn-linha">
-    <button class="btn-aux" onclick="window.acionarAux()">🔓 AUX</button>
-    <button class="btn-festa" id="btnFesta" onclick="window.toggleModoFesta()">🛡️ Festa</button>
-    <button class="btn-quadrado btn-salvar" onclick="window.salvarMapa()" title="Salvar trajeto">💾</button>
-    <button class="btn-quadrado btn-parar"  onclick="window.desligarAlarmeRemoto()" title="Parar alarme">⏹</button>
-    <button class="btn-quadrado btn-d8"     onclick="window.testarD8()" title="Teste D8">🚨</button>
-  </div>
-  <div id="logBox"></div>
-</div>
+// ── Tópicos ──────────────────────────────────────────
+char TOPIC_GPS[64];
+char TOPIC_CMD[64];
+char TOPIC_STATUS[64];
+char TOPIC_ALERTA[64];
+char CLIENT_ID[32];
 
-<!-- MODAL AUX -->
-<div id="modalAux"><div class="modal-box"><strong>🔓 Destravar Portas</strong><p>Enviar pulso de 2 segundos para destravamento de emergência?</p><div class="modal-btns"><button class="btn-cancel" onclick="window.fecharModal()">Cancelar</button><button class="btn-confirm" onclick="window.confirmarAux()">Confirmar</button></div></div></div>
-<div id="modalSeguranca"><div class="modal-box"><h3 style="color:#fff; font-size:16px; margin-bottom:6px;">🔒 Autenticação</h3><p style="font-size:11px;">Digite usuário e senha para bloquear:</p><input type="text" id="segUser" placeholder="Usuário"><input type="password" id="segPass" placeholder="Senha"><div class="modal-btns"><button class="btn-confirm" onclick="window.confirmarBloqueio()">Confirmar</button><button class="btn-cancel" onclick="window.fecharModalSeguranca()">Cancelar</button></div></div></div>
-<div id="modalFesta"><div class="modal-box" style="border-color:#f9a825;"><strong style="color:#f9a825;">🛡️ Desativar Modo Festa?</strong><p>O veículo <b>não será mais monitorado</b>. Se ele se mover, você não receberá alerta.</p><div class="modal-btns"><button class="btn-cancel" onclick="window.fecharModalFesta()">Cancelar</button><button class="btn-festa-confirm" onclick="window.confirmarDesativarFesta()">Desativar</button></div></div></div>
-<div id="modalAviso"><div class="modal-box"><strong id="modalAvisoTitulo">Aviso</strong><p id="modalAvisoTexto">Mensagem</p><div class="modal-btns"><button class="btn-confirm" onclick="window.fecharAviso()">OK</button></div></div></div>
-<div id="modalConfirm"><div class="modal-box"><strong id="modalConfirmTitulo">Confirmação</strong><p id="modalConfirmTexto">Tem certeza?</p><div class="modal-btns"><button class="btn-cancel" onclick="window.fecharConfirm(false)">Cancelar</button><button class="btn-confirm" onclick="window.fecharConfirm(true)">Confirmar</button></div></div></div>
+// ── Preferences ──────────────────────────────────────
+Preferences prefs;
+#define NS_PREFS "gcc"
+#define KEY_BLOQ "bloq"
+#define KEY_PEND "pend"
 
-<script>
-const USUARIOS = { 'block': '6001', 'cicrano': '0123', 'zerruela': '3412' };
-const BROKER_WSS = 'wss://5e7c95681b9f45068546a87087ed9e2c.s1.eu.hivemq.cloud/mqtt';
-const BROKER_PORT = 8884;
-const PARADA_VEL = 8.0;
-const PARADA_MIN_MS = 360000;
-const RAIO_PINGO_M = 150.0;
-const RAIO_FESTA_M = 70.0;
-const TILES = {
-  map:       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-  satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-};
-let pinBuffer = '', usuarioId = '', map, tileLayer, mqttClient;
-let veiculos = {}, ativoId = null, currentStyle = 'map';
-let modoFestaAtivo = false, circuloFesta = null;
-let panicoAtivo = false, panicoTimer = null, panicoCancelavel = true, panicoChipId = null;
-let sireneChipId = null, jammerChipId = null;
+// ── Modo Festa ───────────────────────────────────────
+bool   modoFesta     = false;
+double festaLat      = 0.0;
+double festaLng      = 0.0;
+const double RAIO_FESTA_M = 70.0;
+unsigned long ultimoGPSSinalFesta = 0;
 
-window.uiAviso = function(texto, titulo) {
-  document.getElementById('modalAvisoTitulo').textContent = titulo || 'Aviso';
-  document.getElementById('modalAvisoTexto').textContent = texto;
-  document.getElementById('modalAviso').classList.add('show');
-};
-window.fecharAviso = function() { document.getElementById('modalAviso').classList.remove('show'); };
-let _confirmResolve = null;
-window.uiConfirm = function(texto, titulo) {
-  return new Promise((resolve) => {
-    _confirmResolve = resolve;
-    document.getElementById('modalConfirmTitulo').textContent = titulo || 'Confirmação';
-    document.getElementById('modalConfirmTexto').textContent = texto;
-    document.getElementById('modalConfirm').classList.add('show');
-  });
-};
-window.fecharConfirm = function(resposta) {
-  document.getElementById('modalConfirm').classList.remove('show');
-  if (_confirmResolve) { _confirmResolve(resposta); _confirmResolve = null; }
-};
+// ── Pinos (CORE-ESP32-C3 / A12) ──────────────────────
+#define GPS_RX_PIN   4
+#define GPS_TX_PIN   5
+#define RELE1_PIN    6
+#define AUX_PIN      7
+#define ALARME_PIN  10
+#define PANICO_PIN   1
 
-window.pin = function(v) {
-  if (v === 'del') pinBuffer = pinBuffer.slice(0, -1);
-  else if (pinBuffer.length < 4) pinBuffer += v;
-  for (let i = 0; i < 4; i++) {
-    const dot = document.getElementById('dot' + i);
-    if (dot) dot.className = 'pin-dot' + (i < pinBuffer.length ? ' filled' : '');
+// ── Parâmetros ───────────────────────────────────────
+const float          VEL_SEGURA         = 8.0;
+const unsigned long  INTERVALO_MS       = 3000;
+const unsigned long  WDT_TIMEOUT_S      = 120;
+const unsigned long  PULSO_AUX_MS       = 2000;
+const unsigned long  PANICO_HOLD_MS     = 1500;
+const unsigned long  BOOT_SILENCIO_MS   = 5000;   // Ignora pânico nos primeiros 5s
+
+const unsigned long  GPS_AGE_MAX_MS     = 5000;
+const int            GPS_SAT_MIN        = 4;      // Aumentado para 4 sats
+const float          GPS_HDOP_MAX       = 10.0;
+
+const unsigned long  INTERVALO_WIFI_GEO_MS = 3600000L; // 60 min p/ proteger cota HERE
+const char*          HERE_URL = "https://positioning.hereapi.com/v2/locate?apiKey=r8pxp_nt-UE7T8Y_b1m4p-0uAFThGnFRpnS0YFoqjJE";
+
+// DNS fallback
+IPAddress DNS_PRIMARIO(8, 8, 8, 8);
+IPAddress DNS_SECUNDARIO(8, 8, 4, 4);
+
+// ── Objetos ──────────────────────────────────────────
+HardwareSerial gpsSerial(1);
+TinyGPSPlus    gps;
+WiFiClientSecure wifiClient;
+WiFiClientSecure geoClient;
+PubSubClient   mqtt(wifiClient);
+UniversalTelegramBot bot(BOT_TOKEN, wifiClient);
+WebServer      webServer(80);
+WiFiManager    wifiManager;
+
+// ── Protótipos ───────────────────────────────────────
+void conectaMQTT();
+void enviarTelegram(String mensagem);
+void bloquearVeiculo(const char* motivo);
+void desbloquearVeiculo();
+void iniciarWebServer();
+void onMqttMessage(char* topic, byte* payload, unsigned int len);
+void publicarAlerta(const char* motivo, bool ativo);
+void limparAlerta();
+bool ipEstaEmUso(IPAddress ip);
+void salvarEstado();
+void carregarEstado();
+void wdtFeed();
+void flushGPS();
+bool obterPosicaoWiFi(double &lat, double &lng, int &acc);
+void setupWiFi();
+bool aplicarIPFixo();
+bool gpsValido();
+void diagnosticoDNS_TLS();
+String scanMelhorRede(int &melhorSinal);
+
+// ── Estado global ────────────────────────────────────
+bool          alarmeAtivo         = false;
+bool          bloqueoPendente     = false;
+bool          veiculoBloqueado    = false;
+unsigned long lastSend            = 0;
+bool          panicoAtivo         = false;
+bool          alarmeJaDisparou    = false;
+unsigned long ultimaTentativaMQTT = 0;
+unsigned long ultimaTentativaWiFiGeo = 0;
+String        meuIP = "0.0.0.0";
+
+bool          ipFixoAplicado        = false;
+unsigned long ultimaTentativaIPFixo = 0;
+
+// Histerese GPS
+bool          gpsTinhaFixAnterior   = false;
+unsigned long ultimoFixValidoMs     = 0;
+unsigned long ultimaInvalidacaoMs   = 0;
+const unsigned long HYSTERESIS_PERDA_MS  = 30000;  // 30s para avisar perda
+const unsigned long HYSTERESIS_FIX_MS    = 10000;  // 10s para avisar fix
+const unsigned long MIN_INTERVALO_NOTIF_GPS = 300000; // 5 min anti-spam notif
+unsigned long ultimaNotifGPS        = 0;
+
+// ════════════════════════════════════════════════════
+//  PREFERENCES
+// ════════════════════════════════════════════════════
+void salvarEstado() {
+  prefs.begin(NS_PREFS, false);
+  prefs.putBool(KEY_BLOQ, veiculoBloqueado);
+  prefs.putBool(KEY_PEND, bloqueoPendente);
+  prefs.end();
+}
+
+void carregarEstado() {
+  prefs.begin(NS_PREFS, true);
+  veiculoBloqueado = prefs.getBool(KEY_BLOQ, false);
+  bloqueoPendente  = prefs.getBool(KEY_PEND, false);
+  prefs.end();
+}
+
+// ════════════════════════════════════════════════════
+//  WATCHDOG
+// ════════════════════════════════════════════════════
+void wdtFeed() { esp_task_wdt_reset(); }
+
+// ════════════════════════════════════════════════════
+//  GPS
+// ════════════════════════════════════════════════════
+void flushGPS() {
+  unsigned long t = millis();
+  while (gpsSerial.available() && millis() - t < 50) {
+    gpsSerial.read();
   }
-  if (pinBuffer.length === 4) window.loginComUsuario();
-};
-window.loginComUsuario = function() {
-  const usuario = document.getElementById('inputUsuario').value.trim().toLowerCase();
-  if (!usuario) { document.getElementById('loginError').textContent = '⚠️ Digite um usuário!'; resetPin(); return; }
-  if (!USUARIOS[usuario]) { document.getElementById('loginError').textContent = '❌ Usuário inválido!'; resetPin(); return; }
-  if (pinBuffer === USUARIOS[usuario]) {
-    usuarioId = usuario;
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('topbar').style.display = 'block';
-    document.getElementById('veiculosList').classList.add('show');
-    document.getElementById('panel').style.display = 'block';
-    document.getElementById('nomeUsuario').textContent = '👤 ' + usuarioId;
-    window.iniciarApp();
+}
+
+bool gpsValido() {
+  if (!gps.location.isValid()) return false;
+  if (gps.location.age() > GPS_AGE_MAX_MS) return false;
+  if (!gps.satellites.isValid()) return false;
+  if (gps.satellites.value() < GPS_SAT_MIN) return false;
+  if (gps.hdop.isValid() && gps.hdop.hdop() > GPS_HDOP_MAX) return false;
+  return true;
+}
+
+// ════════════════════════════════════════════════════
+//  DIAGNÓSTICO DNS + TLS
+// ════════════════════════════════════════════════════
+void diagnosticoDNS_TLS() {
+  Serial.println("\n═══ DIAGNÓSTICO DNS / TLS ═══");
+  Serial.printf("IP local       : %s\n", WiFi.localIP().toString().c_str());
+  Serial.printf("Gateway        : %s\n", WiFi.gatewayIP().toString().c_str());
+  Serial.printf("DNS primário   : %s\n", WiFi.dnsIP(0).toString().c_str());
+  Serial.printf("DNS secundário : %s\n", WiFi.dnsIP(1).toString().c_str());
+
+  IPAddress testIP(0, 0, 0, 0);
+  bool okGoogle = WiFi.hostByName("google.com", testIP) && testIP != IPAddress(0, 0, 0, 0);
+  Serial.printf("DNS google.com: %s → %s\n", okGoogle ? "✅" : "❌", testIP.toString().c_str());
+
+  IPAddress hiveIP(0, 0, 0, 0);
+  bool okHive = false;
+  for (int t = 1; t <= 3; t++) {
+    hiveIP = IPAddress(0, 0, 0, 0);
+    if (WiFi.hostByName(MQTT_SERVER, hiveIP) && hiveIP != IPAddress(0, 0, 0, 0)) {
+      okHive = true;
+      Serial.printf("DNS HiveMQ (t%d): %s ✅\n", t, hiveIP.toString().c_str());
+      break;
+    }
+    Serial.printf("DNS HiveMQ (t%d): ❌\n", t);
+    delay(500); wdtFeed();
+  }
+
+  if (!okHive) { Serial.println("❌ HiveMQ não resolveu."); return; }
+
+  Serial.println("TLS-TEST: handshake...");
+  WiFiClientSecure testClient;
+  testClient.setInsecure();
+  testClient.setHandshakeTimeout(15);
+  unsigned long t0 = millis();
+  if (testClient.connect(MQTT_SERVER, MQTT_PORT)) {
+    Serial.printf("✅ TLS OK (%lu ms)\n", millis() - t0);
+    testClient.stop();
   } else {
-    document.getElementById('loginError').textContent = '❌ PIN incorreto';
-    resetPin();
+    Serial.printf("❌ TLS falhou (%lu ms)\n", millis() - t0);
   }
-};
-function resetPin() {
-  pinBuffer = '';
-  for (let i = 0; i < 4; i++) {
-    const dot = document.getElementById('dot' + i);
-    if (dot) dot.className = 'pin-dot';
+  Serial.printf("Maior bloco: %u bytes\n", heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL));
+  Serial.println("═════════════════════════════\n");
+}
+
+// ════════════════════════════════════════════════════
+//  WIFI
+// ════════════════════════════════════════════════════
+String scanMelhorRede(int &melhorSinal) {
+  int n = WiFi.scanNetworks();
+  melhorSinal = -100;
+  String melhorSSID = "";
+  for (int i = 0; i < n; i++) {
+    String ssid = WiFi.SSID(i);
+    if (ssid == "CarWeb1" || ssid == "Master" || ssid == "REDE") {
+      if (WiFi.RSSI(i) > melhorSinal) {
+        melhorSinal = WiFi.RSSI(i);
+        melhorSSID = ssid;
+      }
+    }
   }
-  setTimeout(() => { document.getElementById('loginError').textContent = ''; }, 2000);
+  WiFi.scanDelete();
+  return melhorSSID;
 }
-function atualizarRelogioLocal() {
-  const el = document.getElementById('relogioLocal');
-  if (!el) return;
-  const agora = new Date();
-  let h = agora.getUTCHours() - 3;
-  if (h < 0) h += 24;
-  el.textContent = '🕐 ' + String(h).padStart(2, '0') + ':' + String(agora.getUTCMinutes()).padStart(2, '0') + ':' + String(agora.getUTCSeconds()).padStart(2, '0');
-}
-setInterval(atualizarRelogioLocal, 1000);
-atualizarRelogioLocal();
-document.body.addEventListener('touchstart', function desbloqueiaAudio() {
-  if (window.__sirene && window.__sirene.ctx && window.__sirene.ctx.state === 'suspended') {
-    window.__sirene.ctx.resume();
-  }
-  document.body.removeEventListener('touchstart', desbloqueiaAudio);
-}, { once: true });
 
-window.iniciarApp = function() {
-  map = L.map('map', { zoomControl: false }).setView([-22.7078, -47.6659], 13);
-  L.control.zoom({ position: 'topleft' }).addTo(map);
-  tileLayer = L.tileLayer(TILES.map, { maxZoom: 19, crossOrigin: true, attribution: '© Esri' }).addTo(map);
-  window.conectarMQTT();
-};
-window.nextMapStyle = function() {
-  currentStyle = currentStyle === 'map' ? 'satellite' : 'map';
-  tileLayer.setUrl(TILES[currentStyle]);
-};
-window.conectarMQTT = function() {
-  if (mqttClient) { mqttClient.end(true); }
-  setBadge('mqttBadge', 'Conectando...', 'badge-warn');
-  mqttClient = mqtt.connect(BROKER_WSS, {
-    port: BROKER_PORT,
-    clientId: 'Web_' + usuarioId + '_' + Math.random().toString(36).slice(2, 6),
-    username: 'ESP8266Dario', password: '3SP8266d4r10', reconnectPeriod: 5000
-  });
-  mqttClient.on('connect', () => {
-    setBadge('mqttBadge', '✅ Conectado', 'badge-ok');
-    mqttClient.subscribe('rastreador/' + usuarioId + '/+/gps');
-    mqttClient.subscribe('rastreador/' + usuarioId + '/+/status');
-    mqttClient.subscribe('rastreador/' + usuarioId + '/+/alerta');
-    addLog('Conectado como ' + usuarioId, 'log-ok');
-  });
-  mqttClient.on('disconnect', () => setBadge('mqttBadge', 'Desconectado', 'badge-off'));
-  mqttClient.on('offline', () => setBadge('mqttBadge', 'Offline', 'badge-err'));
-  mqttClient.on('error', (e) => addLog('Erro: ' + e.message, 'log-err'));
-  
-  // Variável global para controlar o tempo de parada de cada veículo
-  const estadoParada = {}; 
+void setupWiFi() {
+  Serial.println("[WiFi] 🔍 Escaneando redes...");
+  WiFi.mode(WIFI_STA);
+  int melhorSinal = -100;
+  String melhorSSID = scanMelhorRede(melhorSinal);
 
-  mqttClient.on('message', (topic, payload) => {
-    try {
-      const parts = topic.split('/');
-      const chipId = parts[2], tipo = parts[3];
-      const data = JSON.parse(payload.toString());
-      
-      if (tipo === 'gps') {
-        // ⏱️ INÍCIO DA LÓGICA DO CRONÔMETRO
-        const velAtual = parseFloat(data.spd || 0);
-        const agora = Date.now();
-        // CORRIGIDO AQUI: Usando PARADA_VEL em vez de 5 fixo
-        const estaParado = (velAtual <= PARADA_VEL);
-
-        if (!estadoParada[chipId]) {
-          estadoParada[chipId] = { inicio: null, pingoFeito: false };
-        }
-        const ep = estadoParada[chipId];
-
-        if (estaParado) {
-          if (!ep.inicio) {
-            ep.inicio = agora; // Marca a hora que parou
-          } else if ((agora - ep.inicio) >= PARADA_MIN_MS && !ep.pingoFeito) {
-            // 6 minutos = 360.000 ms
-            ep.pingoFeito = true;
-            data.forcarPingo = true; // 👈 Avisa o processarGPS para criar o pingo
-            console.log("⏱️ 6 minutos parados! Criando pingo...");
-          }
-        } else {
-          ep.inicio = null;
-          ep.pingoFeito = false;
-        }
-        // ⏱️ FIM DA LÓGICA DO CRONÔMETRO
-
-        window.processarGPS(chipId, data);
-      }
-      
-      if (tipo === 'status') window.processarStatus(chipId, data);
-      
-      if (tipo === 'alerta') {
-        if (data.motivo === 'sirene_disparou')  window.ativarAlertaSirene(chipId, data);
-        if (data.motivo === 'sirene_parou')     window.fecharBannerSirene();
-        if (data.motivo === 'panico')           window.ativarPanico(chipId, 'mqtt', data);
-        if (data.motivo === 'alerta_movimento') window.ativarAlertaMovimento(chipId, data);
-        if (data.motivo === 'alerta_jammer')    window.ativarAlertaJammer(chipId, data);
-      }
-      
-      if (tipo === 'status' && data.motivo === 'panico') window.ativarPanico(chipId, 'mqtt', data);
-      if (tipo === 'status' && data.motivo === 'panico_cancelado') window.cancelarPanico();
-      if (tipo === 'status' && data.motivo === 'alerta_movimento') window.ativarAlertaMovimento(chipId, data);
-      if (tipo === 'status' && data.motivo === 'sirene_disparou') window.ativarAlertaSirene(chipId, data);
-      if (tipo === 'status' && data.motivo === 'sirene_parou') window.fecharBannerSirene();
-      if (tipo === 'status' && data.motivo === 'alerta_jammer') window.ativarAlertaJammer(chipId, data);
-      if (tipo === 'status' && data.motivo === 'jammer_cancelado') window.cancelarAlertaJammer();
-      
-    } catch(e) { console.error("Erro no MQTT:", e); }
-  });
-
-  // ⏱️ RELÓGIO INDEPENDENTE (Para criar o pingo mesmo se o ESP ficar em silêncio no Wi-Fi)
-  setInterval(() => {
-    const agora = Date.now();
-    Object.keys(estadoParada).forEach(chipId => {
-      const ep = estadoParada[chipId];
-      // Se passou de 6 minutos e o pingo ainda não foi feito
-      if (ep.inicio && !ep.pingoFeito && (agora - ep.inicio) >= PARADA_MIN_MS) {
-        ep.pingoFeito = true;
-        console.log(`⏱️ Relógio: 6 minutos parados no carro ${chipId}!`);
-        
-        // Pega a última posição conhecida do veículo para forçar o pingo
-        if (window.processarGPS && veiculos[chipId] && veiculos[chipId].ultimaPos) {
-          window.processarGPS(chipId, {
-            lat: veiculos[chipId].ultimaPos.lat,
-            lng: veiculos[chipId].ultimaPos.lng,
-            spd: 0,
-            fonte: veiculos[chipId].fonte || 'wifi',
-            forcarPingo: true 
-          });
-        }
-      }
-    });
-  }, 30000); // Roda a cada 30 segundos
-};
-function setBadge(id, txt, cls) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.textContent = txt;
-  el.className = 'badge ' + cls;
-}
-window.cmd = function(chipId, comando) {
-  if (!mqttClient || !mqttClient.connected) { addLog('Sem conexão!', 'log-err'); return; }
-  mqttClient.publish('rastreador/' + usuarioId + '/' + chipId + '/cmd', comando);
-  addLog('→ ' + comando, 'log-warn');
-};
-window.cmdAtivo = function(comando) {
-  if (!ativoId) return;
-  window.cmd(ativoId, comando);
-  const v = veiculos[ativoId];
-  if (!v) return;
-  if (comando === 'BLOQUEAR') { v.pendente = false; v.bloqueado = true; addLog('🔒 BLOQUEADO!', 'log-err'); }
-  else if (comando === 'DESBLOQUEAR') { v.pendente = false; v.bloqueado = false; addLog('🔓 DESBLOQUEADO', 'log-ok'); }
-  else if (comando === 'CANCELAR_BLOQUEIO') { v.pendente = false; v.bloqueado = false; addLog('🟡 Cancelado', 'log-warn'); }
-  atualizarPainel(ativoId);
-  atualizarBotaoLista(ativoId);
-  atualizarVeiculoTopbar(ativoId);
-  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v), v.fonte));  
-};
-window.solicitarBloqueio = function() {
-  document.getElementById('modalSeguranca').classList.add('show');
-  document.getElementById('segUser').value = '';
-  document.getElementById('segPass').value = '';
-  setTimeout(() => document.getElementById('segUser').focus(), 300);
-};
-window.confirmarBloqueio = function() {
-  let user = document.getElementById('segUser').value.trim();
-  let pass = document.getElementById('segPass').value.trim();
-  if (!user || !pass) { window.uiAviso('Digite usuário e senha!', '🔒 Autenticação'); return; }
-  if (user === usuarioId && pass === USUARIOS[usuarioId]) {
-    document.getElementById('modalSeguranca').classList.remove('show');
-    window.cmdAtivo('BLOQUEAR');
-    window.desligarAlarme();
+  if (melhorSSID != "") {
+    Serial.printf("[WiFi] ✅ Mais forte: %s (%d dBm)\n", melhorSSID.c_str(), melhorSinal);
+    String senha = (melhorSSID == "REDE") ? "123456" : "desbloqueio";
+    WiFi.begin(melhorSSID.c_str(), senha.c_str());
   } else {
-    window.uiAviso('Usuário ou senha incorretos!', '❌ Erro');
-    document.getElementById('segPass').value = '';
-    document.getElementById('segPass').focus();
+    Serial.println("[WiFi] ❌ Nenhuma conhecida. Tentando CarWeb1...");
+    WiFi.begin("CarWeb1", "desbloqueio");
   }
-};
-window.fecharModalSeguranca = function() { document.getElementById('modalSeguranca').classList.remove('show'); };
-window.acionarAux = function() {
-  if (!ativoId) { window.uiAviso('Selecione um veículo primeiro.', '⚠️ Atenção'); return; }
-  document.getElementById('modalAux').classList.add('show');
-};
-window.confirmarAux = function() {
-  document.getElementById('modalAux').classList.remove('show');
-  window.cmd(ativoId, 'AUX_DESTRAVAR');
-};
-window.fecharModal = function() { document.getElementById('modalAux').classList.remove('show'); };
-window.desligarAlarmeRemoto = async function() {
-  if (!ativoId) { window.uiAviso('Selecione um veículo primeiro.', '⚠️ Atenção'); return; }
-  const ok = await window.uiConfirm('Desligar o alarme do veículo agora?', '⏹ Parar Alarme');
-  if (!ok) return;
-  window.cmd(ativoId, 'ALARME_CANCELADO');
-  window.fecharBannerSirene();
-  addLog('⏹ Comando de parar alarme enviado', 'log-warn');
-};
-window.testarD8 = async function() {
-  if (!ativoId) { window.uiAviso('Selecione um veículo primeiro.', '⚠️ Atenção'); return; }
-  if (panicoAtivo) { window.uiAviso('Já existe um pânico ativo!', '🚨 Pânico'); return; }
-  const ok = await window.uiConfirm('Simular acionamento de PÂNICO via tela?', '🚨 Teste D8');
-  if (!ok) return;
-  window.cmd(ativoId, 'PANICO_ATIVAR');
-  window.ativarPanico(ativoId, 'manual', {});
-  addLog('🚨 Teste D8 enviado', 'log-warn');
-};
-window.toggleModoFesta = function() {
-  if (!ativoId) { window.uiAviso('Selecione um veículo primeiro.', '⚠️ Atenção'); return; }
-  if (!modoFestaAtivo) {
-    const v = veiculos[ativoId];
-    if (!v || !v.ultimaPos) { window.uiAviso('Aguarde o GPS fixar antes de ativar o Modo Festa.', '🛡️ Modo Festa'); return; }
-    window.cmd(ativoId, 'ATIVAR_MODO_FESTA');
-    if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
-    circuloFesta = L.circle(v.ultimaPos, { color:'#f9a825', fillColor:'#f9a825', fillOpacity:0.15, radius:RAIO_FESTA_M }).addTo(map);
-    document.getElementById('btnFesta').classList.add('ativo');
-    document.getElementById('btnFesta').textContent = '🛡️ Ativo';
-    modoFestaAtivo = true;
-    addLog('🛡️ Modo Festa ATIVADO', 'log-ok');
+
+  int tent = 0;
+  while (WiFi.status() != WL_CONNECTED && tent < 40) {
+    delay(500); Serial.print("."); wdtFeed(); tent++;
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\n[WiFi] ✅ Conectado!");
+    Serial.printf("[WiFi] DNS DHCP: %s\n", WiFi.dnsIP(0).toString().c_str());
   } else {
-    document.getElementById('modalFesta').classList.add('show');
-  }
-};
-window.fecharModalFesta = function() { document.getElementById('modalFesta').classList.remove('show'); };
-window.confirmarDesativarFesta = function() {
-  document.getElementById('modalFesta').classList.remove('show');
-  window.cmd(ativoId, 'DESATIVAR_MODO_FESTA');
-  if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
-  document.getElementById('btnFesta').classList.remove('ativo');
-  document.getElementById('btnFesta').textContent = '🛡️ Festa';
-  modoFestaAtivo = false;
-  addLog('🛡️ Modo Festa DESATIVADO', 'log-warn');
-};
-
-function obterVeiculo(chipId) {
-  if (!veiculos[chipId]) {
-    veiculos[chipId] = {
-      chipId: chipId, nome: 'Veículo ' + chipId.slice(-4).toUpperCase(),
-      bloqueado: false, pendente: false, vel: 0, sat: 0, rssi: 0, alt: 0,
-      ip: '—',
-      fonte: null,
-      marker: null, trail: L.polyline([], { color: '#1565C0', weight: 3, opacity: 0.8 }).addTo(map),
-      velocidadesTrail: [], ultimaPos: null, paradaInicio: null, paradaPos: null,
-      paradaCirculo: null, pingos: [], contador: 0, kmTotal: 0, ultimoPontoKm: null
-    };
-    adicionarBotao(chipId);
-    atualizarContagem();
-    document.getElementById('semVeiculos').style.display = 'none';
-    document.getElementById('btnTodos').style.display = '';
-    if (!ativoId) selecionarVeiculo(chipId);
-  }
-  return veiculos[chipId];
-}
-function adicionarBotao(chipId) {
-  const btn = document.createElement('button');
-  btn.className = 'veiculo-btn liberado';
-  btn.id = 'vbtn_' + chipId;
-  btn.textContent = '🟢 ' + chipId.slice(-4).toUpperCase();
-  btn.onclick = () => selecionarVeiculo(chipId);
-  document.getElementById('veiculosList').appendChild(btn);
-}
-function selecionarVeiculo(chipId) {
-  ativoId = chipId;
-  document.querySelectorAll('.veiculo-btn').forEach(b => b.classList.remove('ativo'));
-  const btn = document.getElementById('vbtn_' + chipId);
-  if (btn) btn.classList.add('ativo');
-  const v = veiculos[chipId];
-  if (v) {
-    document.getElementById('panelNome').textContent = '🚗 ' + v.nome + ' (' + chipId + ')';
-    atualizarPainel(chipId);
-    atualizarVeiculoTopbar(chipId);
-    if (v.ultimaPos) map.setView(v.ultimaPos, 16);
+    Serial.println("\n[WiFi] ❌ Portal GCC-Setup...");
+    wifiManager.setConfigPortalTimeout(180);
+    wifiManager.startConfigPortal(AP_CONFIG_SSID, AP_CONFIG_PASS);
   }
 }
-function atualizarVeiculoTopbar(chipId) {
-  const v = veiculos[chipId];
-  if (!v) return;
-  const emoji = v.bloqueado ? '🔴' : v.pendente ? '🟡' : '🟢';
-  document.getElementById('veiculoAtivoNome').textContent = emoji + ' ' + chipId.slice(-4).toUpperCase() + ' ' + Math.round(v.vel) + 'km/h';
+
+// ════════════════════════════════════════════════════
+//  IP FIXO
+// ════════════════════════════════════════════════════
+bool aplicarIPFixo() {
+  IPAddress gateway = WiFi.gatewayIP();
+  if (gateway[0] == 0 || gateway[3] == 0) return false;
+
+  IPAddress ipProvisorio = WiFi.localIP();
+  IPAddress subnet(255, 255, 255, 0);
+  int x = gateway[2];
+
+  int escolhido = 0;
+  for (int i = 1; i <= 30; i++) {
+    IPAddress ipTeste(192, 168, x, x + i);
+    if (ipTeste == ipProvisorio) continue;
+    wdtFeed();
+    if (!ipEstaEmUso(ipTeste)) { escolhido = x + i; break; }
+  }
+  if (escolhido == 0) escolhido = x + 1;
+  if (escolhido > 254) escolhido = 254;
+
+  IPAddress ipFinal(192, 168, x, escolhido);
+  // Passa DNS explícito para não zerar a config do DHCP
+  WiFi.config(ipFinal, gateway, subnet, gateway, DNS_PRIMARIO);
+  delay(500);
+
+  meuIP = WiFi.localIP().toString();
+  Serial.println("[WiFi] ✅ IP FINAL: " + meuIP);
+  Serial.printf("[WiFi] DNS pós-config: %s / %s\n", WiFi.dnsIP(0).toString().c_str(), WiFi.dnsIP(1).toString().c_str());
+  return true;
 }
 
-window.processarGPS = function(chipId, d) {
-  const v = obterVeiculo(chipId);
-  if (!v) return;
+bool ipEstaEmUso(IPAddress ip) {
+  WiFiClient client;
+  client.setTimeout(150);
+  if (client.connect(ip, 80)) { client.stop(); return true; }
+  return false;
+}
 
-  const fonteAntes = v.fonte;
-  if (d.fonte !== undefined) v.fonte = d.fonte;
+// ════════════════════════════════════════════════════
+//  GEOLOCALIZAÇÃO WiFi (HERE)
+// ════════════════════════════════════════════════════
+bool obterPosicaoWiFi(double &lat, double &lng, int &acc) {
+  if (WiFi.status() != WL_CONNECTED) return false;
+  wdtFeed();
 
-  if (!v.velBuffer) v.velBuffer = [];
-  if (d.spd !== undefined && d.spd <= 20) {
-    v.velBuffer.push(d.spd);
-    if (v.velBuffer.length > 5) v.velBuffer.shift();
+  bool mqttEstava = mqtt.connected();
+  if (mqttEstava) { mqtt.disconnect(); delay(200); }
+
+  int n = WiFi.scanNetworks(false, true);
+  if (n <= 0) { WiFi.scanDelete(); if (mqttEstava) { ultimaTentativaMQTT = 0; conectaMQTT(); } return false; }
+
+  String body = "{\"wlan\":[";
+  int usadas = 0;
+  for (int i = 0; i < n && usadas < 15; i++) {
+    String bssid = WiFi.BSSIDstr(i);
+    if (bssid.length() < 11) continue;
+    if (usadas > 0) body += ",";
+    body += "{\"mac\":\"" + bssid + "\",\"rss\":" + String(WiFi.RSSI(i)) + "}";
+    usadas++;
   }
-  let velMedia = 0;
-  if (v.velBuffer.length > 0) {
-    const soma = v.velBuffer.reduce((acc, val) => acc + val, 0);
-    velMedia = soma / v.velBuffer.length;
+  body += "]}";
+  WiFi.scanDelete();
+  if (usadas == 0) { if (mqttEstava) { ultimaTentativaMQTT = 0; conectaMQTT(); } return false; }
+
+  geoClient.setInsecure();
+  geoClient.setHandshakeTimeout(30);
+
+  HTTPClient http;
+  http.begin(geoClient, HERE_URL);
+  http.addHeader("Content-Type", "application/json");
+  http.setTimeout(8000);
+
+  wdtFeed();
+  int code = http.POST(body);
+  if (code != 200) {
+    Serial.printf("[WiFi-Geo] HTTP %d\n", code);
+    http.end(); geoClient.stop();
+    if (mqttEstava) { ultimaTentativaMQTT = 0; conectaMQTT(); }
+    return false;
   }
-  v.vel = velMedia;
-  v.velInstantanea = d.spd;
-  if (d.rssi !== undefined) v.rssi = d.rssi;
-  if (d.sat !== undefined) v.sat = d.sat;
-  if (d.alt !== undefined) v.alt = d.alt;
-  if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
-  if (d.pendente !== undefined) v.pendente = d.pendente === true;
-  if (!d.lat || !d.lng) {
-    if (chipId === ativoId) { atualizarPainel(chipId); atualizarVeiculoTopbar(chipId); }
+
+  String response = http.getString();
+  http.end();
+  geoClient.stop();
+
+  DynamicJsonDocument doc(512);
+  if (deserializeJson(doc, response)) {
+    Serial.println("[WiFi-Geo] JSON err");
+    if (mqttEstava) { ultimaTentativaMQTT = 0; conectaMQTT(); }
+    return false;
+  }
+
+  lat = doc["location"]["lat"] | 0.0;
+  lng = doc["location"]["lng"] | 0.0;
+  acc = (int)(doc["location"]["accuracy"] | 0);
+  if (lat == 0.0 && lng == 0.0) {
+    Serial.println("[WiFi-Geo] Posição inválida");
+    if (mqttEstava) { ultimaTentativaMQTT = 0; conectaMQTT(); }
+    return false;
+  }
+
+  Serial.printf("[WiFi-Geo] ✅ lat=%.6f lng=%.6f acc=%dm\n", lat, lng, acc);
+  flushGPS(); wdtFeed();
+  if (mqttEstava) { ultimaTentativaMQTT = 0; conectaMQTT(); }
+  return true;
+}
+
+// ════════════════════════════════════════════════════
+//  TELEGRAM
+// ════════════════════════════════════════════════════
+void enviarTelegram(String mensagem) {
+  if (WiFi.status() != WL_CONNECTED) return;
+  wdtFeed();
+  bool mqttEstava = mqtt.connected();
+  if (mqttEstava) { mqtt.disconnect(); delay(100); }
+  bot.sendMessage(CHAT_ID, mensagem, "Markdown");
+  flushGPS(); wdtFeed();
+  if (mqttEstava) { ultimaTentativaMQTT = 0; conectaMQTT(); }
+}
+
+// ════════════════════════════════════════════════════
+//  ALERTAS
+// ════════════════════════════════════════════════════
+void publicarAlerta(const char* motivo, bool ativo) {
+  if (!mqtt.connected()) return;
+  if (ativo) {
+    String payload = "{\"motivo\":\"" + String(motivo) + "\",\"lat\":" +
+                     String(gps.location.isValid() ? gps.location.lat() : 0, 6) +
+                     ",\"lng\":" + String(gps.location.isValid() ? gps.location.lng() : 0, 6) +
+                     ",\"ts\":" + String(millis()) + "}";
+    mqtt.publish(TOPIC_ALERTA, payload.c_str(), true);
+    Serial.println("[ALERTA] " + payload);
+  } else {
+    mqtt.publish(TOPIC_ALERTA, "", true);
+    Serial.println("[ALERTA] Retain limpo");
+  }
+}
+
+void limparAlerta() {
+  if (mqtt.connected()) mqtt.publish(TOPIC_ALERTA, "", true);
+}
+
+// ════════════════════════════════════════════════════
+//  RELÉS
+// ════════════════════════════════════════════════════
+void bloquearVeiculo(const char* motivo) {
+  digitalWrite(RELE1_PIN, HIGH);
+  veiculoBloqueado = true;
+  bloqueoPendente = false;
+  salvarEstado();
+  String status = "{\"bloqueado\":true,\"pendente\":false,\"motivo\":\"" + String(motivo) + "\"}";
+  mqtt.publish(TOPIC_STATUS, status.c_str());
+}
+
+void desbloquearVeiculo() {
+  digitalWrite(RELE1_PIN, LOW);
+  veiculoBloqueado = false;
+  bloqueoPendente = false;
+  salvarEstado();
+  mqtt.publish(TOPIC_STATUS, "{\"bloqueado\":false,\"pendente\":false,\"motivo\":\"desbloqueado\"}");
+}
+
+// ════════════════════════════════════════════════════
+//  MQTT CALLBACK
+// ════════════════════════════════════════════════════
+void onMqttMessage(char* topic, byte* payload, unsigned int len) {
+  String cmd = "";
+  for (unsigned int i = 0; i < len; i++) cmd += (char)payload[i];
+  cmd.trim();
+  Serial.println("[MQTT] Comando: " + cmd);
+
+  if (cmd == "BLOQUEAR") {
+    if (veiculoBloqueado) return;
+    float vel = gps.speed.isValid() ? gps.speed.kmph() : 0.0;
+    if (vel <= VEL_SEGURA) {
+      bloquearVeiculo("imediato");
+      enviarTelegram("🔒 *VEÍCULO BLOQUEADO!*\n\n" + String(NOME_SISTEMA));
+    } else {
+      bloqueoPendente = true;
+      mqtt.publish(TOPIC_STATUS, ("{\"bloqueado\":false,\"pendente\":true,\"vel\":" + String(vel, 1) + "}").c_str());
+    }
+  }
+  else if (cmd == "DESBLOQUEAR") {
+    desbloquearVeiculo();
+    enviarTelegram("🔓 *VEÍCULO DESBLOQUEADO!*\n\n" + String(NOME_SISTEMA));
+  }
+  else if (cmd == "AUX_DESTRAVAR") {
+    digitalWrite(AUX_PIN, HIGH); delay(PULSO_AUX_MS); digitalWrite(AUX_PIN, LOW);
+    String st = "{\"bloqueado\":" + String(veiculoBloqueado ? "true" : "false") +
+                ",\"pendente\":"  + String(bloqueoPendente  ? "true" : "false") +
+                ",\"motivo\":\"aux_destravado\"}";
+    mqtt.publish(TOPIC_STATUS, st.c_str());
+    enviarTelegram("🔓 *AUX DESTRAVADO*\n\n" + String(NOME_SISTEMA) + "\n👤 " + String(USUARIO_ID));
+    Serial.println("🔓 AUX acionado");
+  }
+  else if (cmd == "CANCELAR_BLOQUEIO") {
+    if (bloqueoPendente) {
+      bloqueoPendente = false;
+      mqtt.publish(TOPIC_STATUS, "{\"bloqueado\":false,\"pendente\":false,\"motivo\":\"cancelado\"}");
+    }
+  }
+  else if (cmd == "STATUS") {
+    String status = "{\"bloqueado\":" + String(veiculoBloqueado ? "true" : "false") +
+                    ",\"pendente\":"  + String(bloqueoPendente  ? "true" : "false") +
+                    ",\"vel\":"  + String(gps.speed.isValid() ? gps.speed.kmph() : 0.0, 1) +
+                    ",\"sat\":"  + String(gps.satellites.isValid() ? gps.satellites.value() : 0) +
+                    ",\"rssi\":" + String(WiFi.RSSI()) +
+                    ",\"ip\":\"" + meuIP + "\"}";
+    mqtt.publish(TOPIC_STATUS, status.c_str());
+  }
+  else if (cmd == "DIAG") {
+    String diag = "{";
+    diag += "\"uptime\":"    + String(millis() / 1000) + ",";
+    diag += "\"heap\":"      + String(ESP.getFreeHeap()) + ",";
+    diag += "\"rssi\":"      + String(WiFi.RSSI()) + ",";
+    diag += "\"ssid\":\""    + WiFi.SSID() + "\",";
+    diag += "\"ip\":\""      + meuIP + "\",";
+    diag += "\"dns0\":\""    + WiFi.dnsIP(0).toString() + "\",";
+    diag += "\"gps_fix\":"   + String(gpsValido() ? "true" : "false") + ",";
+    diag += "\"gps_sat\":"   + String(gps.satellites.isValid() ? gps.satellites.value() : 0) + ",";
+    diag += "\"gps_hdop\":"  + String(gps.hdop.isValid() ? gps.hdop.hdop() : 99.9, 1) + ",";
+    diag += "\"gps_age\":"   + String(gps.location.isValid() ? gps.location.age() : 999999) + ",";
+    diag += "\"gps_lat\":"   + String(gps.location.isValid() ? gps.location.lat() : 0.0, 6) + ",";
+    diag += "\"gps_lng\":"   + String(gps.location.isValid() ? gps.location.lng() : 0.0, 6) + ",";
+    diag += "\"bloqueado\":" + String(veiculoBloqueado ? "true" : "false") + ",";
+    diag += "\"pendente\":"  + String(bloqueoPendente ? "true" : "false") + ",";
+    diag += "\"panico\":"    + String(panicoAtivo ? "true" : "false") + ",";
+    diag += "\"festa\":"     + String(modoFesta ? "true" : "false") + ",";
+    diag += "\"mqtt\":"      + String(mqtt.connected() ? "true" : "false");
+    diag += "}";
+    mqtt.publish(TOPIC_STATUS, diag.c_str());
+
+    String tg = "🔍 *DIAGNÓSTICO GCC*\n\n";
+    tg += "⏱ Uptime: " + String(millis() / 60000) + " min\n";
+    tg += "💾 Heap: " + String(ESP.getFreeHeap() / 1024) + " KB\n";
+    tg += "📶 WiFi: " + WiFi.SSID() + " (" + String(WiFi.RSSI()) + " dBm)\n";
+    tg += "🌐 IP: `" + meuIP + "`\n";
+    tg += "📡 DNS: `" + WiFi.dnsIP(0).toString() + "`\n";
+    tg += "🛰 GPS: " + String(gpsValido() ? "✅ FIX" : "❌ SEM FIX") +
+          " (" + String(gps.satellites.isValid() ? gps.satellites.value() : 0) + " sat)\n";
+    if (gps.location.isValid()) {
+      tg += "📍 `" + String(gps.location.lat(), 6) + ", " + String(gps.location.lng(), 6) + "`\n";
+    }
+    tg += "🔒 Bloqueio: " + String(veiculoBloqueado ? "ATIVO" : "livre") + "\n";
+    tg += "🚨 Pânico: " + String(panicoAtivo ? "ATIVO" : "livre") + "\n";
+    tg += "🎉 Modo Festa: " + String(modoFesta ? "ATIVO" : "livre") + "\n";
+    tg += "📡 MQTT: " + String(mqtt.connected() ? "✅" : "❌");
+    enviarTelegram(tg);
+    Serial.println("[DIAG] Enviado no MQTT + Telegram");
+  }
+  else if (cmd == "ATIVAR_MODO_FESTA") {
+    if (gpsValido()) {
+      modoFesta = true; festaLat = gps.location.lat(); festaLng = gps.location.lng();
+      ultimoGPSSinalFesta = millis();
+      mqtt.publish(TOPIC_STATUS, "{\"motivo\":\"modo_festa_ativado\"}");
+      enviarTelegram("🛡️ *MODO FESTA ATIVADO*\n\n" + String(NOME_SISTEMA) + "\n📍 Raio: 70m");
+      Serial.println("🛡️ Modo Festa ativado");
+    } else {
+      mqtt.publish(TOPIC_STATUS, "{\"motivo\":\"modo_festa_erro\",\"erro\":\"gps_sem_fix\"}");
+      enviarTelegram("⚠️ *MODO FESTA NÃO ATIVADO*\n\n" + String(NOME_SISTEMA) + "\n❌ GPS sem sinal.");
+      Serial.println("[FESTA] Não ativou: GPS sem fix");
+    }
+  }
+  else if (cmd == "DESATIVAR_MODO_FESTA") {
+    modoFesta = false;
+    mqtt.publish(TOPIC_STATUS, "{\"motivo\":\"modo_festa_desativado\"}");
+    enviarTelegram("🛡️ *MODO FESTA DESATIVADO*\n\n" + String(NOME_SISTEMA));
+  }
+  else if (cmd == "PANICO_CANCELADO") {
+    panicoAtivo = false; limparAlerta();
+    enviarTelegram("✅ *PÂNICO CANCELADO (remoto)*\n\n" + String(NOME_SISTEMA));
+    Serial.println("[PÂNICO] Cancelado via MQTT");
+  }
+  else if (cmd == "ALARME_CANCELADO") {
+    alarmeJaDisparou = false; limparAlerta();
+    Serial.println("[ALARME] Cancelado via MQTT");
+  }
+  else if (cmd == "PANICO_ATIVAR") {
+    panicoAtivo = true; publicarAlerta("panico", true);
+    enviarTelegram("🚨 *PÂNICO ATIVADO (remoto)*\n\n" + String(NOME_SISTEMA));
+    Serial.println("🚨 PÂNICO ATIVADO (remoto)");
+  }
+  else if (cmd == "RESET_WIFI") {
+    Serial.println("[WiFi] Reset solicitado via MQTT...");
+    wifiManager.resetSettings(); delay(1000); ESP.restart();
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  MQTT — NON-BLOCKING
+// ════════════════════════════════════════════════════
+void conectaMQTT() {
+  if (mqtt.connected()) return;
+  if (millis() - ultimaTentativaMQTT < 60000) return;
+
+  if (ESP.getFreeHeap() < 45000) {
+    Serial.printf("[MQTT] Heap insuficiente: %d. Aguardando...\n", ESP.getFreeHeap());
     return;
   }
-  const pos = L.latLng(parseFloat(d.lat), parseFloat(d.lng));
-  v.ultimaPos = pos;
-  const cor = corMarcador(v);
-  if (!v.marker) {
-    v.marker = L.marker(pos, { icon: mkIcon(cor, v.fonte) }).addTo(map);
-    v.marker.bindTooltip(v.nome);
-    if (chipId === ativoId) map.setView(pos, 16);
+
+  ultimaTentativaMQTT = millis();
+  Serial.printf("[MQTT] Tentando... (heap=%d)\n", ESP.getFreeHeap());
+
+  if (mqtt.connect(CLIENT_ID, MQTT_USER, MQTT_PASS)) {
+    mqtt.subscribe(TOPIC_CMD);
+    String online = "{\"bloqueado\":" + String(veiculoBloqueado ? "true" : "false") +
+                    ",\"pendente\":" + String(bloqueoPendente ? "true" : "false") +
+                    ",\"ip\":\"" + meuIP + "\",\"motivo\":\"online\"}";
+    mqtt.publish(TOPIC_STATUS, online.c_str());
+    Serial.println("[MQTT] ✅ Conectado!");
   } else {
-    v.marker.setLatLng(pos);
-    if (fonteAntes !== v.fonte) {
-      v.marker.setIcon(mkIcon(cor, v.fonte));
+    int st = mqtt.state();
+    Serial.printf("[MQTT] ❌ FALHOU. state=%d\n", st);
+  }
+}
+
+// ════════════════════════════════════════════════════
+//  WEBSERVER
+// ════════════════════════════════════════════════════
+String paginaHTML() {
+  float vel = gps.speed.isValid() ? gps.speed.kmph() : 0.0;
+  int sat = gps.satellites.isValid() ? gps.satellites.value() : 0;
+  float lat = gps.location.isValid() ? gps.location.lat() : 0.0;
+  float lng = gps.location.isValid() ? gps.location.lng() : 0.0;
+  String cor = veiculoBloqueado ? "#c62828" : bloqueoPendente ? "#f9a825" : "#2e7d32";
+  String status = veiculoBloqueado ? "BLOQUEADO" : bloqueoPendente ? "AGUARDANDO" : "LIBERADO";
+  String emoji = veiculoBloqueado ? "🔴" : bloqueoPendente ? "🟡" : "🟢";
+
+  String h = "<!DOCTYPE html><html><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta http-equiv='refresh' content='3'><title>GCC</title>";
+  h += "<style>body{font-family:system-ui;background:#111;color:#fff;padding:16px}.status{background:" + cor + ";padding:12px;border-radius:12px;text-align:center;font-size:20px;font-weight:700}.info{background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:10px;margin:12px 0;line-height:2}.btn{display:block;padding:14px;border-radius:12px;border:none;font-size:16px;font-weight:700;text-align:center;text-decoration:none;margin-bottom:8px;color:#fff}.btn-g{background:#2e7d32}.btn-r{background:#c62828}.btn-b{background:#1565C0}.btn-y{background:#f9a825}.btn-x{background:#555}</style></head><body>";
+  h += "<h2>🛡️ Gateway Connect Car</h2>";
+  h += "<div class='status'>" + emoji + " " + status + "</div>";
+  h += "<div class='info'>📍 " + String(lat, 6) + ", " + String(lng, 6) + "<br>";
+  h += "🚗 " + String(vel, 1) + " km/h<br>🛰 " + String(sat) + " sat<br>📶 " + String(WiFi.RSSI()) + " dBm<br>";
+  h += "🌐 " + meuIP + "<br>💾 " + String(ESP.getFreeHeap()) + " bytes</div>";
+  if (veiculoBloqueado) h += "<a class='btn btn-g' href='/liberar'>🟢 Liberar</a>";
+  else if (bloqueoPendente) h += "<a class='btn btn-y' href='/cancelar'>🟡 Cancelar</a>";
+  else h += "<a class='btn btn-r' href='/bloquear'>🔴 Bloquear</a>";
+  h += "<a class='btn btn-b' href='/aux'>🔓 AUX</a>";
+  h += "<a class='btn btn-x' href='/resetwifi'>🔧 Reconfigurar WiFi</a>";
+  h += "</body></html>";
+  return h;
+}
+
+void iniciarWebServer() {
+  webServer.on("/", []() {
+    if (!webServer.authenticate(USUARIO_ID, USUARIO_SENHA)) return webServer.requestAuthentication();
+    webServer.send(200, "text/html", paginaHTML());
+  });
+  webServer.on("/bloquear", []() {
+    if (!webServer.authenticate(USUARIO_ID, USUARIO_SENHA)) return;
+    float vel = gps.speed.isValid() ? gps.speed.kmph() : 0.0;
+    if (vel <= VEL_SEGURA) bloquearVeiculo("local_web"); else bloqueoPendente = true;
+    webServer.sendHeader("Location", "/"); webServer.send(302, "text/plain", "");
+  });
+  webServer.on("/liberar", []() {
+    if (!webServer.authenticate(USUARIO_ID, USUARIO_SENHA)) return;
+    desbloquearVeiculo();
+    webServer.sendHeader("Location", "/"); webServer.send(302, "text/plain", "");
+  });
+  webServer.on("/cancelar", []() {
+    if (!webServer.authenticate(USUARIO_ID, USUARIO_SENHA)) return;
+    bloqueoPendente = false;
+    webServer.sendHeader("Location", "/"); webServer.send(302, "text/plain", "");
+  });
+  webServer.on("/aux", []() {
+    if (!webServer.authenticate(USUARIO_ID, USUARIO_SENHA)) return;
+    digitalWrite(AUX_PIN, HIGH); delay(PULSO_AUX_MS); digitalWrite(AUX_PIN, LOW);
+    webServer.sendHeader("Location", "/"); webServer.send(302, "text/plain", "");
+  });
+  webServer.on("/resetwifi", []() {
+    if (!webServer.authenticate(USUARIO_ID, USUARIO_SENHA)) return;
+    webServer.send(200, "text/html", "<h2 style='font-family:system-ui;background:#111;color:#fff;padding:20px;'>🔄 Resetando WiFi...</h2>");
+    delay(1000); wifiManager.resetSettings(); delay(500); ESP.restart();
+  });
+  webServer.begin();
+}
+
+// ════════════════════════════════════════════════════
+//  SETUP
+// ════════════════════════════════════════════════════
+void setup() {
+  Serial.begin(115200);
+  delay(200);
+
+  snprintf(CLIENT_ID, sizeof(CLIENT_ID), "ESP_%08X", (uint32_t)ESP.getEfuseMac());
+  snprintf(TOPIC_GPS, sizeof(TOPIC_GPS), "rastreador/%s/%s/gps", USUARIO_ID, CLIENT_ID);
+  snprintf(TOPIC_CMD, sizeof(TOPIC_CMD), "rastreador/%s/%s/cmd", USUARIO_ID, CLIENT_ID);
+  snprintf(TOPIC_STATUS, sizeof(TOPIC_STATUS), "rastreador/%s/%s/status", USUARIO_ID, CLIENT_ID);
+  snprintf(TOPIC_ALERTA, sizeof(TOPIC_ALERTA), "rastreador/%s/%s/alerta", USUARIO_ID, CLIENT_ID);
+
+  Serial.println("\nSistema: " + String(NOME_SISTEMA));
+  Serial.println("Placa  : ESP32-C3 (CORE-ESP32 A12)");
+
+  // Watchdog IDF 5.x
+  esp_task_wdt_config_t twdt_config = {
+    .timeout_ms     = WDT_TIMEOUT_S * 1000,
+    .idle_core_mask = 0,
+    .trigger_panic  = true,
+  };
+  esp_err_t errWdt = esp_task_wdt_reconfigure(&twdt_config);
+  if (errWdt != ESP_OK) esp_task_wdt_init(&twdt_config);
+  esp_task_wdt_add(NULL);
+
+  carregarEstado();
+  setupWiFi();
+
+  int tent = 0;
+  while (WiFi.gatewayIP()[0] == 0 && tent < 10) { delay(500); wdtFeed(); tent++; }
+  ipFixoAplicado = aplicarIPFixo();
+
+  if (MDNS.begin("gcc")) MDNS.addService("http", "tcp", 80);
+
+  gpsSerial.begin(9600, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
+
+  pinMode(RELE1_PIN, OUTPUT); digitalWrite(RELE1_PIN, veiculoBloqueado ? HIGH : LOW);
+  pinMode(ALARME_PIN, INPUT_PULLUP);
+  pinMode(AUX_PIN, OUTPUT); digitalWrite(AUX_PIN, LOW);
+  pinMode(PANICO_PIN, INPUT_PULLUP);
+
+  wifiClient.setInsecure();
+  wifiClient.setHandshakeTimeout(30);
+
+  iniciarWebServer();
+  diagnosticoDNS_TLS();
+
+  mqtt.setServer(MQTT_SERVER, MQTT_PORT);
+  mqtt.setCallback(onMqttMessage);
+  mqtt.setKeepAlive(30);
+  mqtt.setBufferSize(512);
+  mqtt.setSocketTimeout(15);
+
+  int esperas = 0;
+  while (ESP.getFreeHeap() < 50000 && esperas < 30) {
+    Serial.printf("[MQTT] Heap: %d. Aguardando...\n", ESP.getFreeHeap());
+    delay(1000); wdtFeed(); esperas++;
+  }
+
+  conectaMQTT();
+
+  configTime(-3 * 3600, 0, "pool.ntp.org", "time.nist.gov");
+  time_t now = time(nullptr);
+  int ntp = 0;
+  while (now < 24 * 3600 && ntp < 30) { delay(500); wdtFeed(); now = time(nullptr); ntp++; }
+
+  enviarTelegram("✅ *" + String(NOME_SISTEMA) + "* iniciado!\n\n👤 `" + String(USUARIO_ID) + "`\n🌐 " + meuIP);
+}
+
+// ════════════════════════════════════════════════════
+//  LOOP
+// ════════════════════════════════════════════════════
+void loop() {
+  wdtFeed();
+  webServer.handleClient();
+
+  static bool wifiEstava = true;
+  static unsigned long ultimaTentWifi = 0;
+  static unsigned long ultimaVerificacaoSinal = 0;
+
+  // Verificar redes melhores a cada 2min
+  if (WiFi.status() == WL_CONNECTED && (millis() - ultimaVerificacaoSinal > 120000)) {
+    ultimaVerificacaoSinal = millis();
+    int sinalAtual = WiFi.RSSI();
+    String ssidAtual = WiFi.SSID();
+    wdtFeed();
+    int melhorSinal = -100;
+    String melhorSSID = scanMelhorRede(melhorSinal);
+
+    if (melhorSSID != "" && melhorSSID != ssidAtual && melhorSinal > (sinalAtual + 15)) {
+      Serial.println("[WiFi] 🔄 Trocando de rede! " + ssidAtual + " -> " + melhorSSID);
+      WiFi.disconnect();
     }
   }
-  const emMovimento = v.vel > PARADA_VEL;
-  const temPingoAtivo = v.pingos.some(p => p.tempoDentro !== null && p.tempoDentro !== undefined);
-  if (emMovimento || !temPingoAtivo) {
-    v.trail.addLatLng(pos);
-    v.velocidadesTrail.push(v.velInstantanea || v.vel || 0);
-  }
-  if (v.vel > 15) v.contadorMovimento = (v.contadorMovimento || 0) + 1;
-  else v.contadorMovimento = 0;
-  const emMovimentoReal = v.contadorMovimento >= 5;
-  if (v.ultimoPontoKm && emMovimentoReal) {
-    const dist = v.ultimoPontoKm.distanceTo(pos);
-    if (dist > 100) { v.kmTotal += dist; v.ultimoPontoKm = pos; }
-  } else if (emMovimentoReal) {
-    v.ultimoPontoKm = pos;
-  }
-  const agora = Date.now();
-  const elTempo = document.getElementById('pTempoParada');
-  let pingoAtivo = null;
-  for (let i = v.pingos.length - 1; i >= 0; i--) {
-    if (v.pingos[i].tempoDentro !== null && v.pingos[i].tempoDentro !== undefined) {
-      pingoAtivo = v.pingos[i]; break;
+
+  // Reconexão WiFi
+  if (WiFi.status() != WL_CONNECTED) {
+    if (wifiEstava) {
+      wifiEstava = false;
+      ipFixoAplicado = false;
+      WiFi.disconnect(true);
+      WiFi.config(IPAddress(0,0,0,0), IPAddress(0,0,0,0), IPAddress(0,0,0,0));
+      delay(100);
     }
-  }
-  if (pingoAtivo) {
-    const tempoCrono2 = agora - pingoAtivo.tempoDentro;
-    const minsCrono2 = Math.floor(tempoCrono2 / 60000);
-    pingoAtivo.mins = 6 + minsCrono2;
-    pingoAtivo.marker.setIcon(criarIconePingo(pingoAtivo.num, pingoAtivo.mins));
-    if (elTempo) { elTempo.textContent = '⏱️ ' + pingoAtivo.mins + ' min'; elTempo.className = 'ativo'; elTempo.style.display = 'inline-block'; }
-    const posPingo = L.latLng(pingoAtivo.lat, pingoAtivo.lng);
-    const distInstant = map.distance(posPingo, pos);
-    if (!pingoAtivo.distBuffer) pingoAtivo.distBuffer = [];
-    pingoAtivo.distBuffer.push(distInstant);
-    if (pingoAtivo.distBuffer.length > 10) pingoAtivo.distBuffer.shift();
-    const distMedia = pingoAtivo.distBuffer.reduce((a, b) => a + b, 0) / pingoAtivo.distBuffer.length;
-    if (v.vel > PARADA_VEL && distMedia > RAIO_PINGO_M) {
-      pingoAtivo.tempoDentro = null;
-      v.paradaCirculo = null;
-      addLog('⏹️ P' + pingoAtivo.num + ' congelado em ' + pingoAtivo.mins + 'min', 'log-ok');
-      if (elTempo) { elTempo.className = ''; elTempo.style.display = 'none'; }
-      v.paradaInicio = null; v.paradaPos = null;
-    }
-  } else {
-    if (v.vel <= PARADA_VEL) {
-      if (!v.paradaInicio) { v.paradaInicio = agora; v.paradaPos = pos; }
-      const tempoParado = agora - v.paradaInicio;
-        if (tempoParado >= PARADA_MIN_MS || d.forcarPingo) {
-        let pingoProximo = null;
-        for (let p of v.pingos) {
-          if (p.marker) {
-            const dist = map.distance(p.marker.getLatLng(), pos);
-            if (dist < RAIO_PINGO_M) { pingoProximo = p; break; }
-          }
-        }
-        if (pingoProximo) {
-          // Se for forçado e já existe um pingo perto, reativa ele
-          pingoProximo.tempoDentro = agora - (d.forcarPingo ? 360000 : 0); 
-          pingoProximo.mins = 6;
-          pingoProximo.distBuffer = [];
-          pingoProximo.marker.setIcon(criarIconePingo(pingoProximo.num, 6));
-          addLog('▶️ P' + pingoProximo.num + ' reativado', 'log-warn');
-        } else {
-          v.contador = (v.contador || 0) + 1;
-          const numPingo = v.contador;
-          const marker = L.marker(pos, { icon: criarIconePingo(numPingo, 6), zIndexOffset: 100 }).addTo(map);
-                  v.pingos.push({
-            marker: marker, num: numPingo, mins: 6,
-            lat: pos.lat, lng: pos.lng,
-            tempoDentro: agora,
-            horaBrasilia: new Date(Date.now() - 360000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-            timestampInicio: Date.now() - 360000, 
-            distBuffer: []
-          });
-          v.paradaCirculo = marker;
-          addLog('🅿️ P' + numPingo + ' criado', 'log-warn');
-        }
+
+    if (millis() - ultimaTentWifi > 15000) {
+      ultimaTentWifi = millis();
+      int melhorSinal = -100;
+      String melhorSSID = scanMelhorRede(melhorSinal);
+      if (melhorSSID != "") {
+        String senha = (melhorSSID == "REDE") ? "123456" : "desbloqueio";
+        WiFi.begin(melhorSSID.c_str(), senha.c_str());
       } else {
-        if (elTempo) {
-          const segundos = Math.floor(tempoParado / 1000);
-          const minutos = Math.floor(segundos / 60);
-          const segs = segundos % 60;
-          elTempo.textContent = '⏱️ ' + String(minutos).padStart(2, '0') + ':' + String(segs).padStart(2, '0');
-          elTempo.className = 'ativo';
-          elTempo.style.display = 'inline-block';
-        }
+        WiFi.begin("CarWeb1", "desbloqueio");
+      }
+    }
+  } else {
+    if (!wifiEstava) {
+      wifiEstava = true;
+      delay(2000);
+    }
+    if (!ipFixoAplicado && (millis() - ultimaTentativaIPFixo > 5000)) {
+      ultimaTentativaIPFixo = millis();
+      ipFixoAplicado = aplicarIPFixo();
+    }
+  }
+
+  if (!mqtt.connected()) conectaMQTT();
+  mqtt.loop();
+  while (gpsSerial.available() > 0) gps.encode(gpsSerial.read());
+
+  // Debug GPS
+  static unsigned long ultimoDebug = 0;
+  if (millis() - ultimoDebug > 15000) {
+    ultimoDebug = millis();
+    Serial.printf("[GPS] sat=%d hdop=%.1f age=%lu valid=%d lat=%.6f lng=%.6f | heap=%d\n",
+      gps.satellites.isValid() ? gps.satellites.value() : 0,
+      gps.hdop.isValid() ? gps.hdop.hdop() : 99.9,
+      gps.location.isValid() ? gps.location.age() : 99999UL,
+      gps.location.isValid() ? 1 : 0,
+      gps.location.isValid() ? gps.location.lat() : 0.0,
+      gps.location.isValid() ? gps.location.lng() : 0.0,
+      ESP.getFreeHeap());
+  }
+
+  // ════════════════════════════════════════════════
+  //  DIAGNÓSTICO GPS — Histerese (Anti-oscilação)
+  // ════════════════════════════════════════════════
+  bool temFixAgora = gpsValido();
+  bool podeNotificar = (millis() - ultimaNotifGPS > MIN_INTERVALO_NOTIF_GPS);
+
+  if (temFixAgora) {
+    ultimoFixValidoMs = millis();
+    ultimaInvalidacaoMs = 0;
+  } else if (ultimaInvalidacaoMs == 0) {
+    ultimaInvalidacaoMs = millis();
+  }
+
+  if (temFixAgora && !gpsTinhaFixAnterior) {
+    if (ultimoFixValidoMs > 0 && (millis() - ultimoFixValidoMs) < 100 &&
+        (millis() - ultimaInvalidacaoMs) >= HYSTERESIS_FIX_MS) {
+      gpsTinhaFixAnterior = true;
+      if (podeNotificar) {
+        ultimaNotifGPS = millis();
+        double lat = gps.location.lat(); double lng = gps.location.lng();
+        int sat = gps.satellites.value(); double hdop = gps.hdop.hdop(); int rssi = WiFi.RSSI();
+        char msg[600];
+        snprintf(msg, sizeof(msg),
+          "📡 *GPS FIXOU!*\n\n📍 `%.6f, %.6f`\n🛰 Satélites: %d\n📊 HDOP: %.1f\n📶 RSSI: %d dBm\n🌐 IP: `%s`\n\n🗺 [Abrir no Google Maps](https://maps.google.com/?q=%.6f,%.6f)",
+          lat, lng, sat, hdop, rssi, meuIP.c_str(), lat, lng);
+        enviarTelegram(String(msg));
+      }
+    }
+  } else if (!temFixAgora && gpsTinhaFixAnterior) {
+    if (ultimaInvalidacaoMs > 0 && (millis() - ultimaInvalidacaoMs) >= HYSTERESIS_PERDA_MS) {
+      gpsTinhaFixAnterior = false;
+      if (podeNotificar) {
+        ultimaNotifGPS = millis();
+        unsigned long tempoSemFix = (millis() - ultimoFixValidoMs) / 1000;
+        char msg[300];
+        snprintf(msg, sizeof(msg),
+          "⚠️ *GPS PERDEU O SINAL*\n\n🛰 Último fix: %d sat\n⏱ Sem fix há: %lu s\n\n_Fallback WiFi ativará em 60s._",
+          gps.satellites.isValid() ? gps.satellites.value() : 0, tempoSemFix);
+        enviarTelegram(String(msg));
       }
     } else {
-      if (v.paradaPos) {
-        const distDoPonto = map.distance(v.paradaPos, pos);
-        if (distDoPonto > 50) { v.paradaInicio = null; v.paradaPos = null; }
-      } else {
-        v.paradaInicio = null; v.paradaPos = null;
+      if (temFixAgora) ultimaInvalidacaoMs = 0;
+    }
+  }
+
+  // ════════════════════════════════════════════════
+  //  ALARME — Debounce 50ms
+  // ════════════════════════════════════════════════
+  static bool     alarmeEstavel = HIGH;
+  static unsigned long alarmeMudouEm = 0;
+  static bool     alarmeUltimaLeitura = HIGH;
+  static int      pulsos = 0;
+  static unsigned long ultPulso = 0, ultPulsoAval = 0;
+  static unsigned long ultimaLeituraAlarmeMS = 0;
+  
+  const unsigned long ALARME_DEBOUNCE_MS = 50;
+  const unsigned long ALARME_JANELA_MS   = 2500;
+
+  if (millis() - ultimaLeituraAlarmeMS >= 10) {
+    ultimaLeituraAlarmeMS = millis();
+    bool leituraAtual = digitalRead(ALARME_PIN);
+
+    if (leituraAtual != alarmeUltimaLeitura) {
+      alarmeMudouEm = millis();
+      alarmeUltimaLeitura = leituraAtual;
+    }
+
+    if ((millis() - alarmeMudouEm) >= ALARME_DEBOUNCE_MS && leituraAtual != alarmeEstavel) {
+      alarmeEstavel = leituraAtual;
+
+      if (alarmeEstavel == LOW) {
+        unsigned long agora = millis();
+        if (agora - ultPulso > 80) {
+          if (agora - ultPulso < ALARME_JANELA_MS) pulsos++; else pulsos = 1;
+          ultPulso = agora;
+          Serial.printf("[ALARME] Pulso %d\n", pulsos);
+
+          if (pulsos >= 5 && !alarmeJaDisparou) {
+            alarmeJaDisparou = true;
+            publicarAlerta("sirene_disparou", true);
+            String payload = "{\"motivo\":\"sirene_disparou\",\"lat\":" + String(gps.location.isValid() ? gps.location.lat() : 0, 6) + ",\"lng\":" + String(gps.location.isValid() ? gps.location.lng() : 0, 6) + "}";
+            mqtt.publish(TOPIC_STATUS, payload.c_str());
+            mqtt.loop(); delay(200);
+            enviarTelegram("🚨 *ALARME DISPARADO!*\n\n" + String(NOME_SISTEMA));
+            Serial.println("🚨 ALARME DISPARADO!");
+          }
+        }
       }
     }
   }
-  atualizarBotaoLista(chipId);
-  if (chipId === ativoId) { atualizarPainel(chipId); atualizarVeiculoTopbar(chipId); }
-};
 
-window.processarStatus = function(chipId, d) {
-  const v = obterVeiculo(chipId);
-  if (d.bloqueado !== undefined) v.bloqueado = d.bloqueado === true;
-  if (d.pendente !== undefined) v.pendente = d.pendente === true;
-  if (d.ip !== undefined) v.ip = d.ip;
-  if (v.marker) v.marker.setIcon(mkIcon(corMarcador(v), v.fonte));
-  atualizarBotaoLista(chipId);
-  if (chipId === ativoId) { atualizarPainel(chipId); atualizarVeiculoTopbar(chipId); }
-  const m = d.motivo || '';
-  if (v.bloqueado) addLog('[' + chipId.slice(-4) + '] BLOQUEADO', 'log-err');
-  else if (v.pendente) addLog('[' + chipId.slice(-4) + '] Aguardando...', 'log-warn');
-  else if (m === 'desbloqueado') addLog('[' + chipId.slice(-4) + '] LIBERADO', 'log-ok');
-  else if (m === 'online' || m === 'reconectado') addLog('[' + chipId.slice(-4) + '] Online ✓', 'log-ok');
-  else if (m === 'modo_festa_erro') {
-    if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
-    document.getElementById('btnFesta').classList.remove('ativo');
-    document.getElementById('btnFesta').textContent = '🛡️ Festa';
-    modoFestaAtivo = false;
-    addLog('⚠️ Modo Festa NÃO ativou (GPS sem fix)', 'log-err');
-    window.uiAviso('GPS sem sinal. Aguarde fixar e tente novamente.', '🛡️ Modo Festa');
+  if (pulsos > 0 && (millis() - ultPulso > 2500) && (ultPulso != ultPulsoAval)) {
+    ultPulsoAval = ultPulso;
+    if (!alarmeJaDisparou) {
+      if (pulsos == 1) {
+        enviarTelegram("🔒 *ANTI-FURTO ARMADO*\n\n" + String(NOME_SISTEMA));
+      } else if (pulsos >= 2 && pulsos <= 4) {
+        enviarTelegram("🔓 *ANTI-FURTO DESARMADO*\n\n" + String(NOME_SISTEMA));
+      }
+    }
+    pulsos = 0;
   }
-};
 
-function atualizarBotaoLista(chipId) {
-  const v = veiculos[chipId];
-  const btn = document.getElementById('vbtn_' + chipId);
-  if (!btn || !v) return;
-  const emoji = v.bloqueado ? '🔴' : v.pendente ? '🟡' : '🟢';
-  btn.className = 'veiculo-btn' + (chipId === ativoId ? ' ativo' : '');
-  btn.textContent = emoji + ' ' + chipId.slice(-4).toUpperCase() + ' ' + Math.round(v.vel) + 'km/h';
-}
-function atualizarPainel(chipId) {
-  const v = veiculos[chipId];
-  if (!v) return;
-  document.getElementById('pVel').textContent = v.vel.toFixed(1) + ' km/h';
-  document.getElementById('pSat').textContent = v.sat + ' sat';
-  document.getElementById('pRssi').textContent = (v.rssi || '—') + ' dBm';
-  document.getElementById('pAlt').textContent = v.alt ? v.alt.toFixed(0) + ' m' : '— m';
-  document.getElementById('pKm').textContent = (v.kmTotal / 1000).toFixed(2) + ' km';
-  document.getElementById('pIp').textContent = v.ip || '—';
-  const st = document.getElementById('pStatus');
-  const bB = document.getElementById('btnBlock');
-  const bC = document.getElementById('btnCancel');
-  const bU = document.getElementById('btnUnlock');
-  const bn = document.getElementById('pendenteBanner');
-  bB.style.display = 'none'; bC.style.display = 'none'; bU.style.display = 'none'; bn.style.display = 'none';
-  if (v.bloqueado) {
-    st.textContent = 'Bloqueado'; st.className = 'badge badge-err';
-    bB.style.display = 'block';
-    bB.onclick = () => window.cmdAtivo('DESBLOQUEAR');
-    bB.textContent = '🔴 Desbloquear';
-  } else if (v.pendente) {
-    st.textContent = 'Aguardando'; st.className = 'badge badge-warn';
-    bC.style.display = 'block';
-    bC.onclick = () => window.cmdAtivo('CANCELAR_BLOQUEIO');
-    bC.textContent = '🟡 Cancelar';
-    bn.style.display = 'block';
+  if (alarmeJaDisparou && (millis() - ultPulso > 15000)) {
+    alarmeJaDisparou = false; pulsos = 0;
+    mqtt.publish(TOPIC_ALERTA, "{\"motivo\":\"sirene_parou\"}", true);
+    mqtt.publish(TOPIC_STATUS, "{\"motivo\":\"sirene_parou\"}");
+    mqtt.loop(); delay(200);
+    enviarTelegram("🔇 *ALARME PAROU*\n\n" + String(NOME_SISTEMA));
+  }
+
+  if (alarmeJaDisparou && pulsos >= 2 && pulsos <= 4) {
+    alarmeJaDisparou = false;
+    mqtt.publish(TOPIC_ALERTA, "", true);
+  }
+
+  // ════════════════════════════════════════════════
+  //  PÂNICO — Debounce 100ms + Boot Silencioso
+  // ════════════════════════════════════════════════
+  static bool     panicoEstavel = HIGH;
+  static unsigned long panicoLOWDesde = 0;
+  static bool     panicoJa = false;
+  static unsigned long panicoSoltoEm = 0;
+  static int      panicoSpikes = 0;
+  static unsigned long ultimaLeituraMS = 0;
+
+  const unsigned long DEBOUNCE_MS = 100;
+  const unsigned long SOLTURA_MIN_MS = 500;
+  const unsigned long ESTAVEL_LOW_MS = 200;
+  const unsigned long JANELA_SPIKES_MS = 1000;
+
+  if (millis() < BOOT_SILENCIO_MS) {
+    panicoEstavel = digitalRead(PANICO_PIN);
+    panicoLOWDesde = 0;
   } else {
-    st.textContent = 'Liberado'; st.className = 'badge badge-ok';
-    bU.style.display = 'block';
-    bU.onclick = () => window.solicitarBloqueio();
-    bU.textContent = '🟢 Liberado';
-  }
-}
-function criarIconePingo(num, mins) {
-  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="44" height="58" viewBox="0 0 60 80">' +
-    '<path d="M30 0 C13 0 0 13 0 30 C0 47 30 80 30 80 C30 80 60 47 60 30 C60 13 47 0 30 0Z" fill="#FF6B00" stroke="#CC5500" stroke-width="2"/>' +
-    '<circle cx="30" cy="28" r="17" fill="white" opacity="0.95"/>' +
-    '<text x="30" y="33" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="14" font-weight="900" fill="#CC5500">P' + num + '</text>' +
-    '</svg>';
-  return L.divIcon({ className: '', html: svg, iconSize: [44, 58], iconAnchor: [22, 58], popupAnchor: [0, -58] });
-}
-function corMarcador(v) {
-  if (v.bloqueado) return '#c62828';
-  if (v.pendente) return '#f9a825';
-  return '#2e7d32';
-}
+    bool leituraAtual = digitalRead(PANICO_PIN);
+    if (millis() - ultimaLeituraMS >= 10) {
+      ultimaLeituraMS = millis();
+      
+      if (leituraAtual == LOW && panicoEstavel == HIGH) panicoSpikes++;
+      if (millis() % JANELA_SPIKES_MS < 10 && panicoSpikes > 0) {
+        Serial.printf("[PÂNICO] %d spikes LOW em 1s\n", panicoSpikes);
+        panicoSpikes = 0;
+      }
 
-function mkIcon(cor, fonte) {
-  const modoGPS = (fonte === 'gps');
-  const auraHTML = modoGPS
-    ? '<div style="position:absolute;top:-2px;left:-2px;width:26px;height:26px;border:2px solid ' + cor + ';border-radius:50%;box-sizing:border-box;opacity:0.9;"></div>'
-    : '<div style="position:absolute;top:-2px;left:-2px;width:26px;height:26px;border:2px dashed ' + cor + ';border-radius:50%;box-sizing:border-box;animation:aura-rotate 12s linear infinite;opacity:0.9;"></div>';
+      if (leituraAtual == LOW && panicoLOWDesde == 0) panicoLOWDesde = millis();
+      else if (leituraAtual == HIGH) panicoLOWDesde = 0;
 
-  return L.divIcon({
-    className: '',
-    html:
-      '<div style="position:relative;width:22px;height:22px;">' +
-        auraHTML +
-        '<div style="position:absolute;top:0;left:0;width:22px;height:22px;border-radius:50%;background:' + cor + ';border:3px solid #fff;box-sizing:border-box;box-shadow:0 2px 8px rgba(0,0,0,0.5);"></div>' +
-      '</div>',
-    iconSize: [22, 22], iconAnchor: [11, 11]
-  });
-}
-function atualizarContagem() {
-  const n = Object.keys(veiculos).length;
-  setBadge('veiculosBadge', n + ' veículo' + (n !== 1 ? 's' : ''), n > 0 ? 'badge-ok' : 'badge-off');
-}
-function addLog(msg, cls) {
-  const box = document.getElementById('logBox');
-  const t = new Date().toTimeString().slice(0, 8);
-  const el = document.createElement('div');
-  el.className = 'log-line ' + (cls || '');
-  el.textContent = '[' + t + '] ' + msg;
-  box.insertBefore(el, box.firstChild);
-  while (box.children.length > 10) box.removeChild(box.lastChild);
-}
-window.centralizarAtivo = function() {
-  if (!ativoId || !veiculos[ativoId] || !veiculos[ativoId].ultimaPos) return;
-  map.setView(veiculos[ativoId].ultimaPos, 16);
-};
-window.centralizarTodos = function() {
-  const pts = Object.values(veiculos).filter(v => v.ultimaPos).map(v => v.ultimaPos);
-  if (!pts.length) return;
-  if (pts.length === 1) { map.setView(pts[0], 15); return; }
-  map.fitBounds(L.latLngBounds(pts), { padding: [40, 40] });
-};
-window.ativarAlertaMovimento = function(chipId, d) {
-  const lat = parseFloat(d.lat), lng = parseFloat(d.lng);
-  const posValida = (lat !== 0 && lng !== 0 && !isNaN(lat) && !isNaN(lng));
-  if (circuloFesta) { circuloFesta.remove(); circuloFesta = null; }
-  document.getElementById('btnFesta').classList.remove('ativo');
-  document.getElementById('btnFesta').textContent = '🛡️ Festa';
-  modoFestaAtivo = false;
-  window.tocarAlarmeNavegador();
-  setBadge('pStatus', '🚨 FURTO', 'badge-err');
-  addLog('🚨 ALERTA DE FURTO DETECTADO!', 'log-err');
-  if (posValida) map.setView(L.latLng(lat, lng), 15);
-};
-window.ativarAlertaSirene = function(chipId, d) {
-  sireneChipId = chipId;
-  document.getElementById('sireneBanner').style.display = 'block';
-  document.getElementById('sireneWidget').style.display = 'flex';
-  window.tocarAlarmeNavegador();
-  setBadge('pStatus', '🚨 ALARME', 'badge-err');
-  addLog('🚨 ALARME DO VEÍCULO DISPAROU!', 'log-err');
-  if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
-  const lat = parseFloat(d.lat), lng = parseFloat(d.lng);
-  if (lat && lng && lat !== 0 && lng !== 0) map.setView(L.latLng(lat, lng), 16);
-};
-window.fecharBannerSirene = function() {
-  document.getElementById('sireneBanner').style.display = 'none';
-  document.getElementById('sireneWidget').style.display = 'none';
-  window.desligarAlarme();
-  setBadge('pStatus', 'Liberado', 'badge-ok');
-  if (mqttClient && mqttClient.connected && sireneChipId) {
-    mqttClient.publish('rastreador/' + usuarioId + '/' + sireneChipId + '/alerta', '', { retain: true });
-  }
-  sireneChipId = null;
-  addLog('🔇 Alerta de sirene fechado', 'log-ok');
-};
-window.ativarAlertaJammer = function(chipId, d) {
-  jammerChipId = chipId;
-  document.getElementById('jammerBanner').style.display = 'block';
-  document.getElementById('jammerWidget').style.display = 'flex';
-  window.tocarAlarmeNavegador();
-  setBadge('pStatus', '⚠️ JAMMER', 'badge-warn');
-  addLog('⚠️ ALERTA JAMMER — Interferência!', 'log-err');
-  if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
-};
-window.cancelarAlertaJammer = function() {
-  document.getElementById('jammerBanner').style.display = 'none';
-  document.getElementById('jammerWidget').style.display = 'none';
-  window.desligarAlarme();
-  setBadge('pStatus', 'Liberado', 'badge-ok');
-  if (jammerChipId) window.cmd(jammerChipId, 'CANCELAR_JAMMER');
-  if (mqttClient && mqttClient.connected && jammerChipId) {
-    mqttClient.publish('rastreador/' + usuarioId + '/' + jammerChipId + '/alerta', '', { retain: true });
-  }
-  jammerChipId = null;
-  addLog('✅ Alerta jammer cancelado', 'log-ok');
-};
-window.ativarPanico = function(chipId, origem, dados) {
-  if (panicoAtivo) return;
-  panicoAtivo = true; panicoCancelavel = true; panicoChipId = chipId;
-  document.getElementById('panicBanner').style.display = 'block';
-  document.getElementById('panicWidget').style.display = 'flex';
-  let segsRestantes = 60;
-  const timer = document.getElementById('panicTimer');
-  timer.textContent = '(' + segsRestantes + 's)';
-  panicoTimer = setInterval(() => {
-    segsRestantes--;
-    if (segsRestantes > 0) timer.textContent = '(' + segsRestantes + 's)';
-    else { clearInterval(panicoTimer); panicoCancelavel = false; timer.textContent = '(Confirmado)'; }
-  }, 1000);
-  window.tocarAlarmeNavegador();
-  addLog('🚨 PÂNICO ATIVADO', 'log-err');
-};
-window.cancelarPanico = function() {
-  if (!panicoAtivo || !panicoCancelavel) return;
-  clearInterval(panicoTimer);
-  panicoAtivo = false;
-  document.getElementById('panicWidget').style.display = 'none';
-  document.getElementById('panicBanner').style.display = 'none';
-  if (panicoChipId) {
-    window.cmd(panicoChipId, 'PANICO_CANCELADO');
-    if (mqttClient && mqttClient.connected) {
-      mqttClient.publish('rastreador/' + usuarioId + '/' + panicoChipId + '/alerta', '', { retain: true });
-    }
-  }
-  window.desligarAlarme();
-};
-window.__sirene = window.__sirene || { ativa: false, interval: null, osc: null, ctx: null, gain: null };
-window.tocarAlarmeNavegador = function() {
-  if (window.__sirene.ativa) return;
-  window.__sirene.ativa = true;
-  try {
-    window.__sirene.ctx = new (window.AudioContext || window.webkitAudioContext)();
-    if (window.__sirene.ctx.state === 'suspended') window.__sirene.ctx.resume();
-    window.__sirene.osc = window.__sirene.ctx.createOscillator();
-    window.__sirene.gain = window.__sirene.ctx.createGain();
-    window.__sirene.osc.connect(window.__sirene.gain);
-    window.__sirene.gain.connect(window.__sirene.ctx.destination);
-    window.__sirene.osc.type = 'square';
-    window.__sirene.osc.frequency.value = 880;
-    window.__sirene.gain.gain.value = 0.3;
-    window.__sirene.osc.start();
-    let usandoAlta = true;
-    window.__sirene.interval = setInterval(() => {
-      if (!window.__sirene.ativa || !window.__sirene.osc) { clearInterval(window.__sirene.interval); return; }
-      usandoAlta = !usandoAlta;
-      window.__sirene.osc.frequency.value = usandoAlta ? 880 : 440;
-      window.__sirene.gain.gain.value = usandoAlta ? 0.3 : 0.2;
-    }, 300);
-  } catch(e) { window.__sirene.ativa = false; }
-};
-window.desligarAlarme = function() {
-  window.__sirene.ativa = false;
-  if (window.__sirene.interval) { clearInterval(window.__sirene.interval); window.__sirene.interval = null; }
-  if (window.__sirene.osc) { try { window.__sirene.osc.stop(); } catch(e) {} window.__sirene.osc = null; }
-  if (window.__sirene.ctx) { try { window.__sirene.ctx.close(); } catch(e) {} window.__sirene.ctx = null; }
-  window.__sirene.gain = null;
-  if (navigator.vibrate) navigator.vibrate(0);
-};
-function calcularDistanciaTotal(trail) {
-    let dist = 0;
-    for (let i = 1; i < trail.length; i++) {
-        const p1 = L.latLng(trail[i-1][0], trail[i-1][1]);
-        const p2 = L.latLng(trail[i][0], trail[i][1]);
-        dist += p1.distanceTo(p2);
-    }
-    return dist;
-}
-window.salvarMapa = function() {
-  const dadosVeiculos = [];
-  let temAlgo = false;
-  Object.values(veiculos).forEach(v => {
-    const trail = v.trail.getLatLngs().map(p => [p.lat, p.lng]);
-    const pingos = v.pingos.map(p => {
-      const ll = p.marker.getLatLng();
-      return { lat: ll.lat, lng: ll.lng, num: p.num, mins: p.mins, hora: p.horaBrasilia || '—', timestampInicio: p.timestampInicio };
-    });
-    const vels = v.velocidadesTrail || [];
-    const velMax = vels.length > 0 ? Math.max(...vels) : 0;
-    const velMedia = vels.length > 0 ? (vels.reduce((a,b) => a+b, 0) / vels.length) : 0;
-    if (trail.length > 0 || pingos.length > 0) temAlgo = true;
-    dadosVeiculos.push({
-      nome: v.nome, chipId: v.chipId, bloqueado: v.bloqueado,
-      km: (calcularDistanciaTotal(trail) / 1000).toFixed(2),
-      velMax: velMax.toFixed(0), velMedia: velMedia.toFixed(0),
-      trail: trail, vels: vels, pingos: pingos,
-      ultimaPos: v.ultimaPos ? [v.ultimaPos.lat, v.ultimaPos.lng] : null
-    });
-  });
-  if (!temAlgo) {
-    window.uiAviso('Nenhum ponto para salvar! Aguarde o GPS fixar e o veículo se mover.', '💾 Salvar');
-    return;
-  }
-  const data = new Date().toLocaleString('pt-BR');
-  const dataArq = new Date().toISOString().slice(0,16).replace('T','_').replace(':','-');
-
-  let html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">' +
-    '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
-    '<title>Trajeto ' + dataArq + '</title>' +
-    '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>' +
-    '<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>' +
-    '<style>' +
-    'body{font-family:system-ui;background:#111;color:#fff;margin:0;padding:0;}' +
-    '.header{padding:16px 20px;border-bottom:1px solid #333;}' +
-    'h1{font-size:18px;color:#90caf9;margin:0 0 4px 0;}' +
-    '.sub{font-size:12px;color:#888;}' +
-    '#mapa{width:100%;height:60vh;min-height:400px;}' +
-    '.info{padding:16px 20px;}' +
-    '.veiculo{margin-bottom:20px;padding:12px;background:#1a1a1a;border-radius:10px;}' +
-    '.veiculo h2{font-size:15px;margin:0 0 8px 0;color:#90caf9;}' +
-    '.veiculo .status{font-weight:700;}.verde{color:#4caf50;}.verm{color:#ef5350;}' +
-    '.stats{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:13px;color:#ccc;}' +
-    '.stats b{color:#fff;}' +
-    'table{width:100%;border-collapse:collapse;margin-top:12px;font-size:12px;}' +
-    'th{background:#1565C0;color:#fff;padding:8px;text-align:left;}' +
-    'td{padding:6px 8px;border:1px solid #333;}' +
-    'tr:nth-child(even){background:#1a1a1a;}' +
-    'a{color:#90caf9;}' +
-    '.legenda{padding:16px 20px;background:#0a0a0a;font-size:12px;color:#ccc;line-height:2;}' +
-    '.linha-cor{display:inline-block;width:24px;height:5px;vertical-align:middle;margin-right:6px;border-radius:3px;}' +
-    '</style></head><body>' +
-    '<div class="header"><h1>🛡️ Trajeto salvo em ' + data + '</h1><div class="sub">GatewayConnectCar</div></div>' +
-    '<div id="mapa"></div><div class="info">';
-
-   dadosVeiculos.forEach(v => {
-    const statusCor = v.bloqueado ? 'verm' : 'verde';
-    const statusTxt = v.bloqueado ? 'BLOQUEADO' : 'LIBERADO';
-    html += '<div class="veiculo"><h2>🚗 ' + v.nome + ' — <span class="status ' + statusCor + '">' + statusTxt + '</span></h2>';
-    html += '<div class="stats">';
-    html += '<span>Paradas: <b>' + v.pingos.length + '</b></span>';
-    html += '<span>Distância: <b>' + v.km + ' km</b></span>';
-    html += '<span>Vel. Máx: <b class="' + (v.velMax > 80 ? 'verm' : 'verde') + '">' + v.velMax + ' km/h</b></span>';
-    html += '<span>Vel. Média: <b>' + v.velMedia + ' km/h</b></span>';
-    html += '</div>';
-    if (v.pingos.length > 0) {
-      html += '<table><tr><th>#</th><th>Início da parada</th><th>Pingo apareceu</th><th>Tempo total parado</th><th>Local</th></tr>';
-      v.pingos.forEach(p => {
-        let horaInicio = '—';
-        
-        if (p.timestampInicio) {
-          horaInicio = new Date(p.timestampInicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        } else if (p.hora) {
-          const partes = p.hora.split(':');
-          const hh = Number(partes[0]);
-          const mm = Number(partes[1]);
-          const dt = new Date();
-          dt.setHours(hh, mm - 6, 0, 0);
-          horaInicio = String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
+      if (leituraAtual == LOW && panicoLOWDesde > 0 && (millis() - panicoLOWDesde) >= ESTAVEL_LOW_MS && !panicoJa) {
+        panicoJa = true;
+        if (!panicoAtivo) {
+          panicoAtivo = true;
+          publicarAlerta("panico", true);
+          mqtt.loop(); delay(200);
+          enviarTelegram("🚨 *PÂNICO ATIVADO!*\n\n" + String(NOME_SISTEMA));
+          Serial.println("🚨 PÂNICO ATIVADO!");
+        } else {
+          panicoAtivo = false;
+          mqtt.publish(TOPIC_ALERTA, "{\"motivo\":\"panico_cancelado\"}", true);
+          mqtt.publish(TOPIC_STATUS, "{\"motivo\":\"panico_cancelado\"}");
+          mqtt.loop(); delay(200);
+          enviarTelegram("✅ *PÂNICO CANCELADO*\n\n" + String(NOME_SISTEMA));
+          Serial.println("✅ PÂNICO CANCELADO!");
         }
+      }
 
-        const horas = Math.floor(p.mins / 60);
-        const mins = p.mins % 60;
-        const tempoTotal = horas > 0 ? horas + 'h ' + String(mins).padStart(2,'0') + 'min' : mins + ' min';
-        html += '<tr><td>P' + p.num + '</td><td>' + horaInicio + '</td><td>' + p.hora + '</td><td>' + tempoTotal + '</td>';
-        html += '<td><a href="https://maps.google.com/?q=' + p.lat + ',' + p.lng + '" target="_blank">Abrir</a></td></tr>';
-      });
-      html += '</table>';
+      if (leituraAtual == HIGH && panicoJa) {
+        if (panicoSoltoEm == 0) panicoSoltoEm = millis();
+        if ((millis() - panicoSoltoEm) >= SOLTURA_MIN_MS) {
+          panicoJa = false;
+          panicoSoltoEm = 0;
+        }
+      } else if (leituraAtual == LOW) {
+        panicoSoltoEm = 0;
+      }
     }
-    html += '</div>';
-  });
+  }
 
-  html += '</div><div class="legenda">' +
-    '<b style="color:#90caf9;">📊 Legenda de velocidade:</b><br>' +
-    '<span class="linha-cor" style="background:#1565C0;"></span> Até 80 km/h' +
-    '<span class="linha-cor" style="background:#c62828;margin-left:20px;"></span> Acima de 80 km/h' +
-    '</div>';
+  // ════════════════════════════════════════════════
+  //  BLOQUEIO PENDENTE / MODO FESTA
+  // ════════════════════════════════════════════════
+  if (bloqueoPendente) {
+    float v = gps.speed.isValid() ? gps.speed.kmph() : 0.0;
+    if (v <= VEL_SEGURA) bloquearVeiculo("velocidade_segura");
+  }
 
-  html += '<script>' +
-    'const dados = ' + JSON.stringify(dadosVeiculos) + ';' +
-    'const m = L.map("mapa", { zoomControl: true });' +
-    'L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "© Esri" }).addTo(m);' +
-    'const todosPontos = [];' +
-    'dados.forEach(v => {' +
-      'if (v.trail.length > 1) {' +
-        'for (let i = 1; i < v.trail.length; i++) {' +
-          'const vel = v.vels[i] || 0;' +
-          'const cor = vel <= 80 ? "#1565C0" : "#c62828";' +
-          'L.polyline([v.trail[i-1], v.trail[i]], { color: cor, weight: 4, opacity: 0.9 }).addTo(m);' +
-        '}' +
-        'if (v.vels.length > 0) {' +
-          'const velMax = Math.max.apply(null, v.vels);' +
-          'const idxMax = v.vels.indexOf(velMax);' +
-          'const pontoMax = v.trail[idxMax];' +
-          'if (pontoMax) {' +
-            'const corBorda = velMax > 80 ? "#c62828" : "#1565C0";' +
-            'const velArred = Math.round(velMax);' +
-            'const fontSize = velArred >= 100 ? 22 : 26;' +
-            'const yNum = velArred >= 100 ? 46 : 52;' +
-            'const placaSVG = \'<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 100 100">\' +' +
-              '\'<circle cx="50" cy="50" r="46" fill="white" stroke="\' + corBorda + \'" stroke-width="10"/>\' +' +
-              '\'<text x="50" y="\' + yNum + \'" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="\' + fontSize + \'" font-weight="900" fill="#222">\' + velArred + \'</text>\' +' +
-              '\'<text x="50" y="72" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#222">km/h</text>\' +' +
-              '\'</svg>\';' +
-            'L.marker(pontoMax, { icon: L.divIcon({ className: "", html: placaSVG, iconSize: [44, 44], iconAnchor: [22, 22], popupAnchor: [0, -22] }), zIndexOffset: 1000 }).addTo(m).bindPopup("<b>🚨 Velocidade Máxima</b><br>" + velArred + " km/h");' +
-          '}' +
-        '}' +
-      '}' +
-      'if (v.ultimaPos) {' +
-        'var corMarc = v.bloqueado ? "#c62828" : "#2e7d32";' +
-        'var iconeAtual = \'<div style="width:22px;height:22px;border-radius:50%;background:\' + corMarc + \';border:3px solid #fff;box-shadow:0 0 0 2px \' + corMarc + \',0 2px 8px rgba(0,0,0,0.5)"></div>\';' +
-        'L.marker(v.ultimaPos, { icon: L.divIcon({ className: "", html: iconeAtual, iconSize: [22, 22], iconAnchor: [11, 11] }), zIndexOffset: 500 }).addTo(m).bindPopup("<b>" + v.nome + "</b><br>Posição atual");' +
-      '}' +
-      'v.trail.forEach(p => todosPontos.push(p));' +
-      'v.pingos.forEach(p => {' +
-        'const svgPingo = \'<svg xmlns="http://www.w3.org/2000/svg" width="40" height="50" viewBox="0 0 60 80">\' +' +
-          '\'<path d="M30 0 C13 0 0 13 0 30 C0 47 30 80 30 80 C30 80 60 47 60 30 C60 13 47 0 30 0Z" fill="#FF6B00" stroke="#CC5500" stroke-width="2"/>\' +' +
-          '\'<circle cx="30" cy="28" r="17" fill="white" opacity="0.95"/>\' +' +
-          '\'<text x="30" y="33" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="14" font-weight="900" fill="#CC5500">P\' + p.num + \'</text>\' +' +
-          '\'</svg>\';' +
-        'L.marker([p.lat, p.lng], { icon: L.divIcon({ className: "", html: svgPingo, iconSize: [40, 50], iconAnchor: [20, 50] }) }).addTo(m).bindPopup("<b>P" + p.num + "</b><br>" + p.mins + " min<br>" + p.hora);' +
-        'todosPontos.push([p.lat, p.lng]);' +
-      '});' +
-    '});' +
-   'if (todosPontos.length > 0) { m.fitBounds(todosPontos, { padding: [40, 40] }); } else { m.setView([-22.7078, -47.6659], 13); }' +
-  '<\/script>' +
-  
-  '<div style="position: absolute; top: 80px; right: 20px; z-index: 9999;">' +
-      '<button onclick="window.compartilharEsteArquivo()" style="background: #25D366; color: white; padding: 12px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.5); font-size: 14px;">' +
-          '📤 Compartilhar Mapa' +
-      '</button>' +
-  '</div>' +
-  '<script>' +
-      'window.compartilharEsteArquivo = async function() {' +
-          'try {' +
-              'const htmlContent = document.documentElement.outerHTML;' +
-              'const blob = new Blob([htmlContent], { type: "text/html" });' +
-              'const file = new File([blob], "trajeto_salvo.html", { type: "text/html" });' +
-              'if (navigator.canShare && navigator.canShare({ files: [file] })) {' +
-                  'await navigator.share({ files: [file], title: "Trajeto do Veículo", text: "Segue o trajeto salvo." });' +
-              '} else {' +
-                  'const a = document.createElement("a");' +
-                  'a.href = URL.createObjectURL(blob);' +
-                  'a.download = "trajeto_compartilhar.html";' +
-                  'a.click();' +
-                  'alert("O PC não compartilha direto. O arquivo foi baixado novamente! Basta arrastar ele para o WhatsApp Web ou anexar no Gmail.");' +
-              '}' +
-          '} catch (error) { console.log("Compartilhamento cancelado."); }' +
-      '};' +
-  '<\/script>' +
-  
-  '</body></html>';
+  if (modoFesta) {
+    if (gpsValido()) {
+      ultimoGPSSinalFesta = millis();
+      double dist = gps.distanceBetween(festaLat, festaLng, gps.location.lat(), gps.location.lng());
+      if (dist > RAIO_FESTA_M) {
+        modoFesta = false;
+        publicarAlerta("alerta_movimento", true);
+        String payload = "{\"motivo\":\"alerta_movimento\",\"lat\":" + String(gps.location.lat(), 6) + ",\"lng\":" + String(gps.location.lng(), 6) + "}";
+        mqtt.publish(TOPIC_STATUS, payload.c_str());
+        enviarTelegram("🚨 *ALERTA DE FURTO!*\n\n" + String(NOME_SISTEMA));
+      }
+    } else {
+      if (ultimoGPSSinalFesta == 0) {
+        static unsigned long inicioEsperaGPS = 0;
+        if (inicioEsperaGPS == 0) inicioEsperaGPS = millis();
+        if (millis() - inicioEsperaGPS > 900000) {
+          modoFesta = false;
+          publicarAlerta("alerta_movimento", true);
+          inicioEsperaGPS = 0;
+          enviarTelegram("🚨 *GPS SEM SINAL HÁ 15min!*\n\n" + String(NOME_SISTEMA));
+        }
+      } else {
+        if (millis() - ultimoGPSSinalFesta > 900000) {
+          modoFesta = false;
+          publicarAlerta("alerta_movimento", true);
+          ultimoGPSSinalFesta = 0;
+          enviarTelegram("🚨 *GPS PERDIDO HÁ 15min!*\n\n" + String(NOME_SISTEMA));
+        }
+      }
+    }
+  }
 
-  const blob = new Blob([html], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'trajeto_' + dataArq + '.html';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-  addLog('💾 Trajeto salvo!', 'log-ok');
-};
+  // ════════════════════════════════════════════════
+  //  PUBLICAÇÃO GPS + FALLBACK HERE
+  // ════════════════════════════════════════════════
+  if (millis() - lastSend >= INTERVALO_MS) {
+    lastSend = millis();
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/rastreador/sw.js')
-      .then(reg => console.log('✅ SW registrado:', reg.scope))
-      .catch(err => console.log('❌ Erro SW:', err));
-  });
+    if (gpsValido()) {
+      String p = "{";
+      p += "\"lat\":" + String(gps.location.lat(), 6) + ",";
+      p += "\"lng\":" + String(gps.location.lng(), 6) + ",";
+      p += "\"spd\":" + String(gps.speed.kmph(), 1) + ",";
+      p += "\"alt\":" + String(gps.altitude.meters(), 1) + ",";
+      p += "\"sat\":" + String(gps.satellites.value()) + ",";
+      p += "\"hdop\":" + String(gps.hdop.hdop(), 1) + ",";
+      p += "\"pendente\":" + String(bloqueoPendente ? "true" : "false") + ",";
+      p += "\"bloqueado\":" + String(veiculoBloqueado ? "true" : "false") + ",";
+      p += "\"rssi\":" + String(WiFi.RSSI()) + ",";
+      p += "\"fonte\":\"gps\"}";
+      mqtt.publish(TOPIC_GPS, p.c_str());
+
+    } else {
+      static unsigned long gpsMorreuEm = 0;
+      if (!gps.location.isValid() || gps.location.age() > 10000) {
+        if (gpsMorreuEm == 0) gpsMorreuEm = millis();
+      } else {
+        gpsMorreuEm = 0;
+      }
+
+      bool gpsMortoHaTempo = (gpsMorreuEm > 0) && (millis() - gpsMorreuEm > 60000);
+
+      if (gpsMortoHaTempo && WiFi.status() == WL_CONNECTED &&
+          (ultimaTentativaWiFiGeo == 0 || millis() - ultimaTentativaWiFiGeo >= INTERVALO_WIFI_GEO_MS)) {
+
+        ultimaTentativaWiFiGeo = millis();
+        double wlat, wlng;
+        int wacc;
+
+        if (obterPosicaoWiFi(wlat, wlng, wacc)) {
+          flushGPS();
+          String p = "{";
+          p += "\"lat\":" + String(wlat, 6) + ",";
+          p += "\"lng\":" + String(wlng, 6) + ",";
+          p += "\"spd\":0,";
+          p += "\"alt\":0,";
+          p += "\"sat\":0,";
+          p += "\"pendente\":" + String(bloqueoPendente ? "true" : "false") + ",";
+          p += "\"bloqueado\":" + String(veiculoBloqueado ? "true" : "false") + ",";
+          p += "\"rssi\":" + String(WiFi.RSSI()) + ",";
+          p += "\"fonte\":\"wifi\",";
+          p += "\"acc\":" + String(wacc) + "}";
+          mqtt.publish(TOPIC_GPS, p.c_str());
+          Serial.println("[WiFi-Geo] ✅ Publicado no MQTT");
+        }
+      }
+    }
+  }
 }
-console.log('🚀 GatewayConnectCar v11 — aura GPS sólida / WiFi pontilhada');
-</script>
-</body>
-</html>
