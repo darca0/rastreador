@@ -328,55 +328,38 @@ window.nextMapStyle = function() {
   tileLayer.setUrl(TILES[currentStyle]);
 };
 window.conectarMQTT = function() {
-  if (mqttClient) {
-    try {
-      mqttClient.removeAllListeners();
-      mqttClient.end(true);
-    } catch (_) {}
-    mqttClient = null;
-  }
-
+  if (mqttClient) { mqttClient.end(true); }
   setBadge('mqttBadge', 'Conectando...', 'badge-warn');
-
   mqttClient = mqtt.connect(BROKER_WSS, {
-    clientId: 'Web_' + usuarioId + '_' + Math.random().toString(36).slice(2, 8),
-    username: 'ESP8266Dario',
-    password: '3SP8266d4r10',
-    reconnectPeriod: 5000,
-    connectTimeout: 10000,
-    clean: true
+    port: BROKER_PORT,
+    clientId: 'Web_' + usuarioId + '_' + Math.random().toString(36).slice(2, 6),
+    username: 'ESP8266Dario', password: '3SP8266d4r10', reconnectPeriod: 5000
   });
-
   mqttClient.on('connect', () => {
     setBadge('mqttBadge', '✅ Conectado', 'badge-ok');
     mqttClient.subscribe('rastreador/' + usuarioId + '/+/gps');
     mqttClient.subscribe('rastreador/' + usuarioId + '/+/status');
     mqttClient.subscribe('rastreador/' + usuarioId + '/+/alerta');
-    if (ativoId) {
-      mqttClient.publish('rastreador/' + usuarioId + '/' + ativoId + '/cmd', 'STATUS');
-    }
     addLog('Conectado como ' + usuarioId, 'log-ok');
   });
-
   mqttClient.on('disconnect', () => setBadge('mqttBadge', 'Desconectado', 'badge-off'));
   mqttClient.on('offline', () => setBadge('mqttBadge', 'Offline', 'badge-err'));
-  mqttClient.on('error', (e) => {
-    const msg = e && e.message ? e.message : String(e || 'erro');
-    addLog('Erro MQTT: ' + msg, 'log-err');
-  });
-
-  const estadoParada = {};
+  mqttClient.on('error', (e) => addLog('Erro: ' + e.message, 'log-err'));
+  
+  // Variável global para controlar o tempo de parada de cada veículo
+  const estadoParada = {}; 
 
   mqttClient.on('message', (topic, payload) => {
     try {
       const parts = topic.split('/');
-      const chipId = parts[2];
-      const tipo = parts[3];
+      const chipId = parts[2], tipo = parts[3];
       const data = JSON.parse(payload.toString());
-
+      
       if (tipo === 'gps') {
+        // ⏱️ INÍCIO DA LÓGICA DO CRONÔMETRO
         const velAtual = parseFloat(data.spd || 0);
         const agora = Date.now();
+        // CORRIGIDO AQUI: Usando PARADA_VEL em vez de 5 fixo
         const estaParado = (velAtual <= PARADA_VEL);
 
         if (!estadoParada[chipId]) {
@@ -386,63 +369,66 @@ window.conectarMQTT = function() {
 
         if (estaParado) {
           if (!ep.inicio) {
-            ep.inicio = agora;
+            ep.inicio = agora; // Marca a hora que parou
           } else if ((agora - ep.inicio) >= PARADA_MIN_MS && !ep.pingoFeito) {
+            // 6 minutos = 360.000 ms
             ep.pingoFeito = true;
-            data.forcarPingo = true;
+            data.forcarPingo = true; // 👈 Avisa o processarGPS para criar o pingo
+            console.log("⏱️ 6 minutos parados! Criando pingo...");
           }
         } else {
           ep.inicio = null;
           ep.pingoFeito = false;
         }
+        // ⏱️ FIM DA LÓGICA DO CRONÔMETRO
 
-        if (window.processarGPS) window.processarGPS(chipId, data);
+        window.processarGPS(chipId, data);
       }
-
-      if (tipo === 'status' && window.processarStatus) {
-        window.processarStatus(chipId, data);
-      }
-
+      
+      if (tipo === 'status') window.processarStatus(chipId, data);
+      
       if (tipo === 'alerta') {
-        if (data.motivo === 'sirene_disparou' && window.ativarAlertaSirene) window.ativarAlertaSirene(chipId, data);
-        if (data.motivo === 'sirene_parou' && window.fecharBannerSirene) window.fecharBannerSirene();
-        if (data.motivo === 'panico' && window.ativarPanico) window.ativarPanico(chipId, 'mqtt', data);
-        if (data.motivo === 'alerta_movimento' && window.ativarAlertaMovimento) window.ativarAlertaMovimento(chipId, data);
-        if (data.motivo === 'alerta_jammer' && window.ativarAlertaJammer) window.ativarAlertaJammer(chipId, data);
+        if (data.motivo === 'sirene_disparou')  window.ativarAlertaSirene(chipId, data);
+        if (data.motivo === 'sirene_parou')     window.fecharBannerSirene();
+        if (data.motivo === 'panico')           window.ativarPanico(chipId, 'mqtt', data);
+        if (data.motivo === 'alerta_movimento') window.ativarAlertaMovimento(chipId, data);
+        if (data.motivo === 'alerta_jammer')    window.ativarAlertaJammer(chipId, data);
       }
-
-      if (tipo === 'status') {
-        if (data.motivo === 'panico' && window.ativarPanico) window.ativarPanico(chipId, 'mqtt', data);
-        if (data.motivo === 'panico_cancelado' && window.cancelarPanico) window.cancelarPanico();
-        if (data.motivo === 'alerta_movimento' && window.ativarAlertaMovimento) window.ativarAlertaMovimento(chipId, data);
-        if (data.motivo === 'sirene_disparou' && window.ativarAlertaSirene) window.ativarAlertaSirene(chipId, data);
-        if (data.motivo === 'sirene_parou' && window.fecharBannerSirene) window.fecharBannerSirene();
-        if (data.motivo === 'alerta_jammer' && window.ativarAlertaJammer) window.ativarAlertaJammer(chipId, data);
-        if (data.motivo === 'jammer_cancelado' && window.cancelarAlertaJammer) window.cancelarAlertaJammer();
-      }
-    } catch (e) {
-      console.error('Erro no MQTT:', e);
-    }
+      
+      if (tipo === 'status' && data.motivo === 'panico') window.ativarPanico(chipId, 'mqtt', data);
+      if (tipo === 'status' && data.motivo === 'panico_cancelado') window.cancelarPanico();
+      if (tipo === 'status' && data.motivo === 'alerta_movimento') window.ativarAlertaMovimento(chipId, data);
+      if (tipo === 'status' && data.motivo === 'sirene_disparou') window.ativarAlertaSirene(chipId, data);
+      if (tipo === 'status' && data.motivo === 'sirene_parou') window.fecharBannerSirene();
+      if (tipo === 'status' && data.motivo === 'alerta_jammer') window.ativarAlertaJammer(chipId, data);
+      if (tipo === 'status' && data.motivo === 'jammer_cancelado') window.cancelarAlertaJammer();
+      
+    } catch(e) { console.error("Erro no MQTT:", e); }
   });
 
+  // ⏱️ RELÓGIO INDEPENDENTE (Para criar o pingo mesmo se o ESP ficar em silêncio no Wi-Fi)
   setInterval(() => {
     const agora = Date.now();
     Object.keys(estadoParada).forEach(chipId => {
       const ep = estadoParada[chipId];
+      // Se passou de 6 minutos e o pingo ainda não foi feito
       if (ep.inicio && !ep.pingoFeito && (agora - ep.inicio) >= PARADA_MIN_MS) {
         ep.pingoFeito = true;
+        console.log(`⏱️ Relógio: 6 minutos parados no carro ${chipId}!`);
+        
+        // Pega a última posição conhecida do veículo para forçar o pingo
         if (window.processarGPS && veiculos[chipId] && veiculos[chipId].ultimaPos) {
           window.processarGPS(chipId, {
             lat: veiculos[chipId].ultimaPos.lat,
             lng: veiculos[chipId].ultimaPos.lng,
             spd: 0,
             fonte: veiculos[chipId].fonte || 'wifi',
-            forcarPingo: true
+            forcarPingo: true 
           });
         }
       }
     });
-  }, 30000);
+  }, 30000); // Roda a cada 30 segundos
 };
 function setBadge(id, txt, cls) {
   const el = document.getElementById(id);
