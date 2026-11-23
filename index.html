@@ -335,12 +335,13 @@ window.conectarMQTT = function() {
     clientId: 'Web_' + usuarioId + '_' + Math.random().toString(36).slice(2, 6),
     username: 'ESP8266Dario', password: '3SP8266d4r10', reconnectPeriod: 5000
   });
-  mqttClient.on('connect', () => {
+ mqttClient.on('connect', () => {
     setBadge('mqttBadge', '✅ Conectado', 'badge-ok');
     mqttClient.subscribe('rastreador/' + usuarioId + '/+/gps');
     mqttClient.subscribe('rastreador/' + usuarioId + '/+/status');
     mqttClient.subscribe('rastreador/' + usuarioId + '/+/alerta');
-    addLog('Conectado como ' + usuarioId, 'log-ok');
+    mqttClient.publish('rastreador/' + usuarioId + '/+/cmd', 'STATUS');
+    addLog('Conectado como ' + usuarioId + ' (STATUS solicitado)', 'log-ok');
   });
   mqttClient.on('disconnect', () => setBadge('mqttBadge', 'Desconectado', 'badge-off'));
   mqttClient.on('offline', () => setBadge('mqttBadge', 'Offline', 'badge-err'));
